@@ -7,7 +7,7 @@ class WorkingInstruction_model extends CI_Model
 
     public function getAllWi($limit, $offset)
     {
-        $this->db->select('uuid as id, code, name, type, schema');
+        $this->db->select('uuid as id, code, name, type, schema, updated_at');
         $this->db->from($this->table);
         $this->db->limit($limit, $offset);
         $query = $this->db->get();

@@ -14,6 +14,12 @@ return new class extends Migration
         Schema::create('categories', function (Blueprint $table) {
             $table->uuid();
             $table->string('name')->nullable();
+            $table->string('created_by')->nullable();
+            $table->string('updated_by')->nullable();
+            $table->string('deleted_by')->nullable();
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
+            $table->dateTime('deleted_at')->nullable();
         });
     }
 

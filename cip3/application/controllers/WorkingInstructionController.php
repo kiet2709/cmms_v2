@@ -92,8 +92,9 @@ class WorkingInstructionController extends CI_Controller
         $meta = $data['meta'];
         $content = json_encode($data['content']);
 
+        //TODO: for audit
+        // $uuid = get_jwt_sub();
 
-        
 
         $this->db->insert('working_instructions', [
             'uuid' => $this->uuidv4(),
@@ -101,6 +102,8 @@ class WorkingInstructionController extends CI_Controller
             'type' => $meta['type'],
             'name' => $meta['description'],
             'schema' => $content,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
         $this->respond(200, [
