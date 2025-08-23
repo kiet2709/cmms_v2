@@ -101,19 +101,19 @@ const closeModal = () => {
       <table class="equipment-table">
         <thead>
           <tr>
-            <th>No.</th>
-            <th>Code</th>
+            <th>Task Code</th>
             <th>Description</th>
-            <th>Type</th>
+            <th>Daily Inspection / Maintainance</th>
+            <th>Timestamp</th>
             <th>View</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="item in data"  :key="item.uuid || item.id">
-            <td>{{ item.no }}</td>
             <td>{{ item.code }}</td>
             <td>{{ item.name }}</td>
             <td>{{ item.type }}</td>
+            <td>{{ item.updated_at }}</td>
             <td>
                 <span class="view-btn" @click="viewItem(item)">
                   <EyeOutlined />

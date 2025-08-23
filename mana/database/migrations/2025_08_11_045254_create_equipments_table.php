@@ -22,6 +22,12 @@ return new class extends Migration
             $table->unsignedBigInteger('history_count')->nullable(); // Operation count
             $table->string('unit')->nullable(); // Unit of measurement (shot, hour...)
             $table->string('category_id')->nullable();
+            $table->string('created_by')->nullable();
+            $table->string('updated_by')->nullable();
+            $table->string('deleted_by')->nullable();
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
+            $table->dateTime('deleted_at')->nullable();
             
         });
     }

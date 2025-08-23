@@ -350,11 +350,6 @@ const saveForm = async () => {
       meta: formMeta.value,
       content: JSON.parse(JSON.stringify(formItems.value)),
     };
-    // await axiosClient.post("/workinginstruction/save", payload);
-
-console.log('meta:', JSON.stringify(payload.meta, null, 2));
-console.log('content:', JSON.stringify(payload.content, null, 2));
-    
 
     await axiosClient.post(
       '',

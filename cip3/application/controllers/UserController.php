@@ -8,6 +8,7 @@ class UserController extends CI_Controller
         parent::__construct();
         $this->load->model('User_model');
         $this->load->library('JWT');
+        $this->load->helper('auth');
     }
 
     private function respond($status_code, $data)
@@ -22,51 +23,19 @@ class UserController extends CI_Controller
 
     public function getProfile()
     {
-        // Lấy Authorization header
-        $authHeader = $this->input->get_request_header('Authorization');
-        if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            $this->respond(404, ['error' => 'Authorization token not found']);
+        $uuid = get_jwt_sub();
+
+        $user = $this->User_model->find_by_uuid($uuid);
+        if (!$user) {
+            $this->respond(404, ['error' => 'User not found']);
         }
 
-        $token = $matches[1];
+        $role = $this->User_model->get_role($user['role_id']);
 
-        try {
-            // Giải mã token
-            $decoded = $this->jwt->decode($token);
-
-            // $this->respond(200, ['data' => $decoded]);
-
-            // Giả sử payload có uuid
-            $uuid = $decoded['sub'] ?? null;
-            // $this->respond(200, ['data' => $uuid]);
-            if (!$uuid) {
-                return $this->output
-                    ->set_status_header(400)
-                    ->set_content_type('application/json')
-                    ->set_output(json_encode(['error' => 'UUID not found in token']));
-            }
-
-            // Lấy user theo uuid
-            $user = $this->User_model->find_by_uuid($uuid);
-
-            if (!$user) {
-                $this->respond(404, ['error' => 'miss jwt']);
-            }
-
-            $role = $this->User_model->get_role($user['role_id']);
-
-            $data = [
-                'user' => $user,
-                'role' => $role->name,
-            ];
-
-            $this->respond(200, $data);
-
-
-
-        } catch (Exception $e) {
-            $this->respond(401, ['error' => 'Invalid token', 'message' => $e->getMessage()]);
-        }
+        $this->respond(200, [
+            'user' => $user,
+            'role' => $role->name,
+        ]);
     }
 
     public function getAllUsers()

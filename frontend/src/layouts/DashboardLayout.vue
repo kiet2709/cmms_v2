@@ -12,9 +12,9 @@
     </aside> -->
 
     <!-- Mobile: menu xổ dọc full-width (không dùng a-layout-sider) -->
-    <div v-if="isMobile && showSidebar" class="sidebar-mobile">
+    <!-- <div v-if="isMobile && showSidebar" class="sidebar-mobile">
       <SideBar :mobile="true" />
-    </div>
+    </div> -->
 
     <main class="main-content">
       <router-view />
