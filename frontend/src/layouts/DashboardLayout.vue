@@ -7,9 +7,9 @@
     </div>
 
     <!-- Desktop: sider cố định bên trái -->
-    <aside v-if="!isMobile" class="sidebar-desktop">
+    <!-- <aside v-if="!isMobile" class="sidebar-desktop">
       <SideBar />
-    </aside>
+    </aside> -->
 
     <!-- Mobile: menu xổ dọc full-width (không dùng a-layout-sider) -->
     <div v-if="isMobile && showSidebar" class="sidebar-mobile">
