@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-  baseURL: 'http://localhost/cip3/index.php', // thay bằng API thật
+  baseURL: 'http://localhost/cmms_v2/cip3/index.php', // thay bằng API thật
   headers: {
     'Content-Type': 'application/json',
   },
