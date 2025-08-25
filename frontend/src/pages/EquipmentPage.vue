@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axiosClient from '@/utils/axiosClient';
+import MasterPlan from './MasterPlan.vue';
 import { 
   EditOutlined, 
   DeleteOutlined, 
@@ -507,16 +508,14 @@ const breadcrumbItems = [
       v-model:open="showMasterPlanModal" 
       title="Equipment Master Plan" 
       @cancel="closeMasterPlan"
-      width="800px"
+      width="1400px"
       class="master-plan-modal"
     >
       <template #footer>
         <Button @click="closeMasterPlan">Close</Button>
       </template>
       <div class="master-plan-content">
-        <h3>Master Plan Details</h3>
-        <p><strong>Equipment UUID:</strong> {{ selectedUuid }}</p>
-        <p class="todo-note">TODO: Display comprehensive master plan details here</p>
+        <MasterPlan />
       </div>
     </Modal>
 
