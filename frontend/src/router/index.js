@@ -5,6 +5,7 @@ import ProfilePage from '@/pages/ProfilePage.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import { isTokenValid } from '@/utils/auth' // hàm kiểm tra token
 import TestPage from '../pages/TestPage.vue'
+import TestPageee from '../pages/TestPageee.vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import EquipmentPage from '../pages/EquipmentPage.vue'
 import CategoryPage from '../pages/CategoryPage.vue'
@@ -73,10 +74,15 @@ const routes = [
             name: 'CategoryPage',
             component: CategoryPage,
           },
+          // {
+          //   path: 'categories/add',
+          //   name: 'AddCategory',
+          //   component: AddCategoryPage,
+          // },
           {
-            path: 'categories/add',
-            name: 'AddCategory',
-            component: AddCategoryPage,
+            path: 'test',
+            name: 'Testpagee',
+            component: TestPageee,
           },
           {
             path: 'working-instructions',
