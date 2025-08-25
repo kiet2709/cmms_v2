@@ -25,6 +25,7 @@
         v-for="(item, index) in formItems"
         :key="item.id"   
         class="form-item"
+        :class="{ 'label-component': item.type === 'label' }"
       >
         <!-- Label Component -->
         <div v-if="item.type === 'label'">
@@ -32,10 +33,11 @@
             <option v-for="n in 6" :key="n" :value="'h' + n">H{{ n }}</option>
           </select>
           <input v-model="item.text" placeholder="Label text" />
-
-          <label><input type="checkbox" v-model="item.bold" /> Bold</label>
-          <label><input type="checkbox" v-model="item.italic" /> Italic</label>
-          <label><input type="checkbox" v-model="item.underline" /> Underline</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" v-model="item.bold" /> Bold</label>
+            <label><input type="checkbox" v-model="item.italic" /> Italic</label>
+            <label><input type="checkbox" v-model="item.underline" /> Underline</label>
+          </div>
         </div>
 
         <!-- Yes/No Question -->
@@ -76,15 +78,10 @@
     <!-- Right Panel: Preview -->
     <div class="preview">
       <h3>Form Preview</h3>
-            <!-- Input for Code -->
+      <!-- Input for Code -->
       <div class="meta-field">
         <label>Code</label>
-        <input v-model="formMeta.code" placeholder="Enter code..." />
-      </div>
-
-      <div class="meta-field">
-        <label>Description</label>
-        <input v-model="formMeta.description" placeholder="Enter description..." />
+        <input disabled v-model="generatedCode" placeholder="Enter code..." />
       </div>
 
       <!-- Dropdown for Type -->
@@ -98,6 +95,27 @@
           <option>Maintenance Level 3</option>
         </select>
       </div>
+
+      <!-- Dropdown for Category -->
+      <div class="meta-field">
+        <label>Category</label>
+        <select v-model="formMeta.category">
+          <option disabled value="">-- Select Category --</option>
+          <option 
+            v-for="cat in categories" 
+            :key="cat.code" 
+            :value="cat.code"
+          >
+            {{ cat.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="meta-field">
+        <label>Description</label>
+        <input v-model="formMeta.description" placeholder="Enter description..." />
+      </div>
+
       <button class="save-btn" @click="saveForm">💾 Save WI</button>
       <div v-for="(item, index) in formItems" :key="index">
         <!-- Render Label -->
@@ -151,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import axiosClient from "../utils/axiosClient"; // nhớ import axios client của bạn
 
 // danh sách các component có thể kéo thả
@@ -164,116 +182,50 @@ const components = ref([
   { type: "userImage", label: "User Image Upload" },
 ]);
 
+const categories = ref([]);
+
 // data form
 const dragged = ref(null);
 const formItems = ref([]);
 const formMeta = ref({
   code: "",
   type: "",
-  description: ""   // thêm
+  description: "",
+  category: ""
 });
 
-// methods
-// const saveForm = async () => {
-//   const payload = {
-//     code: formMeta.value.code,
-//     type: formMeta.value.type,
-//     schema: JSON.stringify(formItems.value),
-//   };
+// 📌 mapping type → prefix
+const typeMap = {
+  "Daily Inspection": "DI",
+  "Maintenance Level 1": "ML01",
+  "Maintenance Level 2": "ML02",
+  "Maintenance Level 3": "ML03",
+};
 
-//   console.log("Saving...", payload);
+// 📌 mapping category → suffix
+const categoryMap = {
+  "Injection mold": "AC",
+  "Tufting": "VT",
+  "Injection": "VI",
+  "Packaging": "VP",
+};
 
-//   try {
-//     await axiosClient.post("/wi", payload);
-//     alert("Saved!");
-//   } catch (err) {
-//     console.error(err);
-//   }
-// };
+// 📌 computed code
+const generatedCode = computed(() => {
+  const typeCode = typeMap[formMeta.value.type] || "";
+  const categoryCode = formMeta.value.category || "";
+  if (typeCode && categoryCode) {
+    return `${typeCode}-${categoryCode}-XXXXXX`;
+  }
+  return "";
+});
+
+// đồng bộ ra meta.code (để khi save gửi kèm)
+watch(generatedCode, (val) => {
+  formMeta.value.code = val;
+});
 
 
-
-
-
-
-
-// // Store file objects for staticImage items
-// const imageFiles = ref({}); // Object to map index to file object
-
-// // Methods
-// const saveForm = async () => {
-//   // Create a clean schema without base64 image data
-//   const cleanFormItems = formItems.value.map(item => {
-//     if (item.type === 'staticImage') {
-//       return { ...item, imageUrl: null }; // Clear imageUrl
-//     }
-//     return { ...item };
-//   });
-
-//   // Prepare FormData
-//   const formData = new FormData();
-  
-//   // Append JSON payload
-//   const payload = {
-//     code: formMeta.value.code,
-//     type: formMeta.value.type,
-//     description: formMeta.value.code, // Use code as description (per your template)
-//     schema: JSON.stringify(cleanFormItems),
-//   };
-//   formData.append('payload', JSON.stringify(payload));
-
-//   // Append images from staticImage items
-//   formItems.value.forEach((item, index) => {
-//     if (item.type === 'staticImage' && imageFiles.value[index]) {
-//       formData.append('images[]', imageFiles.value[index]);
-//     }
-//   });
-
-//   // Log FormData contents
-//   console.log('FormData being sent:');
-//   for (const [key, value] of formData.entries()) {
-//     if (key === 'payload') {
-//       console.log(`${key}:`, JSON.parse(value)); // Parse and log JSON payload
-//     } else if (key === 'images[]') {
-//       console.log(`${key}:`, value.name); // Log filename of each image
-//     }
-//   }
-
-//   try {
-//     const response = await axiosClient.post(
-//       '',
-//       formData,
-//       {
-//         params: {
-//           c: 'WorkingInstructionController',
-//           m: 'save'
-//         },
-//         headers: {
-//           'Content-Type': 'multipart/form-data',
-//         },
-//       }
-//     );
-
-//     // Log the API response
-//     console.log('API response:', response.data);
-
-//     // Update formItems with returned image paths
-//     const uploadedFiles = response.data.uploaded_files || [];
-//     let fileIndex = 0;
-//     formItems.value = formItems.value.map(item => {
-//       if (item.type === 'staticImage' && fileIndex < uploadedFiles.length) {
-//         return { ...item, imageUrl: uploadedFiles[fileIndex++] }; // Assign relative path
-//       }
-//       return item;
-//     });
-
-//     alert("Saved successfully!");
-//   } catch (err) {
-//     console.error("Error saving form:", err);
-//     console.log('Error details:', err.response?.data || err.message);
-//     alert("Failed to save form: " + (err.response?.data?.message || err.message));
-//   }
-// };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -286,10 +238,6 @@ const onImageUpload = async (event, index) => {
   form.append("file", file);
 
   try {
-    // const res = await axiosClient.post("/workinginstruction/upload", form, {
-    //   headers: { "Content-Type": "multipart/form-data" },
-    // });
-
     const res = await axiosClient.post(
       '',
       form,
@@ -347,7 +295,10 @@ const removeItem = async (index) => {
 const saveForm = async () => {
   try {
     const payload = {
-      meta: formMeta.value,
+      meta: {
+        ...formMeta.value,
+        category_code: formMeta.value.category, // gửi code
+      },
       content: JSON.parse(JSON.stringify(formItems.value)),
     };
 
@@ -365,11 +316,6 @@ const saveForm = async () => {
     console.error("Save failed:", err);
   }
 };
-
-
-
-
-
 
 
 
@@ -411,57 +357,33 @@ const onDrop = () => {
   dragged.value = null;
 };
 
-// const removeItem = (index) => {
-//   formItems.value.splice(index, 1);
-// };
 
-// const onImageUpload = (event, item) => {
-//   const file = event.target.files[0];
-//   if (file) {
-//     const reader = new FileReader();
-//     reader.onload = (e) => {
-//       item.imageUrl = e.target.result;
-//     };
-//     reader.readAsDataURL(file);
-//   }
-// };
+const getCategories = async () => {
+  try {
+    const res = await axiosClient.get('', {
+      params: {
+        c: 'CategoryController',
+        m: 'getAllCategories',
+        limit: 1000
+      }
+    });
+    categories.value = res.data.data; // giả sử API trả về [{id, name, code}]
+    console.log("Categories:", categories.value);
+  } catch (err) {
+    console.error("Load categories failed:", err);
+  }
+};
+
+onMounted(() => {
+  getCategories();
+});
+
 </script>
 
 
 <style>
 
-.meta-field {
-  margin-bottom: 10px;
-}
-.meta-field label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-.meta-field input,
-.meta-field select {
-  width: 100%;
-  padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-
-.save-btn {
-  margin-bottom: 10px;
-  padding: 6px 12px;
-  background: #2ecc71;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-.save-btn:hover {
-  background: #27ae60;
-}
-
-
+/* ===================== Layout ===================== */
 .container {
   display: flex;
   gap: 20px;
@@ -469,144 +391,182 @@ const onDrop = () => {
   font-family: Arial, sans-serif;
 }
 
-.left-panel, .form-builder, .preview {
+/* Panel styles */
+.left-panel,
+.form-builder,
+.preview {
   flex: 1;
-  border: 1px solid #ccc;
-  padding: 10px;
+  border: 1px solid #ddd;
+  padding: 15px;
   min-height: 500px;
-  background: #fdfdfd;
-  box-shadow: 0 0 5px rgba(0,0,0,0.1);
-  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Panel headers */
 h3 {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   font-size: 18px;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 5px;
+  font-weight: 600;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 6px;
 }
 
+/* ===================== Toolbox ===================== */
 .component {
-  padding: 8px;
-  border: 1px solid #aaa;
-  margin-bottom: 5px;
-  background: #f9f9f9;
+  padding: 10px;
+  border: 1px solid #bbb;
+  margin-bottom: 8px;
+  background: #fdfdfd;
   cursor: grab;
-  border-radius: 4px;
-  transition: background 0.2s;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  text-align: center;
+  font-weight: 500;
 }
 .component:hover {
-  background: #eee;
+  background: #f2f2f2;
+  border-color: #999;
 }
 
+/* ===================== Form Builder ===================== */
 .form-item {
-  border: 1px dashed #aaa;
-  margin-bottom: 10px;
-  padding: 10px;
-  position: relative;
+  border: 1px solid #ccc;
+  margin-bottom: 12px;
+  padding: 12px;
   background: #fafafa;
-  border-radius: 4px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
+.form-item input,
+.form-item textarea,
+.form-item select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+/* General label styling */
+.form-item label {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+/* Specific styling for label component checkbox group */
+.form-item.label-component .checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 15px; /* Space between each checkbox group (Bold, Italic, Underline) */
+  margin-top: 8px;
+}
+
+.form-item.label-component .checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* Reduced gap for closer checkbox-text alignment */
+}
+
+/* Remove button */
 .remove-btn {
-  margin-top: 5px;
-  padding: 4px 8px;
+  padding: 6px 10px;
   background: #e74c3c;
-  color: white;
+  color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
 }
 .remove-btn:hover {
   background: #c0392b;
 }
 
-.thumb {
-  max-width: 100%;
-  height: auto;
-  margin-top: 5px;
-  border-radius: 4px;
+/* ===================== Meta Fields ===================== */
+.meta-field {
+  margin-bottom: 12px;
+}
+.meta-field label {
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: block;
+}
+.meta-field input,
+.meta-field select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #bbb;
+  border-radius: 5px;
+  font-size: 14px;
 }
 
+/* Save button */
+.save-btn {
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  background: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+.save-btn:hover {
+  background: #27ae60;
+}
 
-
-
-/* ===================== Form Preview ===================== */
+/* ===================== Preview ===================== */
 .preview > div {
-  margin-bottom: 20px; /* Khoảng cách giữa các item */
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fcfcfc;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
-/* Tách riêng mỗi row trong preview */
 .preview p {
-  margin: 8px 0 4px 0; /* Khoảng cách trên/dưới cho câu hỏi */
+  margin: 8px 0 6px 0;
   font-weight: 500;
   font-size: 14px;
 }
 
-/* Checkbox và radio */
 .preview label {
   display: flex;
   align-items: center;
-  gap: 8px; /* Khoảng cách giữa checkbox/radio và text */
-  margin-bottom: 4px; /* Khoảng cách giữa các đáp án */
+  gap: 8px;
+  margin-bottom: 6px;
   font-size: 14px;
 }
 
-/* Thêm padding cho các loại input file hoặc hình ảnh */
 .preview input[type="file"] {
-  margin-top: 4px;
-  margin-bottom: 8px;
+  margin-top: 6px;
 }
 
-/* Hình ảnh */
 .preview img.thumb {
   display: block;
-  margin-top: 8px;
-  margin-bottom: 8px;
-  max-width: 80%;
+  margin-top: 10px;
+  max-width: 85%;
   border-radius: 6px;
   border: 1px solid #ccc;
 }
 
-/* Card-like style cho mỗi form item */
-.preview > div {
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background-color: #fcfcfc;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-/* Câu hỏi label */
+/* Heading spacing */
 .preview h1,
 .preview h2,
 .preview h3,
 .preview h4,
 .preview h5,
 .preview h6 {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  font-weight: 600;
 }
-
-/* Khoảng cách giữa các item của Multiple/Single choice */
-.preview .form-item-mc,
-.preview .form-item-sc {
-  margin-top: 6px;
-  margin-bottom: 12px;
-}
-
-/* Tăng khoảng cách dòng cho label */
-.preview p, 
-.preview label {
-  line-height: 1.6;
-}
-
-
-
-
-
-
-
-
 
 </style>

@@ -39,6 +39,8 @@ async function fetchCategories(page = 1, limit = 10) {
       no: (page - 1) * limit + index + 1,
       ...item
     }));
+    console.log(data.value);
+    
   } finally {
     loading.value = false;
   }
@@ -71,12 +73,14 @@ onMounted(() => {
         <thead>
           <tr>
             <th>No.</th>
+            <th>Code</th>
             <th>Category</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="item in data" :key="item.uuid">
             <td>{{ item.no }}</td>
+            <td>{{ item.code }}</td>
             <td>{{ item.name }}</td>
           </tr>
         </tbody>
