@@ -1,5 +1,5 @@
 <template>
-  <div class="master-plan-container">
+  <div>
     <!-- Main Content Grid -->
     <div class="content-grid">
       <!-- Inspection Code Section -->

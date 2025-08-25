@@ -3,10 +3,14 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axiosClient from '@/utils/axiosClient';
 import { 
-  EyeOutlined,
-  ReloadOutlined,
+  EditOutlined, 
+  DeleteOutlined, 
+  FileSearchOutlined, 
+  ExclamationCircleOutlined,
   PlusOutlined,
+  ReloadOutlined,
   FilterOutlined,
+  DownloadOutlined,
   HomeOutlined
 } from '@ant-design/icons-vue';
 import { 
@@ -16,8 +20,15 @@ import {
   Card, 
   Space, 
   Breadcrumb, 
+  Tooltip, 
+  Tag, 
   Dropdown, 
-  Select
+  Menu, 
+  Statistic,
+  Row,
+  Col,
+  Select,
+  DatePicker
 } from 'ant-design-vue';
 import FormViewer from './FormViewer.vue';
 
@@ -36,6 +47,10 @@ const pagination = ref({
   total: 0,
   totalPages: 0,
 });
+
+// modal delete
+const showDeleteModal = ref(false);
+const deleteTarget = ref(null);
 
 // Modal state
 const isModalOpen = ref(false);
@@ -93,6 +108,26 @@ const viewItem = (payload) => {
 const closeModal = () => {
   isModalOpen.value = false;
 };
+
+function confirmDelete(item) {
+  deleteTarget.value = item;
+  showDeleteModal.value = true;
+}
+
+function performDelete() {
+  if (deleteTarget.value) {
+    console.log('Deleting:', deleteTarget.value.uuid);
+    // TODO: gọi API xóa
+  }
+  showDeleteModal.value = false;
+  deleteTarget.value = null;
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false;
+  deleteTarget.value = null;
+}
+
 
 // Filter options
 const uniqueTypes = computed(() => [...new Set(data.value.map(item => item.type).filter(Boolean))]);
@@ -236,6 +271,7 @@ const breadcrumbItems = [
                 <th>Daily Inspection / Maintenance</th>
                 <th>Timestamp</th>
                 <th>View</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -249,6 +285,20 @@ const breadcrumbItems = [
                     <EyeOutlined />
                     View
                   </Button>
+                </td>
+                <td>
+                  <div class="action-buttons-cell">
+                    <Tooltip title="Edit Equipment">
+                      <Button type="text" @click="handleEdit(item.uuid)" class="edit-btn">
+                        <EditOutlined />
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title="Delete Equipment">
+                      <Button type="text" danger @click="confirmDelete(item)" class="delete-btn">
+                        <DeleteOutlined />
+                      </Button>
+                    </Tooltip>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -300,6 +350,37 @@ const breadcrumbItems = [
       </template>
       <FormViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
     </Modal>
+
+    <!-- Enhanced Delete Confirmation Modal -->
+    <Modal
+      v-model:open="showDeleteModal"
+      title="Confirm Equipment Deletion"
+      @ok="performDelete"
+      @cancel="cancelDelete"
+      ok-text="Yes, Delete"
+      cancel-text="Cancel"
+      ok-type="danger"
+      class="delete-modal"
+    >
+      <div class="delete-content">
+        <div class="warning-icon">
+          <ExclamationCircleOutlined />
+        </div>
+        <div class="warning-text">
+          <p>Are you sure you want to delete this equipment?</p>
+          <div class="equipment-info">
+            <strong>{{ deleteTarget?.type }}</strong>
+            <span class="equipment-details">
+              {{ deleteTarget?.code }} - {{ deleteTarget?.name }}
+            </span>
+          </div>
+          <p class="warning-note">This action cannot be undone.</p>
+        </div>
+      </div>
+    </Modal>
+
+
+
   </div>
 </template>
 
@@ -512,4 +593,70 @@ const breadcrumbItems = [
 .modern-table th {
   text-align: left !important;
 }
+
+/* Modal Styles */
+.master-plan-modal .ant-modal-header {
+  border-radius: 12px 12px 0 0;
+}
+
+.master-plan-content {
+  padding: 20px 0;
+}
+
+.todo-note {
+  color: #666;
+  font-style: italic;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  margin-top: 16px;
+}
+
+.delete-modal .ant-modal-header {
+  border-radius: 12px 12px 0 0;
+}
+
+.delete-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.warning-icon {
+  font-size: 24px;
+  color: #ff4d4f;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.warning-text {
+  flex: 1;
+}
+
+.equipment-info {
+  margin: 16px 0;
+  padding: 12px;
+  background: #fff2f0;
+  border-radius: 6px;
+  border-left: 3px solid #ff4d4f;
+}
+
+.equipment-info strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.equipment-details {
+  color: #666;
+  font-size: 14px;
+}
+
+.warning-note {
+  color: #999;
+  font-size: 13px;
+  margin: 16px 0 0 0;
+}
+
+
 </style>
