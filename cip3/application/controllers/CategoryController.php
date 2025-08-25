@@ -29,15 +29,15 @@ class CategoryController extends CI_Controller
         $offset = ($page - 1) * $limit;
 
         // Lấy dữ liệu phân trang
-        $users = $this->Category_model->getCategories($limit, $offset);
+        $categories = $this->Category_model->getCategories($limit, $offset);
         $total_items =  $this->Category_model->counts();
         $total_pages = ceil($total_items / $limit);
 
         $result = [
             'status' => 'success',
             'message' => 'Lấy dữ liệu thành công',
-            'data' => $users,
-            'total_items' => count($users),
+            'data' => $categories,
+            'total_items' => count($categories),
             'total_pages' => $total_pages,
             'total_in_all_page' => $total_items
         ];

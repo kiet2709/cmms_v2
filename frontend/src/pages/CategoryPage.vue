@@ -217,6 +217,8 @@ async function fetchCategories(page = 1, limit = 10) {
       no: (page - 1) * limit + index + 1,
       ...item
     }));
+    console.log(data.value);
+    
   } finally {
     loading.value = false;
   }

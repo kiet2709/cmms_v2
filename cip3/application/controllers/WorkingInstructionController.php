@@ -92,25 +92,50 @@ class WorkingInstructionController extends CI_Controller
         $meta = $data['meta'];
         $content = json_encode($data['content']);
 
+        // Lấy category_id từ code
+        $category = $this->db->get_where('categories', [
+            'code' => $meta['category_code']
+        ])->row_array();
+
+        if (!$category) {
+            return $this->respond(400, ['error' => 'Invalid category code']);
+        }
+
+        $category_id = $category['id'];
+
+        // Đếm số WI đã có trong DB
+        $count = $this->db->count_all('working_instructions');
+
+        // Sinh suffix với padding 6 chữ số
+        $suffix = str_pad($count + 1, 6, '0', STR_PAD_LEFT);
+
+        // Sinh code đầy đủ: TYPE-CATEGORY-XXXXXX
+        $final_code = $meta['code'];
+        // thay XXXXXX trong code bằng suffix
+        $final_code = preg_replace('/XXXXXX$/', $suffix, $final_code);        
+
+
         //TODO: for audit
         // $uuid = get_jwt_sub();
 
 
         $this->db->insert('working_instructions', [
             'uuid' => $this->uuidv4(),
-            'code' => $meta['code'],
-            'type' => $meta['type'],
-            'name' => $meta['description'],
+            'code'        => $final_code,
+            'type'        => $meta['type'],
+            'name'        => $meta['description'],
+            'category_id' => $category_id,
             'schema' => $content,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
         $this->respond(200, [
-            'code' => $meta['code'],
-            'type' => $meta['type'],
-            'name' => $meta['description'],
-            'schema' => $content,
+            'code'        => $final_code,
+            'type'        => $meta['type'],
+            'name'        => $meta['description'],
+            'category_id' => $category_id,
+            'schema'      => $content,
         ]);
 
         // return $this->output

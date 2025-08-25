@@ -6,7 +6,7 @@ class Category_model extends CI_Model {
 
     public function getCategories($limit, $offset)
     {
-        $this->db->select('uuid as id, name');
+        $this->db->select('uuid as id, name, code');
         $this->db->from($this->table);
         $this->db->limit($limit, $offset);
         $query = $this->db->get();
