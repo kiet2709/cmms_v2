@@ -23,7 +23,7 @@ onMounted(() => {
 
 <style scoped>
 .main-content {
-  padding-top: 81px; /* chừa khoảng cho header cố định */
+  padding-top: 60px; /* chừa khoảng cho header cố định */
   background-color: #B8C2CC;
 }
 </style>

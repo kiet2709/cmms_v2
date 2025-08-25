@@ -82,59 +82,12 @@
                   <td class="category-name">{{ item.name }}</td>
                   <td>
                     <div class="action-buttons">
-                      <!-- <button  @click="editCategory(index)" >
+                      <button class="edit-btn" @click="editCategory(index)" title="Edit">
                         <i class="btn-icon">✏️</i>
-                      </button> -->
-                      <!-- Nút Edit -->
-                      <EditOutlined class="edit-btn" title="Edit"
-                        style="cursor:pointer; margin-right: 8px;"
-                        @click="openEditModal(item)"
-                      />
-
-                      <!-- Modal Edit -->
-                      <a-modal
-                        v-model:open="showEditModal"
-                        title="Edit Category"
-                        @ok="submitEdit"
-                        @cancel="cancelEdit"
-                        ok-text="Save"
-                        cancel-text="Cancel"
-                      >
-                        <a-form layout="vertical">
-                          <a-form-item label="Category Name">
-                            <a-input v-model:value="editForm.name" placeholder="Enter category name" />
-                          </a-form-item>
-
-                          <a-form-item label="Description">
-                            <a-textarea v-model:value="editForm.description" rows="3" placeholder="Enter description" />
-                          </a-form-item>
-                        </a-form>
-                      </a-modal>
-                       <!-- Nút delete -->
-                      <DeleteOutlined 
-                        class="delete-btn" 
-                        style="cursor:pointer;" 
-                        @click="deleteCategory(item)" 
-                      />
-
-                      <!-- Modal xác nhận xoá -->
-                      <a-modal
-                        v-model:open="showDeleteModal"
-                        title="Confirm Delete"
-                        @ok="performDelete"
-                        @cancel="cancelDelete"
-                        ok-text="Yes, delete"
-                        cancel-text="Cancel"
-                      >
-                        <p>
-                          <ExclamationCircleOutlined style="color: red; margin-right: 8px;" />
-                          Are you sure you want to delete 
-                          <strong>{{ deleteTarget?.name }}</strong>?
-                        </p>
-                      </a-modal>
-                      <!-- <button class="delete-btn" @click="deleteCategory(index)" title="Delete">
+                      </button>
+                      <button class="delete-btn" @click="deleteCategory(index)" title="Delete">
                         <i class="btn-icon">🗑️</i>
-                      </button> -->
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -142,20 +95,19 @@
             </table>
           </div>
           <div class="pagination">
-            <button 
-              :disabled="pagination.current === 1" 
-              @click="handlePageChange(pagination.current - 1)">
-              Previous
-            </button>
-            <span>Page {{ pagination.current }} of {{ pagination.totalPages }}</span>
-            <button 
-              :disabled="pagination.current === pagination.totalPages" 
-              @click="handlePageChange(pagination.current + 1)">
-              Next
-            </button>
-          </div>
+          <button 
+            :disabled="pagination.current === 1" 
+            @click="handlePageChange(pagination.current - 1)">
+            Previous
+          </button>
+          <span>Page {{ pagination.current }} of {{ pagination.totalPages }}</span>
+          <button 
+            :disabled="pagination.current === pagination.totalPages" 
+            @click="handlePageChange(pagination.current + 1)">
+            Next
+          </button>
+    </div>
         </div>
-        
         
         <div v-else class="empty-state">
           <div class="empty-icon">📦</div>
@@ -164,7 +116,6 @@
         </div>
       </div>
     </div>
-     
   </div>
 </template>
 
@@ -181,9 +132,7 @@ const loading = ref(false);
 const data = ref([]);
 const categoryName = ref('');
 const categoryCode = ref('');
-const showDeleteModal = ref(false);
-const deleteTarget = ref(null)
-const showEditModal = ref(false)
+
 
 const pagination = ref({
   current: 1,
@@ -217,8 +166,6 @@ async function fetchCategories(page = 1, limit = 10) {
       no: (page - 1) * limit + index + 1,
       ...item
     }));
-    console.log(data.value);
-    
   } finally {
     loading.value = false;
   }
@@ -226,36 +173,6 @@ async function fetchCategories(page = 1, limit = 10) {
 
 function handlePageChange(newPage) {
   fetchCategories(newPage, pagination.value.pageSize);
-}
-const editForm = ref({
-  id: null,
-  name: '',
-  description: ''
-})
-
-function openEditModal(item) {
-  // copy dữ liệu từ item vào form
-  editForm.value = { ...item }
-  showEditModal.value = true
-}
-
-function submitEdit() {
-  console.log("Updating:", editForm.value)
-  // gọi API update category tại đây
-  showEditModal.value = false
-}
-
-function cancelEdit() {
-  showEditModal.value = false
-}
-// ✅ mở modal khi nhấn delete
-function deleteCategory(item) {
-  deleteTarget.value = item
-  showDeleteModal.value = true
-}
-function cancelDelete() {
-  showDeleteModal.value = false
-  deleteTarget.value = null
 }
 
 // Khi nhấn nút, chuyển route
@@ -298,26 +215,12 @@ function editCategory(index) {
     data.value[index].name = newName.trim();
   }
 }
-// ✅ gọi API xoá khi nhấn OK trên modal
-// async function performDelete() {
-//   if (!deleteTarget.value) return
-//   try {
-//     await axiosClient.post('', {
-//       c: 'CategoryController',
-//       m: 'deleteCategory',
-//       uuid: deleteTarget.value.uuid,
-//     })
-//     data.value = data.value.filter(c => c.uuid !== deleteTarget.value.uuid)
-//   } catch (err) {
-//     console.error(err)
-//     alert('Error deleting category')
-//   } finally {
-//     showDeleteModal.value = false
-//     deleteTarget.value = null
-//   }
-// }
 
-
+function deleteCategory(index) {
+  if (confirm("Are you sure you want to delete this category?")) {
+    data.value.splice(index, 1);
+  }
+}
 
 </script>
 

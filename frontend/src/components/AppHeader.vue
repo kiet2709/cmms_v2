@@ -10,26 +10,32 @@
     <nav class="header-center">
       <ul class="menu">
         <li class="menu-item" :class="{ active: selectedKey.startsWith('/dashboard/equipments') }">
-          <span>Equipment ▾</span>
+          <span>Equipment</span>
           <ul class="submenu">
             <li @click="onMenuClick('/dashboard/equipments')">List equipments</li>
             <li @click="onMenuClick('/dashboard/equipments/add')">Add equipment</li>
           </ul>
         </li>
 
-        <li class="menu-item" :class="{ active: selectedKey.startsWith('/dashboard/categories') }">
-          <span>Category ▾</span>
-          <ul class="submenu">
+        <li class="menu-item" @click="onMenuClick('/dashboard/categories')"  :class="{ active: selectedKey.startsWith('/dashboard/categories') } ">
+          <span>Category</span>
+          <!-- <ul class="submenu">
             <li @click="onMenuClick('/dashboard/categories')">List categories</li>
             <li @click="onMenuClick('/dashboard/categories/add')">Add category</li>
-          </ul>
+          </ul> -->
         </li>
 
         <li class="menu-item" :class="{ active: selectedKey.startsWith('/dashboard/working-instructions') }">
-          <span>Working Instructions ▾</span>
+          <span>Working Instructions</span>
           <ul class="submenu">
             <li @click="onMenuClick('/dashboard/working-instructions')">List working instructions</li>
             <li @click="onMenuClick('/dashboard/working-instructions/add')">Add working instruction</li>
+          </ul>
+        </li>
+        <li class="menu-item" :class="{ active: selectedKey.startsWith('/dashboard/test') }">
+          <span>test</span>
+          <ul class="submenu">
+            <li @click="onMenuClick('/dashboard/test')">cate</li>
           </ul>
         </li>
       </ul>
