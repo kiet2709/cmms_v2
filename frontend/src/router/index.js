@@ -6,9 +6,11 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import { isTokenValid } from '@/utils/auth' // hàm kiểm tra token
 import TestPage from '../pages/TestPage.vue'
 import TestPageee from '../pages/TestPageee.vue'
+import UserPage from '../pages/UserPage.vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import EquipmentPage from '../pages/EquipmentPage.vue'
 import CategoryPage from '../pages/CategoryPage.vue'
+import PermissionPage from '../pages/PermissionPage.vue'
 import DailyPlanPage from '../pages/DailyPlanPage.vue'
 import DailyPlanDetailPage from '../pages/DailyPlanDetailPage.vue'
 import FormByPlanDetailPage from '../pages/FormByPlanDetailPage.vue'
@@ -83,6 +85,16 @@ const routes = [
             path: 'test',
             name: 'Testpagee',
             component: TestPageee,
+          },
+          {
+            path: 'user',
+            name: 'UserPage',
+            component: UserPage,
+          },
+          {
+            path: 'user/permission',
+            name: 'PermissionPage',
+            component: PermissionPage,
           },
           {
             path: 'working-instructions',
