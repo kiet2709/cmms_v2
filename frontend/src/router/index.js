@@ -4,30 +4,20 @@ import MainPage from '@/pages/MainPage.vue'
 import ProfilePage from '@/pages/ProfilePage.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import { isTokenValid } from '@/utils/auth' // hàm kiểm tra token
-import TestPage from '../pages/TestPage.vue'
+
 import TestPageee from '../pages/TestPageee.vue'
 import DashboardLayout from '@/layouts/DashboardLayout.vue'
 import EquipmentPage from '../pages/EquipmentPage.vue'
 import CategoryPage from '../pages/CategoryPage.vue'
-import DailyPlanPage from '../pages/DailyPlanPage.vue'
-import DailyPlanDetailPage from '../pages/DailyPlanDetailPage.vue'
-import FormByPlanDetailPage from '../pages/FormByPlanDetailPage.vue'
-import ListForms from '../pages/ListForms.vue'
-import FormItemsPage from '../pages/FormItemsPage.vue'
-import DailyTaskTodayPage from '../pages/DailyTaskTodayPage.vue'
-import HistoryDailyTaskPage from '../pages/HistoryDailyTaskPage.vue'
-import HistoryDailyTaskItemPage from '../pages/HistoryDailyTaskItemPage.vue'
-import DailyTaskTodayItemPage from '../pages/DailyTaskTodayItemPage.vue'
-import DailyFormByTaskDetailPage from '../pages/DailyFormByTaskDetailPage.vue'
-import FormByHistoryDailyTaskItemPage from '../pages/FormByHistoryDailyTaskItemPage.vue'
-import TestMachinePage from '../pages/AddEquipmentPage.vue'
-import FormFlexiblePage from '../pages/AddWorkingInstructionPage.vue'
+
 import FormViewer from '../pages/FormViewer.vue'
 import AddEquipmentPage from '../pages/AddEquipmentPage.vue'
 import AddCategoryPage from '../pages/AddCategoryPage.vue'
 import AddWorkingInstructionPage from '../pages/AddWorkingInstructionPage.vue'
 import WorkingInstructionPage from '../pages/WorkingInstructionPage.vue'
 import UpdateEquipmentPage from '../pages/UpdateEquipmentPage.vue'
+import TodayEquipment from '../pages/TodayEquipment.vue'
+import DailyInspectionPage from '../pages/DailyInspectionPage.vue'
 
 const routes = [
   {
@@ -93,6 +83,16 @@ const routes = [
             path: 'working-instructions/add',
             name: 'AddWorkingInstruction',
             component: AddWorkingInstructionPage,
+          },
+          {
+            path: 'tasks/daily',
+            name: 'TodayEquipment',
+            component: TodayEquipment,
+          },
+          {
+            path: 'tasks/daily/:uuid',
+            name: 'DailyInspection',
+            component: DailyInspectionPage,
           },
           {
             path: 'form2',

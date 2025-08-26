@@ -28,4 +28,34 @@ class Equipment_model extends CI_Model {
         $query = $this->db->get();
         return $query->result_array();
     }
+
+    public function insertEquipment($data) {
+        return $this->db->insert('equipments', $data);
+    }
+
+    public function insertWorkingInstructions($equipmentId, $wiList) {
+        if (empty($wiList)) return;
+
+        $batch = [];
+        foreach ($wiList as $wiId) {
+            $batch[] = [
+                'equipment_id'       => $equipmentId,
+                'working_instruction_id' => $wiId,
+                'created_at'         => date('Y-m-d H:i:s')
+            ];
+        }
+        $this->db->insert_batch('equipment_working_instructions', $batch);
+    }
+
+        private function generate_uuid() {
+        return sprintf(
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
+
 }

@@ -62,4 +62,75 @@ class EquipmentController extends CI_Controller
                     ->set_output(json_encode($result));
     }
 
+
+
+
+
+      public function createEquipment() {
+        // $post = json_decode(file_get_contents('php://input'), true);
+        $post = $_REQUEST['payload'] ?? null;
+        if (empty($post['data'])) {
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => 'error',
+                    'message' => $post
+                ]));
+        }
+
+        $data = $post['data'];
+
+        // build equipment data
+        $equipmentData = [
+            'uuid'              => $this->uuidv4(),
+            'machine_id'      => $data['machineId'] ?? null,
+            'model'           => $data['model'] ?? null,
+            'family'          => $data['family'] ?? null,
+            'manufacturing_date'=> $data['manufactureDate'] ?? null,
+            'manufacturer'    => $data['manufacturer'] ?? null,
+            'history_count'   => $data['historyCount'] ?? null,
+            'unit'            => $data['unit'] ?? null,
+            'category_id'        => $data['category'] ?? null,
+            'created_at'      => date('Y-m-d H:i:s'),
+            'updated_at'      => date('Y-m-d H:i:s'),
+        ];
+
+        $this->db->trans_start();
+        $this->Equipment_model->insertEquipment($equipmentData);
+
+        // insert mapping
+        $this->Equipment_model->insertWorkingInstructions($equipmentData['uuid'], $data['inspectionCodes'] ?? []);
+        $this->Equipment_model->insertWorkingInstructions($equipmentData['uuid'], $data['maintenanceLevel1'] ?? []);
+        $this->Equipment_model->insertWorkingInstructions($equipmentData['uuid'], $data['maintenanceLevel2'] ?? []);
+        $this->Equipment_model->insertWorkingInstructions($equipmentData['uuid'], $data['maintenanceLevel3'] ?? []);
+        $this->db->trans_complete();
+
+        if ($this->db->trans_status() === FALSE) {
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => 'error',
+                    'message' => 'Insert failed'
+                ]));
+        }
+
+        return $this->output
+            ->set_content_type('application/json')
+            ->set_output(json_encode([
+                'status' => 'success',
+                'message' => 'Equipment created successfully',
+                'equipment_id' => $equipmentData['id']
+            ]));
+    }
+
+    private function uuidv4() {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
+    }
+
 }

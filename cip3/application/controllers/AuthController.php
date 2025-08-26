@@ -21,6 +21,7 @@ class AuthController extends CI_Controller
     {
         parent::__construct();
         $this->load->model('User_model');
+        $this->load->model('DailyTask_model');
         $this->load->library('JWT');
     }
 
@@ -63,6 +64,8 @@ class AuthController extends CI_Controller
             'accessToken' => $token,
             'expires_in' => 2 * 60 * 60
         ];
+
+        $this->DailyTask_model->insert_daily_tasks();
 
         // Trả JSON response
         header('Content-Type: application/json');

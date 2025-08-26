@@ -101,7 +101,9 @@ class WorkingInstructionController extends CI_Controller
             return $this->respond(400, ['error' => 'Invalid category code']);
         }
 
-        $category_id = $category['id'];
+        $category_id = $category['uuid'];
+
+
 
         // Đếm số WI đã có trong DB
         $count = $this->db->count_all('working_instructions');
