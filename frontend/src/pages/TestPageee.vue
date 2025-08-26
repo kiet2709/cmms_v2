@@ -1,753 +1,693 @@
-<script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import axiosClient from '@/utils/axiosClient';
-import MasterPlan from './MasterPlan.vue';
-import { 
-  EditOutlined, 
-  DeleteOutlined, 
-  FileSearchOutlined, 
-  ExclamationCircleOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-  FilterOutlined,
-  DownloadOutlined,
-  HomeOutlined
-} from '@ant-design/icons-vue';
-import { 
-  Modal, 
-  Button, 
-  Input, 
-  Card, 
-  Space, 
-  Breadcrumb, 
-  Tooltip, 
-  Tag, 
-  Dropdown, 
-  Menu, 
-  Statistic,
-  Row,
-  Col,
-  Select,
-  DatePicker
-} from 'ant-design-vue';
 
-const router = useRouter();
-const loading = ref(false);
-const data = ref([]);
-const searchQuery = ref('');
-const selectedRowKeys = ref([]);
-const filterVisible = ref(false);
-const filters = ref({
-  family: null,
-  category: null,
-  dateRange: null
-});
-
-const pagination = ref({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  totalPages: 0,
-});
-
-const showMasterPlanModal = ref(false);
-const selectedUuid = ref(null);
-
-// modal delete
-const showDeleteModal = ref(false);
-const deleteTarget = ref(null);
-
-// Statistics
-const stats = computed(() => ({
-  total: data.value.length,
-  categories: [...new Set(data.value.map(item => item.category))].length,
-  families: [...new Set(data.value.map(item => item.family))].length,
-  avgHistoryCount: data.value.length > 0 ? Math.round(data.value.reduce((sum, item) => sum + (Number(item.history_count) || 0), 0) / data.value.length) : 0
-}));
-
-async function fetchEquipments(page = 1, limit = 10) {
-  loading.value = true;
-  try {
-    const res = await axiosClient.get('', {
-      params: {
-        c: 'EquipmentController',
-        m: 'getAllEquipments',
-        page,
-        limit,
-      }
-    });
-    const apiData = res.data.data || [];
-    const totalItems = res.data.total_in_all_page || 0;
-    const totalPages = res.data.total_pages || 1;
-
-    pagination.value.total = totalItems;
-    pagination.value.current = page;
-    pagination.value.pageSize = limit;
-    pagination.value.totalPages = totalPages;
-
-    data.value = apiData.map((item, index) => ({
-      no: (page - 1) * limit + index + 1,
-      task: null,
-      ...item
-    }));
-  } finally {
-    loading.value = false;
-  }
-}
-
-function handlePageChange(newPage) {
-  fetchEquipments(newPage, pagination.value.pageSize);
-}
-
-function handleEdit(uuid) {
-  router.push({ name: 'UpdateEquipment', params: { uuid } });
-}
-
-function confirmDelete(item) {
-  deleteTarget.value = item;
-  showDeleteModal.value = true;
-}
-
-function performDelete() {
-  if (deleteTarget.value) {
-    console.log('Deleting:', deleteTarget.value.uuid);
-    // TODO: gọi API xóa
-  }
-  showDeleteModal.value = false;
-  deleteTarget.value = null;
-}
-
-function cancelDelete() {
-  showDeleteModal.value = false;
-  deleteTarget.value = null;
-}
-
-function openMasterPlan(uuid) {
-  selectedUuid.value = uuid;
-  showMasterPlanModal.value = true;
-}
-
-function closeMasterPlan() {
-  showMasterPlanModal.value = false;
-  selectedUuid.value = null;
-}
-
-function handleRefresh() {
-  fetchEquipments(pagination.value.current, pagination.value.pageSize);
-}
-
-function handleAddNew() {
-  router.push({ name: 'CreateEquipment' });
-}
-
-function handleExport() {
-  // TODO: Implement export functionality
-  console.log('Exporting data...');
-}
-
-// filter tại chỗ (trên data page hiện tại)
-const filteredData = computed(() => {
-  let filtered = data.value;
-  
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(item => 
-      (item.machine_id && item.machine_id.toLowerCase().includes(q)) ||
-      (item.family && item.family.toLowerCase().includes(q)) ||
-      (item.model && item.model.toLowerCase().includes(q)) ||
-      (item.manufacturing_date && item.manufacturing_date.toLowerCase().includes(q))
-    );
-  }
-
-  // Apply filters
-  if (filters.value.family) {
-    filtered = filtered.filter(item => item.family === filters.value.family);
-  }
-  
-  if (filters.value.category) {
-    filtered = filtered.filter(item => item.category === filters.value.category);
-  }
-
-  return filtered;
-});
-
-function formatNumber(num) {
-  if (num === null || num === undefined) return '';
-  return Number(num).toLocaleString();
-}
-
-const sortConfig = ref({ key: null, order: null }); 
-
-function sortBy(key) {
-  if (sortConfig.value.key === key) {
-    sortConfig.value.order = sortConfig.value.order === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortConfig.value.key = key;
-    sortConfig.value.order = 'asc';
-  }
-}
-
-const sortedData = computed(() => {
-  let arr = [...filteredData.value];
-  if (!sortConfig.value.key) return arr;
-
-  return arr.sort((a, b) => {
-    let valA = a[sortConfig.value.key];
-    let valB = b[sortConfig.value.key];
-
-    if (sortConfig.value.key === 'history_count') {
-      valA = Number(valA);
-      valB = Number(valB);
-    }
-
-    if (sortConfig.value.key === 'manufacturing_date') {
-      valA = new Date(valA);
-      valB = new Date(valB);
-    }
-
-    if (valA < valB) return sortConfig.value.order === 'asc' ? -1 : 1;
-    if (valA > valB) return sortConfig.value.order === 'asc' ? 1 : -1;
-    return 0;
-  });
-});
-
-// Get unique values for filter options
-const uniqueFamilies = computed(() => [...new Set(data.value.map(item => item.family).filter(Boolean))]);
-const uniqueCategories = computed(() => [...new Set(data.value.map(item => item.category).filter(Boolean))]);
-
-function clearFilters() {
-  filters.value = {
-    family: null,
-    category: null,
-    dateRange: null
-  };
-  filterVisible.value = false;
-}
-
-function getCategoryColor(category) {
-  const colors = {
-    'Production': 'green',
-    'Maintenance': 'orange', 
-    'Testing': 'blue',
-    'Quality': 'purple',
-    'default': 'default'
-  };
-  return colors[category] || colors.default;
-}
-
-onMounted(() => {
-  fetchEquipments(pagination.value.current, pagination.value.pageSize);
-});
-
-const breadcrumbItems = [
-  {
-    title: 'Dashboard',
-    path: '/dashboard'
-  },
-  {
-    title: 'Equipment Management'
-  }
-];
-</script>
 
 <template>
-  <div class="equipment-management">
-    <!-- Breadcrumb -->
-    <Breadcrumb class="breadcrumb-nav">
-      <Breadcrumb.Item>
-        <router-link to="/">
-          <HomeOutlined />
-          <span>Home</span>
-        </router-link>
-      </Breadcrumb.Item>
-      <Breadcrumb.Item v-for="item in breadcrumbItems" :key="item.title">
-        <router-link v-if="item.path" :to="item.path">{{ item.title }}</router-link>
-        <span v-else>{{ item.title }}</span>
-      </Breadcrumb.Item>
-    </Breadcrumb>
-
-    <!-- Page Header -->
-    <div class="page-header">
+  <div class="auth-management">
+    <!-- Header -->
+    <div class="header">
       <div class="header-content">
-        <div class="title-section">
-          <h1>Equipment Management</h1>
-          <p class="subtitle">Manage and monitor your equipment inventory</p>
-        </div>
-        <div class="action-buttons">
-          <Space>
-            <Button @click="handleRefresh" :loading="loading">
-              <ReloadOutlined />
-              Refresh
-            </Button>
-            <!-- <Button @click="handleExport" icon="download">
-              <DownloadOutlined />
-              Export
-            </Button> -->
-            <Button type="primary" @click="handleAddNew">
-              <PlusOutlined />
-              Add Equipment
-            </Button>
-          </Space>
+        <i class="fas fa-shield-alt header-icon"></i>
+        <div>
+          <h1>Authorization Management</h1>
+          <p>Manage user permissions and access control</p>
         </div>
       </div>
     </div>
 
-
-    <!-- Main Content Card -->
-    <Card class="main-content-card">
-      <!-- Search and Filter Bar -->
-      <div class="toolbar">
-        <div class="search-section">
-          <Input.Search
-            v-model:value="searchQuery"
-            placeholder="Search equipment by ID, family, model, or date..."
-            size="large"
-            class="search-input"
-            allow-clear
-          />
+    <!-- Main Content -->
+    <div class="main-container">
+      <!-- Sidebar - Account Types -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <i class="fas fa-users"></i>
+          <h2>Account Types</h2>
         </div>
-        <div class="filter-section">
-          <Space>
-            <Dropdown 
-              v-model:open="filterVisible" 
-              placement="bottomRight"
-              trigger="click"
+        <div class="account-types">
+          <div 
+            v-for="accountType in accountTypes" 
+            :key="accountType.id"
+            class="account-type"
+            :class="{ active: selectedAccountType?.id === accountType.id }"
+            @click="selectAccountType(accountType)"
+          >
+            <i :class="accountType.icon"></i>
+            <div class="account-info">
+              <span class="account-name">{{ accountType.name }}</span>
+              <span class="account-desc">{{ accountType.description }}</span>
+            </div>
+            <div class="account-badge">{{ accountType.userCount }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content - Permissions -->
+      <div class="content-area">
+        <div v-if="!selectedAccountType" class="empty-state">
+          <i class="fas fa-hand-point-left"></i>
+          <h3>Select an Account Type</h3>
+          <p>Choose an account type from the sidebar to manage permissions</p>
+        </div>
+
+        <div v-else class="permissions-container">
+          <div class="content-header">
+            <div class="account-selected">
+              <i :class="selectedAccountType.icon"></i>
+              <div>
+                <h2>{{ selectedAccountType.name }} Permissions</h2>
+                <p>Configure access permissions for {{ selectedAccountType.name.toLowerCase() }} accounts</p>
+              </div>
+            </div>
+            <button class="save-btn" @click="savePermissions">
+              <i class="fas fa-save"></i>
+              Save Changes
+            </button>
+          </div>
+
+          <div class="permissions-grid">
+            <div 
+              v-for="resource in resources" 
+              :key="resource.id"
+              class="permission-card"
             >
-              <Button>
-                <FilterOutlined />
-                Filters
-                <span v-if="filters.family || filters.category" class="filter-badge">●</span>
-              </Button>
-              <template #overlay>
-                <div class="filter-dropdown">
-                  <div class="filter-group">
-                    <label>Family</label>
-                    <Select
-                      v-model:value="filters.family"
-                      placeholder="Select family"
-                      allow-clear
-                      style="width: 200px"
-                    >
-                      <Select.Option v-for="family in uniqueFamilies" :key="family" :value="family">
-                        {{ family }}
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div class="filter-group">
-                    <label>Category</label>
-                    <Select
-                      v-model:value="filters.category"
-                      placeholder="Select category"
-                      allow-clear
-                      style="width: 200px"
-                    >
-                      <Select.Option v-for="category in uniqueCategories" :key="category" :value="category">
-                        {{ category }}
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div class="filter-actions">
-                    <Button size="small" @click="clearFilters">Clear All</Button>
-                  </div>
+              <div class="card-header">
+                <i :class="resource.icon"></i>
+                <div>
+                  <h3>{{ resource.name }}</h3>
+                  <p>{{ resource.description }}</p>
                 </div>
-              </template>
-            </Dropdown>
-          </Space>
-        </div>
-      </div>
+              </div>
 
-      <!-- Results Info -->
-      <div class="results-info">
-        <span>Showing {{ sortedData.length }} of {{ pagination.total }} equipment</span>
-      </div>
-
-      <!-- Equipment Table -->
-      <div class="table-container" :class="{ 'loading': loading }">
-        <div v-if="loading" class="loading-overlay">
-          <div class="loading-spinner">Loading...</div>
-        </div>
-        
-        <div class="table-responsive">
-          <table class="modern-table">
-            <thead>
-              <tr>
-                <th class="sortable" @click="sortBy('machine_id')">
-                  <div class="th-content">
-                    Machine ID
-                    <span class="sort-indicator">
-                      <span v-if="sortConfig.key !== 'machine_id'">⇅</span>
-                      <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
-                      <span v-else class="sort-desc">↓</span>
-                    </span>
+              <div class="permissions-list">
+                <div 
+                  v-for="permission in permissions" 
+                  :key="permission.id"
+                  class="permission-item"
+                >
+                  <div class="permission-info">
+                    <i :class="permission.icon"></i>
+                    <span>{{ permission.name }}</span>
                   </div>
-                </th>
-                <th>Family</th>
-                <th>Model</th>
-                <th>Cavity</th>
-                <th>Manufacturer</th>
-                <th class="sortable" @click="sortBy('manufacturing_date')">
-                  <div class="th-content">
-                    Manufacturing Date
-                    <span class="sort-indicator">
-                      <span v-if="sortConfig.key !== 'manufacturing_date'">⇅</span>
-                      <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
-                      <span v-else class="sort-desc">↓</span>
-                    </span>
-                  </div>
-                </th>
-                <th class="sortable" @click="sortBy('history_count')">
-                  <div class="th-content">
-                    History Count
-                    <span class="sort-indicator">
-                      <span v-if="sortConfig.key !== 'history_count'">⇅</span>
-                      <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
-                      <span v-else class="sort-desc">↓</span>
-                    </span>
-                  </div>
-                </th>
-                <th>Unit</th>
-                <th>Category</th>
-                <th>Master Plan</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in sortedData" :key="item.uuid" class="table-row">
-                <td class="machine-id">
-                  <strong>{{ item.machine_id }}</strong>
-                </td>
-                <td>{{ item.family }}</td>
-                <td>{{ item.model }}</td>
-                <td>{{ item.cavity }}</td>
-                <td>{{ item.manufacturer }}</td>
-                <td>{{ item.manufacturing_date }}</td>
-                <td class="history-count">{{ formatNumber(item.history_count) }}</td>
-                <td>{{ item.unit }}</td>
-                <td>
-                  <Tag :color="getCategoryColor(item.category)">
-                    {{ item.category }}
-                  </Tag>
-                </td>
-                <td>
-                  <Button type="link" @click="openMasterPlan(item.uuid)" class="view-plan-btn">
-                    <FileSearchOutlined />
-                    View
-                  </Button>
-                </td>
-                <td>
-                  <div class="action-buttons-cell">
-                    <Tooltip title="Edit Equipment">
-                      <Button type="text" @click="handleEdit(item.uuid)" class="edit-btn">
-                        <EditOutlined />
-                      </Button>
-                    </Tooltip>
-                    <Tooltip title="Delete Equipment">
-                      <Button type="text" danger @click="confirmDelete(item)" class="delete-btn">
-                        <DeleteOutlined />
-                      </Button>
-                    </Tooltip>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Empty State -->
-        <div v-if="!loading && sortedData.length === 0" class="empty-state">
-          <div class="empty-content">
-            <FileSearchOutlined class="empty-icon" />
-            <h3>No equipment found</h3>
-            <p>Try adjusting your search criteria or add new equipment</p>
-            <Button type="primary" @click="handleAddNew">
-              <PlusOutlined />
-              Add Equipment
-            </Button>
+                  <label class="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      :checked="isPermissionGranted(resource.id, permission.id)"
+                      @change="togglePermission(resource.id, permission.id)"
+                    >
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Enhanced Pagination -->
-      <div class="pagination-container">
-        <div class="pagination-info">
-          <span>
-            Showing {{ (pagination.current - 1) * pagination.pageSize + 1 }} to 
-            {{ Math.min(pagination.current * pagination.pageSize, pagination.total) }} 
-            of {{ pagination.total }} results
-          </span>
-        </div>
-        <div class="pagination-controls">
-          <Button 
-            :disabled="pagination.current === 1" 
-            @click="handlePageChange(pagination.current - 1)"
-            class="pagination-btn"
-          >
-            Previous
-          </Button>
-          
-          <div class="page-numbers">
-            <span class="current-page">{{ pagination.current }}</span>
-            <span class="page-separator">of</span>
-            <span class="total-pages">{{ pagination.totalPages }}</span>
-          </div>
-          
-          <Button 
-            :disabled="pagination.current === pagination.totalPages" 
-            @click="handlePageChange(pagination.current + 1)"
-            class="pagination-btn"
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-    </Card>
-
-    <!-- Master Plan Modal -->
-    <Modal 
-      v-model:open="showMasterPlanModal" 
-      title="Equipment Master Plan" 
-      @cancel="closeMasterPlan"
-      width="1400px"
-      class="master-plan-modal"
-    >
-      <template #footer>
-        <Button @click="closeMasterPlan">Close</Button>
-      </template>
-      <div class="master-plan-content">
-        <MasterPlan />
-      </div>
-    </Modal>
-
-    <!-- Enhanced Delete Confirmation Modal -->
-    <Modal
-      v-model:open="showDeleteModal"
-      title="Confirm Equipment Deletion"
-      @ok="performDelete"
-      @cancel="cancelDelete"
-      ok-text="Yes, Delete"
-      cancel-text="Cancel"
-      ok-type="danger"
-      class="delete-modal"
-    >
-      <div class="delete-content">
-        <div class="warning-icon">
-          <ExclamationCircleOutlined />
-        </div>
-        <div class="warning-text">
-          <p>Are you sure you want to delete this equipment?</p>
-          <div class="equipment-info">
-            <strong>{{ deleteTarget?.machine_id }}</strong>
-            <span class="equipment-details">
-              {{ deleteTarget?.family }} - {{ deleteTarget?.model }}
-            </span>
-          </div>
-          <p class="warning-note">This action cannot be undone.</p>
-        </div>
-      </div>
-    </Modal>
+    <!-- Success Toast -->
+    <div v-if="showToast" class="toast">
+      <i class="fas fa-check-circle"></i>
+      <span>Permissions saved successfully!</span>
+    </div>
   </div>
 </template>
 
+<script>
+import { ref, reactive, computed } from 'vue'
+
+export default {
+  name: 'AuthorizationManagement',
+  setup() {
+    // Reactive data
+    const selectedAccountType = ref(null)
+    const showToast = ref(false)
+    
+    // Account Types
+    const accountTypes = reactive([
+      {
+        id: 1,
+        name: 'User',
+        description: 'Standard user access',
+        icon: 'fas fa-user',
+        userCount: 245
+      },
+      {
+        id: 2,
+        name: 'Manager',
+        description: 'Management level access',
+        icon: 'fas fa-user-tie',
+        userCount: 28
+      },
+      {
+        id: 3,
+        name: 'Admin',
+        description: 'Full system access',
+        icon: 'fas fa-user-shield',
+        userCount: 5
+      }
+    ])
+
+    // Resources that need authorization
+    const resources = reactive([
+      {
+        id: 1,
+        name: 'Master Data',
+        description: 'Core system data management',
+        icon: 'fas fa-database'
+      },
+      {
+        id: 2,
+        name: 'Master Plan',
+        description: 'Strategic planning and roadmaps',
+        icon: 'fas fa-project-diagram'
+      },
+      {
+        id: 3,
+        name: 'User Management',
+        description: 'User accounts and profiles',
+        icon: 'fas fa-users-cog'
+      },
+      {
+        id: 4,
+        name: 'Account Types',
+        description: 'Role and permission management',
+        icon: 'fas fa-key'
+      }
+    ])
+
+    // Available permissions
+    const permissions = reactive([
+      {
+        id: 1,
+        name: 'View',
+        icon: 'fas fa-eye'
+      },
+      {
+        id: 2,
+        name: 'Add',
+        icon: 'fas fa-plus'
+      },
+      {
+        id: 3,
+        name: 'Edit',
+        icon: 'fas fa-edit'
+      },
+      {
+        id: 4,
+        name: 'Delete',
+        icon: 'fas fa-trash'
+      }
+    ])
+
+    // Permission matrix (accountTypeId -> resourceId -> permissionId -> boolean)
+    const permissionMatrix = reactive({
+      1: { // User
+        1: { 1: true, 2: false, 3: false, 4: false }, // Master Data
+        2: { 1: true, 2: false, 3: false, 4: false }, // Master Plan
+        3: { 1: true, 2: false, 3: true, 4: false },  // User Management
+        4: { 1: false, 2: false, 3: false, 4: false } // Account Types
+      },
+      2: { // Manager
+        1: { 1: true, 2: true, 3: true, 4: false }, // Master Data
+        2: { 1: true, 2: true, 3: true, 4: true },  // Master Plan
+        3: { 1: true, 2: true, 3: true, 4: true },  // User Management
+        4: { 1: true, 2: false, 3: false, 4: false } // Account Types
+      },
+      3: { // Admin
+        1: { 1: true, 2: true, 3: true, 4: true }, // Master Data
+        2: { 1: true, 2: true, 3: true, 4: true }, // Master Plan
+        3: { 1: true, 2: true, 3: true, 4: true }, // User Management
+        4: { 1: true, 2: true, 3: true, 4: true }  // Account Types
+      }
+    })
+
+    // Methods
+    const selectAccountType = (accountType) => {
+      selectedAccountType.value = accountType
+    }
+
+    const isPermissionGranted = (resourceId, permissionId) => {
+      if (!selectedAccountType.value) return false
+      return permissionMatrix[selectedAccountType.value.id]?.[resourceId]?.[permissionId] || false
+    }
+
+    const togglePermission = (resourceId, permissionId) => {
+      if (!selectedAccountType.value) return
+      
+      const accountId = selectedAccountType.value.id
+      if (!permissionMatrix[accountId]) {
+        permissionMatrix[accountId] = {}
+      }
+      if (!permissionMatrix[accountId][resourceId]) {
+        permissionMatrix[accountId][resourceId] = {}
+      }
+      
+      permissionMatrix[accountId][resourceId][permissionId] = !permissionMatrix[accountId][resourceId][permissionId]
+    }
+
+    const savePermissions = () => {
+      // Simulate API call
+      showToast.value = true
+      setTimeout(() => {
+        showToast.value = false
+      }, 3000)
+    }
+
+    return {
+      selectedAccountType,
+      showToast,
+      accountTypes,
+      resources,
+      permissions,
+      permissionMatrix,
+      selectAccountType,
+      isPermissionGranted,
+      togglePermission,
+      savePermissions
+    }
+  }
+}
+</script>
+
 <style scoped>
-.equipment-management {
-  padding: 24px;
-  background: #f5f5f5;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.auth-management {
   min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.breadcrumb-nav {
-  margin-bottom: 24px;
-  font-size: 14px;
-}
-
-.breadcrumb-nav a {
-  color: #666;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.breadcrumb-nav a:hover {
-  color: #1890ff;
-}
-
-.page-header {
+/* Header */
+.header {
   background: white;
-  border-radius: 12px;
-  padding: 32px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
 .header-content {
+  max-width: 1400px;
+  margin: 0 auto;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 1rem;
 }
 
-.title-section h1 {
-  margin: 0 0 8px 0;
-  font-size: 32px;
-  font-weight: 600;
-  color: #1a1a1a;
+.header-icon {
+  font-size: 3rem;
+  color: rgb(58, 140, 255);
 }
 
-.subtitle {
+.header h1 {
+  color: rgb(58, 140, 255);
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.header p {
   color: #666;
-  font-size: 16px;
-  margin: 0;
+  font-size: 1.1rem;
 }
 
-.stats-row {
-  margin-bottom: 24px;
+/* Main Container */
+.main-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 2rem;
+  min-height: calc(100vh - 140px);
 }
 
-.stats-row .ant-card {
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+/* Sidebar */
+.sidebar {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  height: fit-content;
+  position: sticky;
+  top: 2rem;
 }
 
-.main-content-card {
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: none;
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+  color: rgb(58, 140, 255);
 }
 
-.toolbar {
+.sidebar-header i {
+  font-size: 1.5rem;
+}
+
+.sidebar-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.account-type {
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.account-type::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(58, 140, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.account-type:hover::before {
+  left: 100%;
+}
+
+.account-type:hover {
+  background: rgba(58, 140, 255, 0.08);
+  border-color: rgba(58, 140, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(58, 140, 255, 0.15);
+}
+
+.account-type.active {
+  background: rgb(58, 140, 255);
+  color: white;
+  border-color: rgb(58, 140, 255);
+  box-shadow: 0 8px 25px rgba(58, 140, 255, 0.3);
+}
+
+.account-type i {
+  font-size: 1.5rem;
+  width: 2rem;
+  text-align: center;
+}
+
+.account-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.account-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.account-desc {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.account-badge {
+  background: rgba(58, 140, 255, 0.2);
+  color: rgb(58, 140, 255);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.account-type.active .account-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Content Area */
+.content-area {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #999;
+  text-align: center;
+}
+
+.empty-state i {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  color: rgb(58, 140, 255);
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Content Header */
+.content-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  gap: 16px;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #f0f2f5;
 }
 
-.search-section {
-  flex: 1;
-  max-width: 400px;
+.account-selected {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.search-input {
-  border-radius: 8px;
+.account-selected i {
+  font-size: 2.5rem;
+  color: rgb(58, 140, 255);
 }
 
-.filter-section {
-  flex-shrink: 0;
+.account-selected h2 {
+  color: rgb(58, 140, 255);
+  font-size: 1.8rem;
+  margin-bottom: 0.25rem;
 }
 
-.filter-badge {
-  color: #1890ff;
-  margin-left: 4px;
+.account-selected p {
+  color: #666;
 }
 
-.filter-dropdown {
+.save-btn {
+  background: rgb(58, 140, 255);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(58, 140, 255, 0.3);
+}
+
+.save-btn:hover {
+  background: rgb(48, 120, 235);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(58, 140, 255, 0.4);
+}
+
+/* Permissions Grid */
+.permissions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+}
+
+.permission-card {
+  border: 2px solid #f0f2f5;
+  border-radius: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: #fafbfc;
+}
+
+.permission-card:hover {
+  border-color: rgba(58, 140, 255, 0.3);
+  box-shadow: 0 8px 25px rgba(58, 140, 255, 0.15);
+  transform: translateY(-3px);
+}
+
+.card-header {
   background: white;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-bottom: 2px solid #f0f2f5;
+}
+
+.card-header i {
+  font-size: 1.8rem;
+  color: rgb(58, 140, 255);
+}
+
+.card-header h3 {
+  color: rgb(58, 140, 255);
+  font-size: 1.3rem;
+  margin-bottom: 0.25rem;
+}
+
+.card-header p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.permissions-list {
+  padding: 1.5rem;
+}
+
+.permission-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #eee;
+  transition: all 0.2s ease;
+}
+
+.permission-item:last-child {
+  border-bottom: none;
+}
+
+.permission-item:hover {
+  background: rgba(58, 140, 255, 0.05);
+  margin: 0 -1rem;
+  padding: 1rem;
   border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 250px;
 }
 
-.filter-group {
-  margin-bottom: 16px;
-}
-
-.filter-group label {
-  display: block;
-  margin-bottom: 8px;
+.permission-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-weight: 500;
   color: #333;
 }
 
-.filter-actions {
-  border-top: 1px solid #f0f0f0;
-  padding-top: 12px;
-  text-align: right;
+.permission-info i {
+  font-size: 1.1rem;
+  color: rgb(58, 140, 255);
+  width: 1.5rem;
+  text-align: center;
 }
 
-.results-info {
-  margin-bottom: 16px;
-  color: #666;
-  font-size: 14px;
-}
-
-.table-container {
+/* Toggle Switch */
+.toggle-switch {
   position: relative;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #f0f0f0;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
 }
 
-.loading-overlay {
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
   position: absolute;
+  cursor: pointer;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+  background-color: rgb(58, 140, 255);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.slider:hover {
+  box-shadow: 0 0 0 3px rgba(58, 140, 255, 0.2);
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgb(58, 140, 255);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 10;
+  gap: 0.75rem;
+  box-shadow: 0 8px 25px rgba(58, 140, 255, 0.3);
+  animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+  z-index: 1000;
 }
 
-.loading-spinner {
-  padding: 20px;
-  font-size: 16px;
-  color: #666;
+.toast i {
+  font-size: 1.2rem;
 }
 
-.table-responsive {
-  overflow-x: auto;
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
-.modern-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  font-size: 16px;
-}
-
-.modern-table thead {
-  background: #fafafa;
-  border-bottom: 2px solid #f0f0f0;
-}
-
-.modern-table th {
-  padding: 16px 12px;
-  text-align: left;
-  font-weight: 600;
-  color: #333;
-  border-bottom: none;
-  white-space: nowrap;
-}
-
-.modern-table th.sortable {
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.2s;
-}
-
-.modern-table th.sortable:hover {
-  background: #f0f0f0;
-}
-
-.th-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sort-indicator {
-  margin-left: 8px;
-  font-size: 12px;
-  opacity: 0.6;
-}
-
-.sort-asc, .sort-desc {
-  color: #1890ff;
-  opacity: 1;
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .modern-table td {
@@ -922,61 +862,38 @@ const breadcrumbItems = [
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .main-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .permissions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
-  .equipment-management {
-    padding: 16px;
+  .main-container {
+    padding: 1rem;
   }
   
-  .header-content {
+  .header {
+    padding: 1.5rem;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+  }
+  
+  .content-header {
     flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
+    gap: 1rem;
+    align-items: flex-start;
   }
   
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
+  .permission-card {
+    min-width: unset;
   }
-  
-  .pagination-container {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-  }
-  
-  .stats-row {
-    margin-bottom: 16px;
-  }
-  
-  .stats-row .ant-col {
-    margin-bottom: 16px;
-  }
-  
-  .action-buttons-cell {
-    flex-direction: column;
-    align-items: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .modern-table th,
-  .modern-table td {
-    padding: 8px 6px;
-    font-size: 12px;
-  }
-  
-  .page-header {
-    padding: 20px;
-  }
-  
-  .title-section h1 {
-    font-size: 24px;
-  }
-}
-
-
-
-.sort-indicator {
-  display: inline-flex !important;
 }
 </style>

@@ -215,6 +215,7 @@ const sortedData = computed(() => {
 // Get unique values for filter options
 const uniqueFamilies = computed(() => [...new Set(data.value.map(item => item.family).filter(Boolean))]);
 const uniqueCategories = computed(() => [...new Set(data.value.map(item => item.category).filter(Boolean))]);
+const categories = ref([]);
 
 function clearFilters() {
   filters.value = {
@@ -223,6 +224,21 @@ function clearFilters() {
     dateRange: null
   };
   filterVisible.value = false;
+}
+
+const fetchCategoryData = async () => {
+    try {
+    const res = await axiosClient.get("", {
+      params: { c: "CategoryController", m: "getAllCategories", limit: 100000 },
+    });
+    if (res.data.status === "success") {
+      categories.value = res.data.data;
+      console.log('category: ' + uniqueCategories.value[0].name);
+      
+    }
+  } catch (e) {
+    console.error("Error fetching Category:", e);
+  }
 }
 
 function getCategoryColor(category) {

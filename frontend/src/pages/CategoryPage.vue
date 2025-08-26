@@ -77,7 +77,7 @@
               <tbody>
                 <tr v-for="(item, index) in data" :key="item.uuid" class="table-row">
                   <td>
-                    <span class="code-badge">{{ item.no }}</span>
+                    <span class="code-badge">{{ item.code }}</span>
                   </td>
                   <td class="category-name">{{ item.name }}</td>
                   <td>

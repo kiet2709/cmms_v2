@@ -1,10 +1,9 @@
 <template>
-  <div class="app-container">
+  <div class="app-container" style="margin-top: 16px;">
     <!-- Header -->
     <div class="app-header">
       <div class="header-left">
         <h1 class="app-title">
-          <span class="title-icon">🔧</span>
           Form Builder Studio
         </h1>
         <div class="breadcrumb">
@@ -31,7 +30,7 @@
       <div class="left-panel">
         <div class="panel-header">
           <h3 class="panel-title">
-            <span class="panel-icon">🧰</span>
+            
             Component Toolbox
           </h3>
           <div class="component-count">{{ components.length }} items</div>
@@ -68,7 +67,7 @@
       <div class="form-builder">
         <div class="panel-header">
           <h3 class="panel-title">
-            <span class="panel-icon">⚡</span>
+
             Form Builder
           </h3>
           <div class="items-count">{{ formItems.length }} items</div>
@@ -350,31 +349,44 @@
               <div v-else-if="item.type === 'multiple'" class="question-block">
                 <p class="question-text">{{ item.question || 'Multiple choice question not set' }}</p>
                 <div class="options-group">
-                  <div v-for="(opt, i) in (item.options || '').split(',')" :key="i" v-if="opt.trim()">
-                    <label class="checkbox-label">
-                      <input type="checkbox" />
-                      <span class="checkmark"></span>
-                      {{ opt.trim() }}
-                    </label>
-                  </div>
-                  <div v-if="!item.options || !item.options.trim()" class="no-options">
+                  <template v-if="item.options && item.options.trim()">
+                    <div 
+                      v-for="(opt, i) in item.options.split(',')" 
+                      :key="i"
+                    >
+                      <label class="checkbox-label">
+                        <input type="checkbox" />
+                        <span class="checkmark"></span>
+                        {{ opt.trim() }}
+                      </label>
+                    </div>
+                  </template>
+
+                  <div v-else class="no-options">
                     <em>No options defined</em>
                   </div>
                 </div>
               </div>
-
               <!-- Render Single Choice -->
               <div v-else-if="item.type === 'single'" class="question-block">
                 <p class="question-text">{{ item.question || 'Single choice question not set' }}</p>
                 <div class="options-group">
-                  <div v-for="(opt, i) in (item.options || '').split(',')" :key="i" v-if="opt.trim()">
-                    <label class="radio-label">
-                      <input type="radio" :name="'single' + index" />
-                      <span class="radio-custom"></span>
-                      {{ opt.trim() }}
-                    </label>
-                  </div>
-                  <div v-if="!item.options || !item.options.trim()" class="no-options">
+                  <!-- Nếu có options -->
+                  <template v-if="item.options && item.options.trim()">
+                    <div 
+                      v-for="(opt, i) in item.options.split(',')" 
+                      :key="i"
+                    >
+                      <label class="radio-label">
+                        <input type="radio" :name="'single' + index" />
+                        <span class="radio-custom"></span>
+                        {{ opt.trim() }}
+                      </label>
+                    </div>
+                  </template>
+
+                  <!-- Nếu không có options -->
+                  <div v-else class="no-options">
                     <em>No options defined</em>
                   </div>
                 </div>

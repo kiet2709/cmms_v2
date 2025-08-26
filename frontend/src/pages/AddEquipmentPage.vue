@@ -1,5 +1,5 @@
 <template>
-  <div class="page-container">
+  <div class="page-container" style="margin-top: 16px;">
     <!-- Left Section -->
     <div class="left-section">
       <h2 class="section-title">Machine Information</h2>
@@ -43,13 +43,11 @@
         <label class="form-label">Category</label>
         <select v-model="category" class="input">
           <option disabled value="">Select Category</option>
-          <option value="cat1">Mold</option>
-          <option value="cat2">Injection</option>
-          <option value="cat3">Tuft</option>
+          <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option>
         </select>
       </div>
 
-      <button class="btn btn-primary save-btn">Save</button>
+      <button class="btn btn-primary save-btn"  @click="createMachine">Save</button>
     </div>
 
     <!-- Right Section -->
@@ -158,6 +156,7 @@ const location = ref("");
 const status = ref("");
 const version = ref("");
 const category = ref("");
+const categories = ref([]);
 
 // right - selections
 const selectedInspection = ref([]);
@@ -203,6 +202,59 @@ const handleUpload = (event) => {
 const openImageModal = () => {};
 const closeImageModal = () => {};
 
+const createMachine = async () => {
+  try {
+    const payload = {
+      data: {
+        machineId: modelId.value,
+        model: creator.value,
+        family: serialNumber.value,
+        manufactureDate: manufactureDate.value,
+        manufacturer: location.value,
+        historyCount: status.value,
+        unit: version.value,
+        category: category.value,
+
+        // checkbox selections
+        inspectionCodes: selectedInspection.value,
+        maintenanceLevel1: selectedMaintenance1.value,
+        maintenanceLevel2: selectedMaintenance2.value,
+        maintenanceLevel3: selectedMaintenance3.value,
+      },
+    };
+
+    // console.log("Posting payload:", payload);
+
+    // const res = await axiosClient.post("", payload);
+
+    await axiosClient.post('', {}, {
+        params: {
+          c: 'EquipmentController',
+          m: 'createEquipment',
+          payload
+        },
+      });
+    console.log("API response:", res.data);
+  } catch (e) {
+    console.error("Error creating machine:", e);
+  }
+};
+
+const fetchCategoryData = async () => {
+    try {
+    const res = await axiosClient.get("", {
+      params: { c: "CategoryController", m: "getAllCategories", limit: 100000 },
+    });
+    if (res.data.status === "success") {
+      categories.value = res.data.data;
+      console.log('category: ' +categories.value[0].name);
+      
+    }
+  } catch (e) {
+    console.error("Error fetching Category:", e);
+  }
+}
+
 // fetch data
 const fetchWiData = async () => {
   try {
@@ -216,7 +268,7 @@ const fetchWiData = async () => {
       m2Options.value = [];
       m3Options.value = [];
       data.forEach((item) => {
-        const option = { value: item.id, label: item.name };
+        const option = { value: item.id, label: item.code };
         switch (item.type) {
           case "Daily Inspection":
             inspectionOptions.value.push(option);
@@ -240,6 +292,7 @@ const fetchWiData = async () => {
 
 onMounted(() => {
   fetchWiData();
+  fetchCategoryData();
 });
 
 // filters
@@ -268,7 +321,7 @@ const filteredM3 = computed(() =>
 <style scoped>
 .page-container {
   display: flex;
-  height: 85vh;
+  height: 100vh;
   overflow: hidden;
   background: #f5f6fa; /* nền tổng thể nhạt, nhẹ mắt */
   font-family: "Segoe UI", Roboto, sans-serif;
