@@ -17,6 +17,51 @@
         <!-- Equipment Menu -->
         <div 
           class="nav-item" 
+          :class="{ active: selectedKey.startsWith('/dashboard/user') }"
+          @mouseenter="showSubmenu = 'User'"
+          @mouseleave="showSubmenu = null"
+        >
+          <div class="nav-link">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="10" r="3"></circle>
+            <path d="M6 20c0-3 3-5 6-5s6 2 6 5"></path>
+          </svg>
+
+
+            <span>User</span>
+            <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6,9 12,15 18,9"></polyline>
+            </svg>
+          </div>
+          <div class="submenu" :class="{ show: showSubmenu === 'User' }">
+            <div class="submenu-content">
+              <a @click="onMenuClick('/dashboard/user')" class="submenu-item">
+                <svg class="submenu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 3h18v18H3V3z"></path>
+                  <path d="M9 9h6v6H9V9z"></path>
+                </svg>
+                <div>
+                  <div class="submenu-title">List User</div>
+                  <div class="submenu-desc">View all User</div>
+                </div>
+              </a>
+              <a @click="onMenuClick('/dashboard/user/permission')" class="submenu-item">
+                <svg class="submenu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <div>
+                  <div class="submenu-title">Permissions</div>
+                  <div class="submenu-desc">Permissions User</div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+        <!-- Equipment Menu -->
+        <div 
+          class="nav-item" 
           :class="{ active: selectedKey.startsWith('/dashboard/equipments') }"
           @mouseenter="showSubmenu = 'equipment'"
           @mouseleave="showSubmenu = null"

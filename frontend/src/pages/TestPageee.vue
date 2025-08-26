@@ -1,3 +1,5 @@
+
+
 <template>
   <div class="auth-management">
     <!-- Header -->
@@ -686,6 +688,177 @@ input:checked + .slider:before {
   to {
     opacity: 0;
   }
+}
+
+.modern-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #f5f5f5;
+  vertical-align: middle;
+}
+
+.table-row {
+  transition: background-color 0.2s;
+}
+
+.table-row:hover {
+  background: #fafafa;
+}
+
+.machine-id {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.history-count {
+  font-weight: 500;
+}
+
+.view-plan-btn {
+  color: #1890ff;
+}
+
+.action-buttons-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn:hover {
+  color: #1890ff;
+  background: #f6ffed;
+}
+
+.delete-btn:hover {
+  color: #ff4d4f;
+  background: #fff2f0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-content {
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.empty-icon {
+  font-size: 64px;
+  color: #d9d9d9;
+  margin-bottom: 24px;
+}
+
+.empty-content h3 {
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.empty-content p {
+  margin-bottom: 24px;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.pagination-info {
+  color: #666;
+  font-size: 14px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.current-page {
+  font-weight: 600;
+  color: #1890ff;
+}
+
+.page-separator {
+  color: #999;
+}
+
+.pagination-btn {
+  border-radius: 6px;
+}
+
+/* Modal Styles */
+.master-plan-modal .ant-modal-header {
+  border-radius: 12px 12px 0 0;
+}
+
+.master-plan-content {
+  padding: 20px 0;
+}
+
+.todo-note {
+  color: #666;
+  font-style: italic;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  margin-top: 16px;
+}
+
+.delete-modal .ant-modal-header {
+  border-radius: 12px 12px 0 0;
+}
+
+.delete-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.warning-icon {
+  font-size: 24px;
+  color: #ff4d4f;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.warning-text {
+  flex: 1;
+}
+
+.equipment-info {
+  margin: 16px 0;
+  padding: 12px;
+  background: #fff2f0;
+  border-radius: 6px;
+  border-left: 3px solid #ff4d4f;
+}
+
+.equipment-info strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.equipment-details {
+  color: #666;
+  font-size: 14px;
+}
+
+.warning-note {
+  color: #999;
+  font-size: 13px;
+  margin: 16px 0 0 0;
 }
 
 /* Responsive Design */

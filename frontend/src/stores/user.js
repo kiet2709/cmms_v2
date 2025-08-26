@@ -29,7 +29,7 @@ export const useUserStore = defineStore('user', {
         // console.log(JSON.stringify(res, null, 2));
         
         this.rawUser = res.data
-        console.log(res.data);
+        // console.log(res.data);
         
       } catch (e) {
         console.error('Failed to fetch user', e)
