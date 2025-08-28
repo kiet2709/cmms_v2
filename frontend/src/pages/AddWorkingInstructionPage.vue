@@ -1,11 +1,11 @@
 <template>
-  <div class="app-container" style="margin-top: 16px;">
+  <div class="app-container">
     <!-- Header -->
     <div class="app-header">
       <div class="header-left">
         <h1 class="app-title" v-translate>Form Builder Studio</h1>
         <div class="breadcrumb">
-          <span>Dashboard</span>
+          <span @click="$router.push('/dashboard/working-instructions')">Instructions</span>
           <span class="separator">›</span>
           <span class="current">Form Builder</span>
         </div>
@@ -226,9 +226,9 @@
             <h4 class="section-title">Form Configuration</h4>
             
             <div class="meta-field">
-              <label>Type</label>
+              <label>DL/ML</label>
               <select v-model="formMeta.type" class="form-select">
-                <option disabled value="">-- Select Type --</option>
+                <option disabled value="">-- Select DL/ML --</option>
                 <option>Daily Inspection</option>
                 <option>Maintenance Level 1</option>
                 <option>Maintenance Level 2</option>

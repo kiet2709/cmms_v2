@@ -57,6 +57,16 @@
                   <div class="submenu-desc" v-translate>Permissions User</div>
                 </div>
               </a>
+              <a @click="onMenuClick('/dashboard/user/type')" class="submenu-item">
+                <svg class="submenu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <div>
+                  <div class="submenu-title">Account Type</div>
+                  <div class="submenu-desc">Account Type User</div>
+                </div>
+              </a>
             </div>
           </div>
         </div>
@@ -100,24 +110,20 @@
                   <div class="submenu-desc" v-translate>Create new equipment</div>
                 </div>
               </a>
+              <a @click="onMenuClick('/dashboard/equipments/categories')" class="submenu-item">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                </svg>
+                <div>
+                  <div class="submenu-title">Category</div>
+                  <div class="submenu-desc">Create new and list Category</div>
+                </div>
+              </a>
             </div>
           </div>
         </div>
 
-        <!-- Category Menu -->
-        <div 
-          class="nav-item single-item" 
-          :class="{ active: selectedKey.startsWith('/dashboard/categories') }"
-          @click="onMenuClick('/dashboard/categories')"
-        >
-          <div class="nav-link">
-            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
-            </svg>
-            <span v-translate>Category</span>
-          </div>
-        </div>
-
+        
         <!-- Working Instructions Menu -->
         <div 
           class="nav-item" 
@@ -429,9 +435,9 @@ watch(
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
-  height: 80px;
-  background: #3a8cff;
+  padding: 0 1rem;
+  height: 60px;
+  background: #f8fafc;
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: fixed;
@@ -455,15 +461,13 @@ watch(
 .logo-container {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .logo-image {
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
+  width: 68px;
+  height: 68px;
   object-fit: contain;
-  background: rgba(255, 255, 255, 0.7);
   padding: 8px;
 }
 
@@ -473,9 +477,8 @@ watch(
 }
 
 .brand-name {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
   font-weight: 800;
-  color: white;
   letter-spacing: 1px;
   line-height: 1;
 }
@@ -511,7 +514,7 @@ watch(
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
   border-radius: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(0, 0, 0, 0.9);
   font-weight: 600;
   font-size: 0.95rem;
   transition: all 0.3s ease;
@@ -524,7 +527,7 @@ watch(
 .nav-item.active .nav-link {
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: rgb(0, 0, 0);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }

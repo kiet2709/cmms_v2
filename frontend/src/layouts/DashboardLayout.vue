@@ -57,7 +57,7 @@ onBeforeUnmount(() => mq.removeEventListener('change', apply))
 }
 .main-content {
   flex: 1;
-  padding-top: 5px;
+  /* padding-top: 5px; */
   background: #f5f5f5;
   overflow-x: auto;
   

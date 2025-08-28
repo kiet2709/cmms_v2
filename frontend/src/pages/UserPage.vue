@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import axiosClient from '@/utils/axiosClient';
 import MasterPlan from './MasterPlan.vue';
+import roleApi from '@/stores/roleApi'
 
 import { 
   EditOutlined, 
@@ -36,14 +37,28 @@ const showUserModal = ref(false)
 const filters = ref({
   role: null,
 });
+const props = defineProps({
+  user: {
+    type: Object,
+    default: () => ({ name: "User", role: "Admin" }),
+  },
+});
+const roles = ref([])
 const formRef = ref(null)
 const newUser = ref({
   employment_id: '',
   employment_name: '',
   username: '',
   position: '',
-  role: '',
+  role: {
+uuid: '',
+name: '',
+  },
   password: ''
+})
+
+onMounted(async () => {
+  roles.value = await roleApi.getRoles()
 })
 
 const pagination = ref({
@@ -100,7 +115,11 @@ async function fetchUsers(page = 1, limit = 10) {
     data.value = apiData.map((item, index) => ({
       no: (page - 1) * limit + index + 1,
       task: null,
-      ...item
+      ...item,
+        role: {
+        uuid: item.role_uuid, 
+        name: item.role_name
+      }
     }));
   } finally {
     loading.value = false;
@@ -122,14 +141,7 @@ function confirmDelete(item) {
   showDeleteModal.value = true;
 }
 
-function performDelete() {
-  if (deleteTarget.value) {
-    console.log('Deleting:', deleteTarget.value.uuid);
-    // TODO: gọi API xóa
-  }
-  showDeleteModal.value = false;
-  deleteTarget.value = null;
-}
+
 
 function cancelDelete() {
   showDeleteModal.value = false;
@@ -145,7 +157,6 @@ function closeMasterPlan() {
 function handleRefresh() {
   fetchUsers(pagination.value.current, pagination.value.pageSize);
 }
-
 
 
 
@@ -244,7 +255,7 @@ const breadcrumbItems = [
   }
 ];
 
-const formRules = {
+const formRules = computed(() => ({
   employment_id: [
     { required: true, message: 'Please enter employee ID!', trigger: 'blur' },
     { min: 3, max: 20, message: 'Employee ID must be 3-20 characters!', trigger: 'blur' }
@@ -264,11 +275,17 @@ const formRules = {
   role: [
     { required: true, message: 'Please select a role!', trigger: 'change' }
   ],
-  password: [
-    { required: true, message: 'Please enter password!', trigger: 'blur' },
-    { min: 8, message: 'Password must be at least 8 characters!', trigger: 'blur' }
-  ]
-}
+  password: isEditMode.value
+    ? [
+        // Edit: chỉ check min nếu có nhập
+        { min: 4, message: 'Password must be at least 4 characters!', trigger: 'blur' }
+      ]
+    : [
+        // Add: bắt buộc phải nhập
+        { required: true, message: 'Please enter password!', trigger: 'blur' },
+        { min: 4, message: 'Password must be at least 4 characters!', trigger: 'blur' }
+      ]
+}))
 
 
 // functions
@@ -280,7 +297,7 @@ function generatePassword() {
   let pass = ''
   pass += lower[Math.floor(Math.random() * lower.length)]
   pass += nums[Math.floor(Math.random() * nums.length)]
-  for (let i = 4; i < 12; i++) {
+  for (let i = 4; i < 10; i++) {
     pass += allChars[Math.floor(Math.random() * allChars.length)]
   }
   newUser.value.password = pass.split('').sort(() => Math.random() - 0.5).join('')
@@ -291,9 +308,19 @@ async function performAddUser() {
     await formRef.value.validate()
     loading.value = true
     // gọi API ở đây
+
+    await axiosClient.post('', newUser.value, {
+      params: {
+        c: 'UserController',
+        m: 'createUser',
+      },
+    });
+    
     await new Promise(r => setTimeout(r, 1000))
     message.success('User created successfully!')
     resetForm()
+    // window.location.reload()
+    handleRefresh()
   } catch (err) {
     if (err.errorFields) {
       message.error('Please fix the form errors!')
@@ -310,13 +337,27 @@ async function performEditUser() {
     await formRef.value.validate()
     loading.value = true
     // gọi API update
-    await axiosClient.post('', {
-      c: 'UserController',
-      m: 'updateUser',
-      ...newUser.value
-    })
+    console.log('rhyhryhb: ' + newUser.value.role.uuid);
+    
+    await axiosClient.post('', {     
+      uuid: newUser.value.uuid,   // cần uuid để biết user nào
+      employment_id: newUser.value.employment_id,
+      employment_name: newUser.value.employment_name,
+      username: newUser.value.username,
+      position: newUser.value.position,
+      role_id: newUser.value.role.uuid,
+      password: newUser.value.password,
+      // updated_by: user.name
+    },{
+     params: {
+        c: 'UserController',
+        m: 'updateUser',
+      }}
+  )
+    console.log("Data gửi update:", newUser.value)
     message.success('User updated successfully!')
-    resetForm()
+    resetForm();
+    
     fetchUsers(pagination.value.current, pagination.value.pageSize) // refresh data
   } catch (err) {
     if (err.errorFields) {
@@ -330,45 +371,62 @@ async function performEditUser() {
   }
 }
 
+async function handleDelete() {
+  try {
+    loading.value = true
+    await axiosClient.delete('', {
+      params: {
+        c: 'UserController',
+        m: 'deleteUser',
+        uuid: deleteTarget.value.uuid
+      }
+    })
+    message.success('User deleted successfully!')
+    handleRefresh()  // load lại danh sách
+  } catch (err) {
+    message.error('Failed to delete user!')
+    console.error(err)
+  } finally {
+    loading.value = false
+  }
+
+  showDeleteModal.value = false;
+  deleteTarget.value = null;
+}
+
 function resetForm() {
-  showUserModal.value = false
+  formRef.value?.resetFields()   // reset trước
   newUser.value = {
     employment_id: '',
     employment_name: '',
     username: '',
     position: '',
-    role: '',
+    role: {
+      uuid: '',
+      name: '',
+    },
     password: ''
   }
-  nextTick(() => formRef.value?.resetFields())
+  showUserModal.value = false    // sau đó mới đóng modal
 }
-
 
 </script>
 
 <template>
-  <div class="User-management">
-    <!-- Breadcrumb -->
-    <Breadcrumb class="breadcrumb-nav">
-      <Breadcrumb.Item>
-        <router-link to="/">
-          <HomeOutlined />
-          <span>Home</span>
-        </router-link>
-      </Breadcrumb.Item>
-      <Breadcrumb.Item v-for="item in breadcrumbItems" :key="item.title">
-        <router-link v-if="item.path" :to="item.path">{{ item.title }}</router-link>
-        <span v-else>{{ item.title }}</span>
-      </Breadcrumb.Item>
-    </Breadcrumb>
-
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 v-translate>User Management</h1>
-          <p class="subtitle" v-translate>Manage and monitor your system users</p>
+  <div class="app-container">
+    <!-- Header -->
+    <div class="app-header">
+      <div class="header-left">
+        <h1 class="app-title">
+          User Management
+        </h1>
+        <div class="breadcrumb">
+          <span>User</span>
+          <span class="separator">›</span>
+          <span class="current">List User</span>
         </div>
+      </div>
+      <div class="header-right">
         <div class="action-buttons">
           <Space>
             <Button @click="handleRefresh" :loading="loading">
@@ -387,6 +445,8 @@ function resetForm() {
         </div>
       </div>
     </div>
+    
+    <div class="User-management">    
 
     <!-- Add User Modal -->
     <a-modal
@@ -474,31 +534,17 @@ function resetForm() {
             name="role"
             class="form-item-enhanced"
           >
-            <a-select 
-              v-model:value="newUser.role" 
-              placeholder="Select user role"
-              size="large"
-              class="role-select"
-            >
-              <a-select-option value="admin">
-                <div class="role-option">
-                  <span class="role-text">Admin</span>
-                  <span class="role-desc">Full system access</span>
-                </div>
-              </a-select-option>
-              <a-select-option value="manager">
-                <div class="role-option">
-                  <span class="role-text">Manager</span>
-                  <span class="role-desc">Team management access</span>
-                </div>
-              </a-select-option>
-              <a-select-option value="user">
-                <div class="role-option">
-                  <span class="role-text">User</span>
-                  <span class="role-desc">Standard user access</span>
-                </div>
-              </a-select-option>
-            </a-select>
+             <a-select v-model:value="newUser.role.uuid" placeholder="Select role">
+                <a-select-option
+                  v-for="role in roles"
+                  :key="role.uuid"
+                  :value="role.uuid"
+                >
+                  <div class="role-option">
+                    <span class="role-text">{{ role.name }}</span>
+                  </div>
+                </a-select-option>
+              </a-select>
           </a-form-item>
 
           <div class="password-section">
@@ -523,19 +569,6 @@ function resetForm() {
                 class="password-input"
               />
             </a-form-item>
-            
-            <div v-if="passwordStrength" class="password-strength">
-              <div class="strength-bar">
-                <div 
-                  class="strength-fill" 
-                  :class="passwordStrength.class"
-                  :style="{ width: passwordStrength.width }"
-                ></div>
-              </div>
-              <span class="strength-text" :class="passwordStrength.class">
-                {{ passwordStrength.text }}
-              </span>
-            </div>
           </div>
         </a-form>
       </div>
@@ -658,7 +691,7 @@ function resetForm() {
                 <td>{{ item.last_login }}</td>
                 <td>
                   <Tag :color="getRoleColor(item.role)">
-                    {{ item.role }}
+                    {{ item.role.name }}
                   </Tag>
                 </td>
                 <td>
@@ -749,7 +782,7 @@ function resetForm() {
     <Modal
       v-model:open="showDeleteModal"
       title="Confirm User Deletion"
-      @ok="performDelete"
+      @ok="handleDelete"
       @cancel="cancelDelete"
       ok-text="Yes, Delete"
       cancel-text="Cancel"
@@ -773,31 +806,61 @@ function resetForm() {
       </div>
     </Modal>
   </div>
+  </div>
+  
+  
 </template>
 
 <style scoped>
-.User-management {
-  padding: 24px;
-  background: #f5f5f5;
+.app-container {
   min-height: 100vh;
+  background: rgb(245,245,245);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
-
-.breadcrumb-nav {
-  margin-bottom: 16px;
-  font-size: 15px;
-}
-
-.breadcrumb-nav a {
-  color: #666;
-  text-decoration: none;
-  display: inline-flex;
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
 }
 
-.breadcrumb-nav a:hover {
-  color: #1890ff;
+.app-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
 }
+.User-management {
+  padding: 10px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+.breadcrumb {
+  margin-top: 5px;
+  font-size: 14px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.current {
+  color: #667eea;
+  font-weight: 500;
+}
+
 
 .page-header {
   background: white;
@@ -936,8 +999,8 @@ function resetForm() {
 }
 
 .modern-table thead {
-  background: #fafafa;
-  border-bottom: 2px solid #f0f0f0;
+  background: #f3f3f3;
+  border-bottom: 2px solid #e9e8e8;
 }
 
 .modern-table th {
@@ -978,7 +1041,7 @@ function resetForm() {
 
 .modern-table td {
   padding: 16px 12px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid #e3e1e1;
   vertical-align: middle;
 }
 

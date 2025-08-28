@@ -18,6 +18,7 @@ import UpdateEquipmentPage from '../pages/UpdateEquipmentPage.vue'
 import TodayEquipment from '../pages/TodayEquipment.vue'
 import DailyInspectionPage from '../pages/DailyInspectionPage.vue'
 import PermissionPage from '../pages/PermissionPage.vue'
+import AccountTypePage from '../pages/AccountTypePage.vue'
 
 // Supported languages
 export const SUPPORTED_LANGUAGES = {

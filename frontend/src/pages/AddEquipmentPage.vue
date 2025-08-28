@@ -20,10 +20,16 @@
           <input v-model="serialNumber" placeholder="Enter Family" class="input" />
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Manufacture Date</label>
-          <input v-model="manufactureDate" placeholder="YYYY-MM-DD" class="input" />
-        </div>
+      <div class="form-group">
+        <label class="form-label">Manufacture Date</label>
+        <a-date-picker
+          v-model:value="manufactureDate"
+          format="YYYY-MM-DD"
+          placeholder="YYYY-MM-DD"
+          class="input"
+        />
+        <!-- <input v-model="manufactureDate" placeholder="YYYY-MM-DD" class="input" /> -->
+      </div>
 
         <div class="form-group">
           <label class="form-label">Manufacturer</label>

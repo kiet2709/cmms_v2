@@ -1,37 +1,36 @@
 <template>
-  <div class="app-container">
+  <div class="category-container">
+    <!-- Header -->
     <div class="app-header">
       <div class="header-left">
         <h1 class="app-title">
-          Equipment Category Management
+          Manage account types
         </h1>
         <div class="breadcrumb">
-          <span @click="$router.push('/dashboard/equipments')">Equipment</span>
+          <span @click="$router.push('/dashboard/user')">User</span>
           <span class="separator">›</span>
-          <span class="current">Category</span>
+          <span class="current">Account Type</span>
         </div>
-      </div>
+      </div>     
     </div>
-  </div>
-  <div class="category-container">
     <div class="category-content">
       <!-- Add Category Form -->
       <div class="add-category-card">
         <div class="card-header">
           <h3 class="card-title">
-            Add New Category
+            Add New Account Type
           </h3>
         </div>
         
-        <div class="category-form">
-          <div class="form-group">
-            <label for="code">Category Code</label>
+        <div class="accounttype-form">
+          <div class="form-group">  
+            <label for="nameType">Name</label>
             <div class="input-wrapper">
               <input 
                 type="text" 
-                id="code" 
-                v-model="categoryCode" 
-                placeholder="Ex: PH, LT, AC..." 
+                id="nameType" 
+                v-model="accounttype" 
+                placeholder="Enter account type..." 
                 required
                 class="form-input"
               >
@@ -39,13 +38,13 @@
           </div>
           
           <div class="form-group">
-            <label for="name">Category Name</label>
+            <label for="name">Description</label>
             <div class="input-wrapper">
               <input 
                 type="text" 
                 id="name" 
                 v-model="categoryName" 
-                placeholder="Enter category name..." 
+                placeholder="Enter description..." 
                 required
                 class="form-input"
               >
@@ -62,39 +61,36 @@
       <div class="category-list-card">
         <div class="card-header">
           <h3 class="card-title">
-            Category List
-            <span class="category-count">{{ data.length }}</span>
+            Account Type List
+            <span class="category-count">{{ roles.length }}</span>
           </h3>
         </div>
         
-        <div class="table-container" v-if="data.length > 0">
+        <div class="table-container" v-if="roles.length > 0">
           <div class="table-wrapper">
             <table class="category-table">
               <thead>
                 <tr>
                   <th>
-                    Category Code
+                    Name
                   </th>
                   <th>
-                    Category Name
+                    Description
                   </th>
                   <th>
-                    <i class="table-icon">⚙️</i>
+                    <i class="table-icon"></i>
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in data" :key="item.uuid" class="table-row">
+                <tr v-for="(item, index) in roles" :key="item.uuid" class="table-row">
                   <td>
-                    <span class="code-badge">{{ item.code }}</span>
+                    <span class="code-badge">{{ item.name }}</span>
                   </td>
-                  <td class="category-name">{{ item.name }}</td>
+                  <td class="category-name">{{ item.description }}</td>
                   <td>
                     <div class="action-buttons">
-                      <!-- <button  @click="editCategory(index)" >
-                        <i class="btn-icon">✏️</i>
-                      </button> -->
                       <!-- Nút Edit -->
                       <EditOutlined class="edit-btn" title="Edit"
                         style="cursor:pointer; margin-right: 8px;"
@@ -202,17 +198,18 @@ import { EditOutlined, DeleteOutlined, FileSearchOutlined, ExclamationCircleOutl
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axiosClient from '@/utils/axiosClient';
-
+import roleApi from '@/stores/roleApi'
 
 const router = useRouter();
 
 const loading = ref(false);
 const data = ref([]);
 const categoryName = ref('');
-const categoryCode = ref('');
+const accounttype = ref('');
 const showDeleteModal = ref(false);
 const deleteTarget = ref(null)
 const showEditModal = ref(false)
+const roles = ref([])
 
 const pagination = ref({
   current: 1,
@@ -220,7 +217,9 @@ const pagination = ref({
   total: 0,
   totalPages: 0,
 });
-
+onMounted(async () => {
+  roles.value = await roleApi.getRoles()
+})
 // fetch categories
 async function fetchCategories(page = 1, limit = 10) {
   loading.value = true;
@@ -309,7 +308,7 @@ async function saveCategory() {
       c: 'CategoryController',
       m: 'createCategory',
       name: categoryName.value.trim(),
-      code: categoryCode.value.trim()
+      code: accounttype.value.trim()
     });
     alert(res.data.message || 'Category saved successfully!');
     categoryName.value = '';
@@ -354,8 +353,10 @@ function editCategory(index) {
 * {
   box-sizing: border-box;
 }
-.app-container {
-  background: rgb(245,245,245);
+
+.category-container {
+  min-height: 100vh;
+  background: #f8f9fa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 .app-header {
@@ -384,11 +385,6 @@ function editCategory(index) {
   gap: 12px;
   margin: 0;
 }
-.User-management {
-  padding: 10px;
-  background: #f5f5f5;
-  min-height: 100vh;
-}
 .breadcrumb {
   margin-top: 5px;
   font-size: 14px;
@@ -400,12 +396,6 @@ function editCategory(index) {
 .current {
   color: #667eea;
   font-weight: 500;
-}
-.category-container {
-  min-height: 100vh;
-  background: #f8f9fa;
-  padding: 2rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .page-title {
@@ -430,6 +420,7 @@ function editCategory(index) {
   gap: 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  padding: 2rem;
 }
 
 .add-category-card,
@@ -466,7 +457,7 @@ function editCategory(index) {
   margin-left: auto;
 }
 
-.category-form {
+.accounttype-form {
   padding: 2rem;
 }
 
@@ -527,7 +518,7 @@ function editCategory(index) {
 }
 
 .submit-btn:hover {
-  background: #407ebc;
+  background: #5894cf;
 }
 
 .table-container {
@@ -696,7 +687,7 @@ function editCategory(index) {
     padding: 1rem;
   }
   
-  .category-form,
+  .accounttype-form,
   .table-container {
     padding: 1.5rem;
   }
