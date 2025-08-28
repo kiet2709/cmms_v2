@@ -20,23 +20,15 @@
         <!-- Logo Section -->
         <div class="logo-section">
           <div class="logo-container">
-            <div class="logo-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7V10C2 16 6 20.5 12 22C18 20.5 22 16 22 10V7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
+            <img :src="logo" alt="CMMS Logo" class="logo-image" />
             <h1 class="logo-text">CMMS</h1>
           </div>
-          <p class="logo-subtitle">Comprehensive Maintenance Management System</p>
+          <p class="logo-subtitle">Computerized Maintenance Management System</p>
         </div>
 
         <!-- Form Section -->
         <div class="form-section">
-          <div class="form-header">
-            <h2>Welcome Back</h2>
-            <p>Please sign in to your account</p>
-          </div>
+
 
           <a-form
             :model="form"
@@ -92,13 +84,6 @@
               @close="errorMessage = ''"
             />
 
-            <!-- Remember Me & Forgot Password -->
-            <div class="form-options">
-              <a-checkbox v-model:checked="rememberMe" class="remember-checkbox">
-                Remember me
-              </a-checkbox>
-              <a href="#" class="forgot-link">Forgot password?</a>
-            </div>
 
             <!-- Submit Button -->
             <a-button
@@ -134,6 +119,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
 import axiosClient from '@/utils/axiosClient'
+import logo from "@/assets/logo.png";
 
 const router = useRouter()
 
@@ -337,6 +323,16 @@ initializeForm()
   gap: 16px;
   margin-bottom: 12px;
 }
+
+.logo-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 8px;
+}
+
 
 .logo-icon {
   width: 48px;
@@ -547,6 +543,17 @@ initializeForm()
   
   .login-footer p {
     color: #666;
+  }
+
+  .logo-text {
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    margin: 0;
+    background: white;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
 </style>

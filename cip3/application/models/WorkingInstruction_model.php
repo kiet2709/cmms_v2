@@ -7,7 +7,7 @@ class WorkingInstruction_model extends CI_Model
 
     public function getAllWi($limit, $offset)
     {
-        $this->db->select('uuid as id, code, name, type, schema, updated_at');
+        $this->db->select('uuid as id, code, name, type, schema, updated_at, frequency, unit_type, unit_value');
         $this->db->from($this->table);
         $this->db->limit($limit, $offset);
         $query = $this->db->get();
@@ -98,5 +98,26 @@ class WorkingInstruction_model extends CI_Model
         return $query->result_array();
     }
 
+    public function getByMachineId($machineId)
+    {
+        $this->db->select('wi.uuid as wi_id, wi.code, wi.name, wi.type, wi.schema, e.uuid as equipment_id');
+        $this->db->from('working_instructions wi');
+        $this->db->join('equipment_working_instructions ewi', 'wi.uuid = ewi.working_instruction_id');
+        $this->db->join('equipments e', 'e.uuid = ewi.equipment_id');
+        $this->db->where('e.uuid', $machineId);
+        $query = $this->db->get();
+        $records = $query->result();
+        return $records;
+    }
+
+    public function getByCategoryId($categoryId)
+    {
+        $this->db->select('*');
+        $this->db->from('working_instructions wi');
+        $this->db->where('wi.category_id', $categoryId);
+        $query = $this->db->get();
+        $records = $query->result();
+        return $records;
+    }
 
 }
