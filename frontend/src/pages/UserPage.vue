@@ -366,8 +366,8 @@ function resetForm() {
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>User Management</h1>
-          <p class="subtitle">Manage and monitor your system users</p>
+          <h1 v-translate>User Management</h1>
+          <p class="subtitle" v-translate>Manage and monitor your system users</p>
         </div>
         <div class="action-buttons">
           <Space>

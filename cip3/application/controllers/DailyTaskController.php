@@ -7,6 +7,7 @@ class DailyTaskController extends CI_Controller {
     {
         parent::__construct();
         $this->load->model('DailyTask_model');
+        $this->load->model('WorkingInstruction_model');
     }
 
     /**
@@ -36,5 +37,20 @@ class DailyTaskController extends CI_Controller {
                 'status' => 'success',
                 'data'   => $tasks
             ]));
+    }
+
+    public function getWiById()
+    {
+        $wi_id = $this->input->get('id');
+        $wi = $this->DailyTask_model->getById($wi_id);
+        $result = [
+            'status' => 'success',
+            'message' => 'Lấy dữ liệu thành công',
+            'data' => $wi,
+        ];
+
+        return $this->output
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode($result));
     }
 }

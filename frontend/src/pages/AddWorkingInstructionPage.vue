@@ -3,9 +3,7 @@
     <!-- Header -->
     <div class="app-header">
       <div class="header-left">
-        <h1 class="app-title">
-          Form Builder Studio
-        </h1>
+        <h1 class="app-title" v-translate>Form Builder Studio</h1>
         <div class="breadcrumb">
           <span>Dashboard</span>
           <span class="separator">›</span>
@@ -29,10 +27,7 @@
       <!-- Left Panel: Toolbox -->
       <div class="left-panel">
         <div class="panel-header">
-          <h3 class="panel-title">
-            
-            Component Toolbox
-          </h3>
+          <h3 class="panel-title" v-translate>Component Toolbox</h3>
           <div class="component-count">{{ components.length }} items</div>
         </div>
         
@@ -57,8 +52,8 @@
             @dragend="onDragEnd"
           >
             <div class="component-icon">{{ comp.icon }}</div>
-            <div class="component-label">{{ comp.label }}</div>
-            <div class="component-desc">{{ comp.description }}</div>
+            <div class="component-label">{{ translateReactive(comp.label).value }}</div>
+            <div class="component-desc">{{ translateReactive(comp.description).value }}</div>
           </div>
         </div>
       </div>
@@ -66,10 +61,7 @@
       <!-- Middle Panel: Form Builder -->
       <div class="form-builder">
         <div class="panel-header">
-          <h3 class="panel-title">
-
-            Form Builder
-          </h3>
+          <h3 class="panel-title" v-translate>Form Builder</h3>
           <div class="items-count">{{ formItems.length }} items</div>
         </div>
 
@@ -82,8 +74,8 @@
         >
           <div v-if="formItems.length === 0" class="empty-state">
             <div class="empty-icon">📝</div>
-            <h4>Start Building Your Form</h4>
-            <p>Drag components from the toolbox to begin creating your form</p>
+            <h4 v-translate>Start Building Your Form</h4>
+            <p v-translate>Drag components from the toolbox to begin creating your form</p>
           </div>
 
           <div
@@ -277,6 +269,38 @@
                 rows="3"
               ></textarea>
             </div>
+  
+
+            <div class="meta-field">
+              <label>Frequency</label>
+              <select v-model="formMeta.frequency" class="form-select">
+                <option disabled value="">-- Select Frequency --</option>
+                <option v-for="frequency in frequencies" 
+                  :key="frequency" 
+                  :value="frequency">
+                  {{ frequency }}
+                </option>
+              </select>
+            </div>
+
+            <div v-if="formMeta.frequency == 'Unit'" class="meta-field">
+              <label>Unit Value</label>
+              <input 
+                v-model="formMeta.unitValue"
+                class="form-input"
+                placeholder="Enter Unit Value..."
+              />
+            </div>
+
+            <div v-if="formMeta.frequency == 'Unit'" class="meta-field">
+              <label>Unit Type</label>
+              <input 
+                v-model="formMeta.unitType"
+                class="form-input"
+                placeholder="Enter Unit Type..."
+              />
+            </div>
+
           </div>
 
           <div class="settings-section">
@@ -432,6 +456,9 @@
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
 import axiosClient from "../utils/axiosClient";
+import { useTranslation } from '@/utils/translation.js'
+
+const { translateReactive } = useTranslation()
 
 // Enhanced components with icons and descriptions
 const components = ref([
@@ -489,8 +516,17 @@ const formMeta = ref({
   code: "",
   type: "",
   description: "",
-  category: ""
+  category: "",
+  frequency: "",
+  unitType: "",
+  unitValue: ""
 });
+
+const frequencies = [
+  'Daily',
+  'Shift',
+  'Unit'
+]
 
 // Type and category mappings
 const typeMap = {
@@ -603,7 +639,10 @@ const clearForm = () => {
       code: "",
       type: "",
       description: "",
-      category: ""
+      category: "",
+      frequency: "",
+      unitType: "",
+      unitValue: ""
     };
     selectedItem.value = -1;
   }
@@ -704,10 +743,24 @@ const saveForm = async () => {
       content: JSON.parse(JSON.stringify(formItems.value)),
     };
 
+    console.log(payload);
+    
+
     await axiosClient.post('', payload, {
       params: { c: 'WorkingInstructionController', m: 'save' },
       headers: { 'Content-Type': 'application/json' },
     });
+    formItems.value = [];
+    formMeta.value = {
+      code: "",
+      type: "",
+      description: "",
+      category: "",
+      frequency: "",
+      unitType: "",
+      unitValue: ""
+    };
+    selectedItem.value = -1;
 
     showSuccess.value = true;
     setTimeout(() => {

@@ -115,8 +115,9 @@ function confirmDelete(item) {
 }
 
 function performDelete() {
+  if (!isMatched.value) return;
   if (deleteTarget.value) {
-    console.log('Deleting:', deleteTarget.value.uuid);
+    console.log('Deleting:', deleteTarget.value.id);
     // TODO: gọi API xóa
   }
   showDeleteModal.value = false;
@@ -127,6 +128,13 @@ function cancelDelete() {
   showDeleteModal.value = false;
   deleteTarget.value = null;
 }
+
+const confirmationInput = ref("")
+
+// Chỉ khi user nhập đúng thì nút Yes mới enable
+const isMatched = computed(() => {
+  return confirmationInput.value.trim() === deleteTarget.value?.code
+})
 
 
 // Filter options
@@ -188,8 +196,8 @@ const breadcrumbItems = [
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>Working Instructions</h1>
-          <p class="subtitle">Manage and monitor daily working instructions</p>
+          <h1 v-translate>Working Instructions</h1>
+          <p class="subtitle" v-translate>Manage and monitor daily working instructions</p>
         </div>
         <div class="action-buttons">
           <Space>
@@ -197,10 +205,10 @@ const breadcrumbItems = [
               <ReloadOutlined />
               Refresh
             </Button>
-            <Button type="primary" @click="handleAddNew">
+            <!-- <Button type="primary" @click="handleAddNew">
               <PlusOutlined />
               Add Instruction
-            </Button>
+            </Button> -->
           </Space>
         </div>
       </div>
@@ -269,7 +277,8 @@ const breadcrumbItems = [
                 <th>Task Code</th>
                 <th>Description</th>
                 <th>Daily Inspection / Maintenance</th>
-                <th>Timestamp</th>
+                <th>Frequency</th>
+                <th>Created</th>
                 <th>View</th>
                 <th>Actions</th>
               </tr>
@@ -279,6 +288,7 @@ const breadcrumbItems = [
                 <td>{{ item.code }}</td>
                 <td>{{ item.name }}</td>
                 <td>{{ item.type }}</td>
+                <td>{{ item.frequency == 'Unit' ? item.unit_value + ' ' + item.unit_type : item.frequency }}</td>
                 <td>{{ item.updated_at }}</td>
                 <td>
                   <Button type="link" @click="viewItem(item)">
@@ -352,39 +362,84 @@ const breadcrumbItems = [
     </Modal>
 
     <!-- Enhanced Delete Confirmation Modal -->
+
     <Modal
-      v-model:open="showDeleteModal"
-      title="Confirm Equipment Deletion"
-      @ok="performDelete"
-      @cancel="cancelDelete"
-      ok-text="Yes, Delete"
-      cancel-text="Cancel"
-      ok-type="danger"
-      class="delete-modal"
-    >
-      <div class="delete-content">
-        <div class="warning-icon">
-          <ExclamationCircleOutlined />
-        </div>
-        <div class="warning-text">
-          <p>Are you sure you want to delete this equipment?</p>
-          <div class="equipment-info">
+    v-model:open="showDeleteModal"
+    title="Confirm Working Instruction Deletion"
+    @ok="performDelete"
+    @cancel="cancelDelete"
+    ok-text="Yes, Delete"
+    cancel-text="Cancel"
+    ok-type="danger"
+    class="delete-modal"
+    :ok-button-props="{ disabled: !isMatched }"
+  >
+    <div class="delete-content">
+      <div class="warning-icon">
+        <ExclamationCircleOutlined />
+      </div>
+      <div class="warning-text">
+        <p>Are you sure you want to delete this Working Instruction?</p>
+
+        <div class="equipment-info no-copy">
             <strong>{{ deleteTarget?.type }}</strong>
             <span class="equipment-details">
               {{ deleteTarget?.code }} - {{ deleteTarget?.name }}
             </span>
-          </div>
-          <p class="warning-note">This action cannot be undone.</p>
+        </div>
+
+        <p class="warning-note">This action cannot be undone.</p>
+
+        <div class="confirm-input no-copy">
+          <label>
+            Please type <strong>{{ deleteTarget?.code }}</strong> to confirm:
+          </label>
+          <input
+            v-model="confirmationInput"
+            type="text"
+            class="form-control"
+            placeholder="Enter machine ID"
+          />
         </div>
       </div>
-    </Modal>
-
-
+    </div>
+  </Modal>
 
   </div>
 </template>
 
 <style scoped>
+
+.delete-content {
+  display: flex;
+  gap: 12px;
+}
+
+.warning-icon {
+  font-size: 28px;
+  color: #faad14;
+}
+
+.warning-text {
+  flex: 1;
+}
+
+.no-copy {
+  user-select: none; /* chặn copy */
+}
+
+.confirm-input {
+  margin-top: 12px;
+}
+.confirm-input input {
+  margin-top: 12px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+
 /* Dùng style tương tự EquipmentPage.vue */
 .equipment-management {
   padding: 24px;

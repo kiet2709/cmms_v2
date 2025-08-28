@@ -2,14 +2,14 @@
   <div>
     <!-- Main Content Grid -->
     <div class="content-grid">
-      <!-- Inspection Code Section -->
+      <!-- Daily Inspection Section -->
       <div class="section-card inspection-section">
         <div class="section-header inspection-header">
           <h3 class="section-title">Daily Inspection</h3>
           <span class="level-badge">DI</span>
         </div>
         <div class="section-body">
-          <a-input
+          <Input
             v-model:value="searchInspection"
             placeholder="Search inspection..."
             class="search-input"
@@ -18,18 +18,18 @@
             <template #prefix>
               <SearchOutlined class="search-icon" />
             </template>
-          </a-input>
+          </Input>
           
           <div class="inspection-list">
             <div
-              v-for="code in filteredInspectionCodes"
-              :key="code.id"
+              v-for="item in filteredInspectionItems"
+              :key="item.wi_id"
               class="inspection-item"
-              :class="{ active: code.id === selectedInspectionCode }"
-              @click="selectInspectionCode(code.id)"
+              :class="{ active: item.wi_id === selectedInspectionCode }"
+              @click="selectInspectionCode(item.wi_id)"
             >
-              <span class="inspection-code">{{ code.id }}</span>
-              <EyeOutlined class="view-icon" />
+              <span class="inspection-code">{{ item.code }}</span>
+              <EyeOutlined class="view-icon" @click.stop="openModal(item.wi_id)" />
             </div>
           </div>
         </div>
@@ -42,7 +42,7 @@
           <span class="level-badge">ML01</span>
         </div>
         <div class="section-body">
-          <a-input
+          <Input
             v-model:value="searchLevel1"
             placeholder="Search level 1..."
             class="search-input"
@@ -51,18 +51,18 @@
             <template #prefix>
               <SearchOutlined class="search-icon" />
             </template>
-          </a-input>
+          </Input>
           
           <div class="inspection-list">
             <div
               v-for="item in filteredLevel1Items"
-              :key="item.id"
+              :key="item.wi_id"
               class="inspection-item"
-              :class="{ active: item.id === selectedLevel1Code }"
-              @click="selectMaintenanceCode(item.id, 1)"
+              :class="{ active: item.wi_id === selectedLevel1Code }"
+              @click="selectMaintenanceCode(item.wi_id, 1)"
             >
               <span class="inspection-code">{{ item.code }}</span>
-              <EyeOutlined class="view-icon" />
+              <EyeOutlined class="view-icon" @click.stop="openModal(item.wi_id)" />
             </div>
           </div>
         </div>
@@ -75,7 +75,7 @@
           <span class="level-badge">ML02</span>
         </div>
         <div class="section-body">
-          <a-input
+          <Input
             v-model:value="searchLevel2"
             placeholder="Search level 2..."
             class="search-input"
@@ -84,18 +84,18 @@
             <template #prefix>
               <SearchOutlined class="search-icon" />
             </template>
-          </a-input>
+          </Input>
           
           <div class="inspection-list">
             <div
               v-for="item in filteredLevel2Items"
-              :key="item.id"
+              :key="item.wi_id"
               class="inspection-item"
-              :class="{ active: item.id === selectedLevel2Code }"
-              @click="selectMaintenanceCode(item.id, 2)"
+              :class="{ active: item.wi_id === selectedLevel2Code }"
+              @click="selectMaintenanceCode(item.wi_id, 2)"
             >
               <span class="inspection-code">{{ item.code }}</span>
-              <EyeOutlined class="view-icon" />
+              <EyeOutlined class="view-icon" @click.stop="openModal(item.wi_id)" />
             </div>
           </div>
         </div>
@@ -108,7 +108,7 @@
           <span class="level-badge">ML03</span>
         </div>
         <div class="section-body">
-          <a-input
+          <Input
             v-model:value="searchLevel3"
             placeholder="Search level 3..."
             class="search-input"
@@ -117,177 +117,178 @@
             <template #prefix>
               <SearchOutlined class="search-icon" />
             </template>
-          </a-input>
+          </Input>
           
           <div class="inspection-list">
             <div
               v-for="item in filteredLevel3Items"
-              :key="item.id"
+              :key="item.wi_id"
               class="inspection-item"
-              :class="{ active: item.id === selectedLevel3Code }"
-              @click="selectMaintenanceCode(item.id, 3)"
+              :class="{ active: item.wi_id === selectedLevel3Code }"
+              @click="selectMaintenanceCode(item.wi_id, 3)"
             >
               <span class="inspection-code">{{ item.code }}</span>
-              <EyeOutlined class="view-icon" />
+              <EyeOutlined class="view-icon" @click.stop="openModal(item.wi_id)" />
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Form Viewer Modal -->
+    <Modal 
+      v-model:open="isModalVisible" 
+      title="Instruction Details" 
+      @cancel="handleModalCancel" 
+      width="800px"
+    >
+      <template #footer>
+        <Button @click="handleModalCancel">Close</Button>
+      </template>
+      <FormViewer v-if="isModalVisible" :key="selectedWiId" :id="selectedWiId" />
+    </Modal>
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted } from 'vue'
 import { 
   SearchOutlined, 
   EyeOutlined, 
   DownloadOutlined
 } from '@ant-design/icons-vue'
+import axiosClient from '../utils/axiosClient'
+import { Modal, Button, Input, Card, Space, Breadcrumb, Tooltip, Tag, Dropdown, Select } from 'ant-design-vue'
+import FormViewer from './FormViewer.vue'
 
-export default {
-  name: 'MasterPlan',
-  components: {
-    SearchOutlined,
-    EyeOutlined,
-    DownloadOutlined
+
+// Props definition
+const props = defineProps({
+  uuid: {
+    type: String,
+    required: true
   },
-  props: {
-    uuid: {
-      type: String,
-      required: true
-    }
-  },
-  setup(props) {
-    // Reactive data
-    const selectedInspectionCode = ref('DI-VT-000001')
-    const selectedLevel1Code = ref('ML1-VIS-001')
-    const selectedLevel2Code = ref('ML2-NDT-001')
-    const selectedLevel3Code = ref('ML3-OVH-001')
-    const searchInspection = ref('')
-    const searchLevel1 = ref('')
-    const searchLevel2 = ref('')
-    const searchLevel3 = ref('')
+  id: {
+    type: [String, Number],
+    required: true
+  }
+})
 
-    // Mock data for Inspection Codes
-    const inspectionCodes = ref([
-      { id: 'DI-VT-000001', name: 'Visual Inspection - Structural Components', type: 'Visual' },
-      { id: 'DI-VT-000002', name: 'Visual Inspection - Surface Defects', type: 'Visual' },
-      { id: 'DI-UT-000001', name: 'Ultrasonic Testing - Thickness Measurement', type: 'Ultrasonic' },
-      { id: 'DI-MT-000001', name: 'Magnetic Testing - Crack Detection', type: 'Magnetic' },
-      { id: 'DI-PT-000001', name: 'Penetrant Testing - Surface Flaws', type: 'Penetrant' },
-      { id: 'DI-RT-000001', name: 'Radiographic Testing - Internal Defects', type: 'Radiographic' }
-    ])
+// Reactive data
+const selectedInspectionCode = ref('')
+const selectedLevel1Code = ref('')
+const selectedLevel2Code = ref('')
+const selectedLevel3Code = ref('')
+const searchInspection = ref('')
+const searchLevel1 = ref('')
+const searchLevel2 = ref('')
+const searchLevel3 = ref('')
+const isModalVisible = ref(false)
+const selectedWiId = ref('')
+const loading = ref(false)
 
-    // Mock data for Maintenance Level 1
-    const level1Items = ref([
-      { id: 'ML1-001', code: 'ML1-VIS-001', name: 'Visual Inspection', category: 'Visual' },
-      { id: 'ML1-002', code: 'ML1-CLN-001', name: 'Surface Cleaning', category: 'Cleaning' },
-      { id: 'ML1-003', code: 'ML1-LUB-001', name: 'Basic Lubrication', category: 'Lubrication' },
-      { id: 'ML1-004', code: 'ML1-CHK-001', name: 'System Check', category: 'Operational' }
-    ])
+// Data from API
+const allWorkInstructions = ref([])
+const inspectionItems = ref([])
+const level1Items = ref([])
+const level2Items = ref([])
+const level3Items = ref([])
 
-    // Mock data for Maintenance Level 2
-    const level2Items = ref([
-      { id: 'ML2-001', code: 'ML2-NDT-001', name: 'Non-Destructive Testing', category: 'Testing' },
-      { id: 'ML2-002', code: 'ML2-CAL-001', name: 'Component Calibration', category: 'Calibration' },
-      { id: 'ML2-003', code: 'ML2-REP-001', name: 'Minor Repairs', category: 'Repair' },
-      { id: 'ML2-004', code: 'ML2-PER-001', name: 'Performance Testing', category: 'Performance' }
-    ])
+// Computed properties for filtering
+const filteredInspectionItems = computed(() => {
+  if (!searchInspection.value) return inspectionItems.value
+  return inspectionItems.value.filter(item => 
+    item.code.toLowerCase().includes(searchInspection.value.toLowerCase()) ||
+    item.name.toLowerCase().includes(searchInspection.value.toLowerCase())
+  )
+})
 
-    // Mock data for Maintenance Level 3
-    const level3Items = ref([
-      { id: 'ML3-001', code: 'ML3-OVH-001', name: 'Complete Overhaul', category: 'Overhaul' },
-      { id: 'ML3-002', code: 'ML3-ADV-001', name: 'Advanced Testing', category: 'Advanced Testing' },
-      { id: 'ML3-003', code: 'ML3-MOD-001', name: 'System Modification', category: 'Modification' },
-      { id: 'ML3-004', code: 'ML3-CRT-001', name: 'Certification & Documentation', category: 'Certification' }
-    ])
+const filteredLevel1Items = computed(() => {
+  if (!searchLevel1.value) return level1Items.value
+  return level1Items.value.filter(item =>
+    item.code.toLowerCase().includes(searchLevel1.value.toLowerCase()) ||
+    item.name.toLowerCase().includes(searchLevel1.value.toLowerCase())
+  )
+})
 
-    // Computed properties for filtering
-    const filteredInspectionCodes = computed(() => {
-      if (!searchInspection.value) return inspectionCodes.value
-      return inspectionCodes.value.filter(code => 
-        code.id.toLowerCase().includes(searchInspection.value.toLowerCase()) ||
-        code.name.toLowerCase().includes(searchInspection.value.toLowerCase()) ||
-        code.type.toLowerCase().includes(searchInspection.value.toLowerCase())
-      )
+const filteredLevel2Items = computed(() => {
+  if (!searchLevel2.value) return level2Items.value
+  return level2Items.value.filter(item =>
+    item.code.toLowerCase().includes(searchLevel2.value.toLowerCase()) ||
+    item.name.toLowerCase().includes(searchLevel2.value.toLowerCase())
+  )
+})
+
+const filteredLevel3Items = computed(() => {
+  if (!searchLevel3.value) return level3Items.value
+  return level3Items.value.filter(item =>
+    item.code.toLowerCase().includes(searchLevel3.value.toLowerCase()) ||
+    item.name.toLowerCase().includes(searchLevel3.value.toLowerCase())
+  )
+})
+
+// Methods
+const selectInspectionCode = (wiId) => {
+  selectedInspectionCode.value = wiId
+}
+
+const selectMaintenanceCode = (wiId, level) => {
+  if (level === 1) selectedLevel1Code.value = wiId
+  else if (level === 2) selectedLevel2Code.value = wiId
+  else if (level === 3) selectedLevel3Code.value = wiId
+}
+
+const openModal = (wiId) => {
+  selectedWiId.value = wiId
+  isModalVisible.value = true
+}
+
+const handleModalCancel = () => {
+  isModalVisible.value = false
+  selectedWiId.value = ''
+}
+
+const handleExport = () => {
+  console.log('Exporting master plan for UUID:', props.uuid)
+  // TODO: Implement export functionality
+}
+
+const splitDataByType = (data) => {
+  inspectionItems.value = data.filter(item => item.type === 'Daily Inspection')
+  level1Items.value = data.filter(item => item.type === 'Maintenance Level 1')
+  level2Items.value = data.filter(item => item.type === 'Maintenance Level 2')
+  level3Items.value = data.filter(item => item.type === 'Maintenance Level 3')
+}
+
+const loadMasterPlanData = async () => {
+  try {
+    loading.value = true
+    
+    const res = await axiosClient.get('', {
+      params: {
+        c: 'WorkingInstructionController',
+        m: 'getWiByMachineId',
+        equipment_id: props.id
+      }
     })
 
-    const filteredLevel1Items = computed(() => {
-      if (!searchLevel1.value) return level1Items.value
-      return level1Items.value.filter(item =>
-        item.code.toLowerCase().includes(searchLevel1.value.toLowerCase()) ||
-        item.name.toLowerCase().includes(searchLevel1.value.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchLevel1.value.toLowerCase())
-      )
-    })
-
-    const filteredLevel2Items = computed(() => {
-      if (!searchLevel2.value) return level2Items.value
-      return level2Items.value.filter(item =>
-        item.code.toLowerCase().includes(searchLevel2.value.toLowerCase()) ||
-        item.name.toLowerCase().includes(searchLevel2.value.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchLevel2.value.toLowerCase())
-      )
-    })
-
-    const filteredLevel3Items = computed(() => {
-      if (!searchLevel3.value) return level3Items.value
-      return level3Items.value.filter(item =>
-        item.code.toLowerCase().includes(searchLevel3.value.toLowerCase()) ||
-        item.name.toLowerCase().includes(searchLevel3.value.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchLevel3.value.toLowerCase())
-      )
-    })
-
-    // Methods
-    const selectInspectionCode = (code) => {
-      selectedInspectionCode.value = code
-      console.log('Selected inspection code:', code)
+    if (res.data && res.data.status === 'success') {
+      allWorkInstructions.value = res.data.data
+      splitDataByType(res.data.data)
+    } else {
+      console.error('Failed to load data:', res.data?.message)
     }
-
-    const selectMaintenanceCode = (code, level) => {
-      if (level === 1) selectedLevel1Code.value = code
-      else if (level === 2) selectedLevel2Code.value = code
-      else if (level === 3) selectedLevel3Code.value = code
-      console.log(`Selected Level ${level} code:`, code)
-    }
-
-    const handleExport = () => {
-      console.log('Exporting master plan for UUID:', props.uuid)
-      // TODO: Implement export functionality
-    }
-
-    const loadMasterPlanData = async () => {
-      console.log('Loading master plan data for UUID:', props.uuid)
-      // TODO: Replace with actual API call
-    }
-
-    // Lifecycle
-    onMounted(() => {
-      loadMasterPlanData()
-    })
-
-    return {
-      props,
-      selectedInspectionCode,
-      selectedLevel1Code,
-      selectedLevel2Code,
-      selectedLevel3Code,
-      searchInspection,
-      searchLevel1,
-      searchLevel2,
-      searchLevel3,
-      filteredInspectionCodes,
-      filteredLevel1Items,
-      filteredLevel2Items,
-      filteredLevel3Items,
-      selectInspectionCode,
-      selectMaintenanceCode,
-      handleExport
-    }
+  } catch (error) {
+    console.error('Error loading master plan data:', error)
+  } finally {
+    loading.value = false
   }
 }
+
+// Lifecycle
+onMounted(() => {
+  loadMasterPlanData()
+})
 </script>
 
 <style scoped>
@@ -468,10 +469,20 @@ export default {
   color: #64748b;
   opacity: 0;
   transition: opacity 0.2s;
+  cursor: pointer;
 }
 
 .inspection-item:hover .view-icon {
   opacity: 1;
+}
+
+.view-icon:hover {
+  color: #3b82f6;
+}
+
+/* Modal */
+.modal-content {
+  padding: 16px 0;
 }
 
 /* Responsive Design */

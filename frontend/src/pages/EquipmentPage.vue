@@ -54,6 +54,7 @@ const pagination = ref({
 const showMasterPlanModal = ref(false);
 const selectedUuid = ref(null);
 
+
 // modal delete
 const showDeleteModal = ref(false);
 const deleteTarget = ref(null);
@@ -110,6 +111,8 @@ function confirmDelete(item) {
 }
 
 function performDelete() {
+  if (!isMatched.value) return;
+  // gọi API delete
   if (deleteTarget.value) {
     console.log('Deleting:', deleteTarget.value.uuid);
     // TODO: gọi API xóa
@@ -122,6 +125,13 @@ function cancelDelete() {
   showDeleteModal.value = false;
   deleteTarget.value = null;
 }
+
+const confirmationInput = ref("")
+
+// Chỉ khi user nhập đúng thì nút Yes mới enable
+const isMatched = computed(() => {
+  return confirmationInput.value.trim() === deleteTarget.value?.machine_id
+})
 
 function openMasterPlan(uuid) {
   selectedUuid.value = uuid;
@@ -287,8 +297,8 @@ const breadcrumbItems = [
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>Equipment Management</h1>
-          <p class="subtitle">Manage and monitor your equipment inventory</p>
+          <h1 v-translate>Equipment Management</h1>
+          <p class="subtitle" v-translate>Manage and monitor your equipment inventory</p>
         </div>
         <div class="action-buttons">
           <Space>
@@ -300,10 +310,10 @@ const breadcrumbItems = [
               <DownloadOutlined />
               Export
             </Button> -->
-            <Button type="primary" @click="handleAddNew">
+            <!-- <Button type="primary" @click="handleAddNew">
               <PlusOutlined />
               Add Equipment
-            </Button>
+            </Button> -->
           </Space>
         </div>
       </div>
@@ -436,7 +446,7 @@ const breadcrumbItems = [
                 <td>{{ item.family }}</td>
                 <td>{{ item.model }}</td>
                 <td>{{ item.cavity }}</td>
-                <td>{{ item.manufacturer }}</td>
+                <td>{{ $tSync(item.manufacturer) }}</td>
                 <td>{{ item.manufacturing_date }}</td>
                 <td class="history-count">{{ formatNumber(item.history_count) }}</td>
                 <td>{{ item.unit }}</td>
@@ -525,47 +535,96 @@ const breadcrumbItems = [
       title="Equipment Master Plan" 
       @cancel="closeMasterPlan"
       width="1400px"
+      :style="{ top: '3px' }"
       class="master-plan-modal"
     >
       <template #footer>
         <Button @click="closeMasterPlan">Close</Button>
       </template>
       <div class="master-plan-content">
-        <MasterPlan />
+        <MasterPlan :key="selectedUuid" :id="selectedUuid" />
       </div>
     </Modal>
 
     <!-- Enhanced Delete Confirmation Modal -->
     <Modal
-      v-model:open="showDeleteModal"
-      title="Confirm Equipment Deletion"
-      @ok="performDelete"
-      @cancel="cancelDelete"
-      ok-text="Yes, Delete"
-      cancel-text="Cancel"
-      ok-type="danger"
-      class="delete-modal"
-    >
-      <div class="delete-content">
-        <div class="warning-icon">
-          <ExclamationCircleOutlined />
+    v-model:open="showDeleteModal"
+    title="Confirm Equipment Deletion"
+    @ok="performDelete"
+    @cancel="cancelDelete"
+    ok-text="Yes, Delete"
+    cancel-text="Cancel"
+    ok-type="danger"
+    class="delete-modal"
+    :ok-button-props="{ disabled: !isMatched }"
+  >
+    <div class="delete-content">
+      <div class="warning-icon">
+        <ExclamationCircleOutlined />
+      </div>
+      <div class="warning-text">
+        <p>Are you sure you want to delete this equipment?</p>
+
+        <div class="equipment-info no-copy">
+          <strong>{{ deleteTarget?.machine_id }}</strong>
+          <span class="equipment-details">
+            {{ deleteTarget?.family }} - {{ deleteTarget?.model }}
+          </span>
         </div>
-        <div class="warning-text">
-          <p>Are you sure you want to delete this equipment?</p>
-          <div class="equipment-info">
-            <strong>{{ deleteTarget?.machine_id }}</strong>
-            <span class="equipment-details">
-              {{ deleteTarget?.family }} - {{ deleteTarget?.model }}
-            </span>
-          </div>
-          <p class="warning-note">This action cannot be undone.</p>
+
+        <p class="warning-note">This action cannot be undone.</p>
+
+        <div class="confirm-input no-copy">
+          <label>
+            Please type <strong>{{ deleteTarget?.machine_id }}</strong> to confirm:
+          </label>
+          <input
+            v-model="confirmationInput"
+            type="text"
+            class="form-control"
+            placeholder="Enter machine ID"
+          />
         </div>
       </div>
-    </Modal>
+    </div>
+  </Modal>
   </div>
 </template>
 
 <style scoped>
+
+.delete-content {
+  display: flex;
+  gap: 12px;
+}
+
+.warning-icon {
+  font-size: 28px;
+  color: #faad14;
+}
+
+.warning-text {
+  flex: 1;
+}
+
+.no-copy {
+  user-select: none; /* chặn copy */
+}
+
+.confirm-input {
+  margin-top: 12px;
+}
+.confirm-input input {
+  margin-top: 12px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+
+
+
 .equipment-management {
   padding: 24px;
   background: #f5f5f5;
@@ -881,6 +940,8 @@ const breadcrumbItems = [
 .master-plan-content {
   padding: 20px 0;
 }
+
+
 
 .todo-note {
   color: #666;

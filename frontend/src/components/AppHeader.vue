@@ -5,8 +5,9 @@
       <div class="logo-container">
         <img :src="logo" alt="CMMS Logo" class="logo-image" />
         <div class="brand-text">
-          <span class="brand-name">CMMS</span>
+          <span class="brand-name" v-translate>CMMS</span>
           <!-- <span class="brand-subtitle">cmms</span> -->
+           
         </div>
       </div>
     </div>
@@ -29,7 +30,7 @@
           </svg>
 
 
-            <span>User</span>
+            <span v-translate>User</span>
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
@@ -42,8 +43,8 @@
                   <path d="M9 9h6v6H9V9z"></path>
                 </svg>
                 <div>
-                  <div class="submenu-title">List User</div>
-                  <div class="submenu-desc">View all User</div>
+                  <div class="submenu-title" v-translate>List User</div>
+                  <div class="submenu-desc" v-translate>View all User</div>
                 </div>
               </a>
               <a @click="onMenuClick('/dashboard/user/permission')" class="submenu-item">
@@ -52,8 +53,8 @@
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
                 <div>
-                  <div class="submenu-title">Permissions</div>
-                  <div class="submenu-desc">Permissions User</div>
+                  <div class="submenu-title" v-translate>Permissions</div>
+                  <div class="submenu-desc" v-translate>Permissions User</div>
                 </div>
               </a>
             </div>
@@ -72,7 +73,7 @@
               <line x1="8" y1="21" x2="16" y2="21"></line>
               <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
-            <span>Equipment</span>
+            <span v-translate>Equipment</span>
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
@@ -85,8 +86,8 @@
                   <path d="M9 9h6v6H9V9z"></path>
                 </svg>
                 <div>
-                  <div class="submenu-title">List Equipment</div>
-                  <div class="submenu-desc">View all equipment</div>
+                  <div class="submenu-title" v-translate>List Equipment</div>
+                  <div class="submenu-desc" v-translate>View all equipment</div>
                 </div>
               </a>
               <a @click="onMenuClick('/dashboard/equipments/add')" class="submenu-item">
@@ -95,8 +96,8 @@
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
                 <div>
-                  <div class="submenu-title">Add Equipment</div>
-                  <div class="submenu-desc">Create new equipment</div>
+                  <div class="submenu-title" v-translate>Add Equipment</div>
+                  <div class="submenu-desc" v-translate>Create new equipment</div>
                 </div>
               </a>
             </div>
@@ -113,7 +114,7 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
             </svg>
-            <span>Category</span>
+            <span v-translate>Category</span>
           </div>
         </div>
 
@@ -132,7 +133,7 @@
               <line x1="16" y1="17" x2="8" y2="17"></line>
               <polyline points="10,9 9,9 8,9"></polyline>
             </svg>
-            <span>Instructions</span>
+            <span v-translate>Instructions</span>
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
@@ -145,8 +146,8 @@
                   <path d="M9 9h6v6H9V9z"></path>
                 </svg>
                 <div>
-                  <div class="submenu-title">List Instructions</div>
-                  <div class="submenu-desc">View all instructions</div>
+                  <div class="submenu-title" v-translate>List Instructions</div>
+                  <div class="submenu-desc" v-translate>View all instructions</div>
                 </div>
               </a>
               <a @click="onMenuClick('/dashboard/working-instructions/add')" class="submenu-item">
@@ -155,8 +156,8 @@
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
                 <div>
-                  <div class="submenu-title">Add Instruction</div>
-                  <div class="submenu-desc">Create new instruction</div>
+                  <div class="submenu-title" v-translate>Add Instruction</div>
+                  <div class="submenu-desc" v-translate>Create new instruction</div>
                 </div>
               </a>
             </div>
@@ -180,7 +181,7 @@
               <line x1="16" y1="17" x2="8" y2="17"></line>
               <polyline points="10,9 9,9 8,9"></polyline>
             </svg>
-            <span>Tasks</span>
+            <span v-translate>Tasks</span>
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
@@ -193,8 +194,8 @@
                   <path d="M9 9h6v6H9V9z"></path>
                 </svg>
                 <div>
-                  <div class="submenu-title">List Daily Inspection</div>
-                  <div class="submenu-desc">View all daily inspection</div>
+                  <div class="submenu-title" v-translate>List Daily Inspection</div>
+                  <div class="submenu-desc" v-translate>View all daily inspection</div>
                 </div>
               </a>
               <!-- <a @click="onMenuClick('/dashboard/daily-tasks/add')" class="submenu-item">
@@ -222,7 +223,7 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 11H5a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h4m6-6h4a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-4m-6 0v4a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-4m-6 0h6"></path>
             </svg>
-            <span>Test</span>
+            <span v-translate>Authorization</span>
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
@@ -234,8 +235,8 @@
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
                 </svg>
                 <div>
-                  <div class="submenu-title">Category Test</div>
-                  <div class="submenu-desc">Test categories</div>
+                  <div class="submenu-title" v-translate>Authorization</div>
+                  <div class="submenu-desc" v-translate>Demo</div>
                 </div>
               </a>
             </div>
@@ -249,7 +250,7 @@
       <div class="user-profile">
         <div class="user-info">
           <div class="user-name">{{ user.name }}</div>
-          <div class="user-role">{{ user.role }}</div>
+          <div class="user-role">{{ $tSync(user.role) }}</div>
         </div>
         <div 
           class="user-avatar" 
@@ -268,8 +269,9 @@
             {{ user.name.charAt(0).toUpperCase() }}
           </div>
           <div class="user-menu-info">
+            
             <div class="user-menu-name">{{ user.name }}</div>
-            <div class="user-menu-role">{{ user.role }}</div>
+            <div class="user-menu-role">{{ $tSync(user.role) }}</div>
           </div>
         </div>
         <div class="user-menu-divider"></div>
@@ -278,16 +280,34 @@
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
-          <span>Profile</span>
+          <span v-translate>Profile</span>
         </a>
+<a class="user-menu-item flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+  <!-- Globe Icon -->
+  <svg class="menu-item-icon w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 0c2.21 0 4 4.48 4 10s-1.79 10-4 10-4-4.48-4-10 1.79-10 4-10zm0 0c5.52 0 10 2.24 10 5s-4.48 5-10 5S2 9.76 2 7s4.48-5 10-5z"/>
+  </svg>
+
+  <!-- Label -->
+  <span class="text-gray-700 font-medium" v-translate>Language</span>
+
+  <!-- Language Switcher -->
+  <div class="ml-auto">
+    <LanguageSwitcher />
+  </div>
+</a>
+
+
         <a @click="handleMenuClick('logout')" class="user-menu-item logout">
           <svg class="menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
             <polyline points="16,17 21,12 16,7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
-          <span>Logout</span>
+          <span v-translate>Logout</span>
         </a>
+
+        
       </div>
     </div>
 
@@ -308,6 +328,8 @@ import { ref, watch, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import logo from "@/assets/logo.png";
 import axiosClient from "@/utils/axiosClient";
+import LanguageSwitcher from "./LanguageSwitcher.vue";
+
 
 const router = useRouter();
 const route = useRoute();

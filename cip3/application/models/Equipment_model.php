@@ -47,7 +47,7 @@ class Equipment_model extends CI_Model {
         $this->db->insert_batch('equipment_working_instructions', $batch);
     }
 
-        private function generate_uuid() {
+    private function generate_uuid() {
         return sprintf(
             '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
             mt_rand(0, 0xffff), mt_rand(0, 0xffff),
@@ -58,4 +58,82 @@ class Equipment_model extends CI_Model {
         );
     }
 
+    public function updateEquipment($uuid, $data) {
+        $this->db->where('uuid', $uuid);
+        return $this->db->update('equipments', $data);
+    }
+
+    // public function updateWorkingInstructions($equipmentId, $newWiList) {
+    //     // Lấy toàn bộ WI hiện tại trong DB (kể cả deleted_at)
+    //     $this->db->select('working_instruction_id, deleted_at');
+    //     $this->db->from('equipment_working_instructions');
+    //     $this->db->where('equipment_id', $equipmentId);
+    //     $query = $this->db->get();
+    //     $existing = $query->result_array();
+
+    //     $existingMap = [];
+    //     foreach ($existing as $row) {
+    //         $existingMap[$row['working_instruction_id']] = $row['deleted_at'];
+    //     }
+
+    //     // convert thành array chỉ số
+    //     $newWiList = $newWiList ?: [];
+
+    //     // 1. Xử lý WI bị bỏ đi → set deleted_at = NOW()
+    //     foreach ($existingMap as $wiId => $deletedAt) {
+    //         if (!in_array($wiId, $newWiList)) {
+    //             $this->db->where('equipment_id', $equipmentId);
+    //             $this->db->where('working_instruction_id', $wiId);
+    //             $this->db->update('equipment_working_instructions', [
+    //                 'deleted_at' => date('Y-m-d H:i:s')
+    //             ]);
+    //         }
+    //     }
+
+    //     // 2. Xử lý WI được giữ lại hoặc thêm mới
+    //     foreach ($newWiList as $wiId) {
+    //         if (isset($existingMap[$wiId])) {
+    //             // Nếu đang có mà bị đánh dấu deleted_at → khôi phục
+    //             if ($existingMap[$wiId] !== null) {
+    //                 $this->db->where('equipment_id', $equipmentId);
+    //                 $this->db->where('working_instruction_id', $wiId);
+    //                 $this->db->update('equipment_working_instructions', [
+    //                     'deleted_at' => null
+    //                 ]);
+    //             }
+    //         } else {
+    //             // chưa có → insert mới
+    //             $this->db->insert('equipment_working_instructions', [
+    //                 'equipment_id' => $equipmentId,
+    //                 'working_instruction_id' => $wiId,
+    //                 'created_at' => date('Y-m-d H:i:s'),
+    //                 'deleted_at' => null
+    //             ]);
+    //         }
+    //     }
+    // }
+
+
+    public function updateWorkingInstructions($equipmentId, $newWiList)
+    {
+        // Xóa sạch WI cũ
+        $this->db->where('equipment_id', $equipmentId);
+        $this->db->delete('equipment_working_instructions');
+
+        // Nếu list rỗng thì thôi
+        if (empty($newWiList)) return;
+
+        // Chuẩn bị dữ liệu insert batch
+        $batch = [];
+        foreach ($newWiList as $wiId) {
+            $batch[] = [
+                'equipment_id'          => $equipmentId,
+                'working_instruction_id'=> $wiId,
+                'created_at'            => date('Y-m-d H:i:s'),
+            ];
+        }
+
+        // Insert mới toàn bộ
+        $this->db->insert_batch('equipment_working_instructions', $batch);
+    }
 }

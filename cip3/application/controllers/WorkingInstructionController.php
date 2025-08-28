@@ -101,6 +101,14 @@ class WorkingInstructionController extends CI_Controller
             return $this->respond(400, ['error' => 'Invalid category code']);
         }
 
+        if (!$meta['type'] || !$meta['description'] || !$meta['frequency']) {
+            return $this->respond(400, ['error' => $meta['type']]);
+        }
+
+        if (!$meta['frequency'] == 'Unit' && !$meta['unitType'] && !$meta['unitValue']) {
+            return $this->respond(400, ['error' => 'Invalid unit']);
+        }
+
         $category_id = $category['uuid'];
 
 
@@ -126,6 +134,9 @@ class WorkingInstructionController extends CI_Controller
             'code'        => $final_code,
             'type'        => $meta['type'],
             'name'        => $meta['description'],
+            'frequency'     => $meta['frequency'],
+            'unit_value'     => $meta['unitValue'],
+            'unit_type'     => $meta['unitType'],
             'category_id' => $category_id,
             'schema' => $content,
             'created_at' => date('Y-m-d H:i:s'),
@@ -176,6 +187,37 @@ class WorkingInstructionController extends CI_Controller
     {
         $wi_id = $this->input->get('id');
         $wi = $this->WorkingInstruction_model->getById($wi_id);
+        $result = [
+            'status' => 'success',
+            'message' => 'Lấy dữ liệu thành công',
+            'data' => $wi,
+        ];
+
+        return $this->output
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode($result));
+    }
+
+
+    public function getWiByMachineId()
+    {
+        $e_id = $this->input->get('equipment_id');
+        $ewi = $this->WorkingInstruction_model->getByMachineId($e_id);
+        $result = [
+            'status' => 'success',
+            'message' => 'Lấy dữ liệu thành công',
+            'data' => $ewi,
+        ];
+
+        return $this->output
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode($result));
+    }
+
+    public function getWiByCategoryId()
+    {
+        $category_id = $this->input->get('category_id');
+        $wi = $this->WorkingInstruction_model->getByCategoryId($category_id);
         $result = [
             'status' => 'success',
             'message' => 'Lấy dữ liệu thành công',

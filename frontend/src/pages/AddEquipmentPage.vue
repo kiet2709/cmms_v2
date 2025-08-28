@@ -1,61 +1,68 @@
 <template>
   <div class="page-container" style="margin-top: 16px;">
-    <!-- Left Section -->
+    <!-- Left Section - Fixed -->
     <div class="left-section">
-      <h2 class="section-title">Machine Information</h2>
+      <div class="left-content">
+        <h2 class="section-title">Machine Information</h2>
 
-      <div class="form-group">
-        <label class="form-label">Machine ID</label>
-        <input v-model="modelId" placeholder="Enter Machine ID" class="input" />
+        <div class="form-group">
+          <label class="form-label">Machine ID</label>
+          <input v-model="modelId" placeholder="Enter Machine ID" class="input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Model</label>
+          <input v-model="creator" placeholder="Enter Model" class="input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Family</label>
+          <input v-model="serialNumber" placeholder="Enter Family" class="input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Manufacture Date</label>
+          <input v-model="manufactureDate" placeholder="YYYY-MM-DD" class="input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Manufacturer</label>
+          <input v-model="location" placeholder="Enter Manufacturer" class="input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">History Count</label>
+          <input v-model="status" placeholder="Enter History Count" class="input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Unit</label>
+          <input v-model="version" placeholder="Enter Unit" class="input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cavity</label>
+          <input v-model="cavity" placeholder="Enter Cavity" class="input" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select v-model="category" class="input" @change="handleSelect">
+            <option disabled value="">Select Category</option>
+            <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary save-btn" @click="createMachine">Save</button>
       </div>
-
-      <div class="form-group">
-        <label class="form-label">Model</label>
-        <input v-model="creator" placeholder="Enter Model" class="input" />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Family</label>
-        <input v-model="serialNumber" placeholder="Enter Family" class="input" />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Manufacture Date</label>
-        <input v-model="manufactureDate" placeholder="YYYY-MM-DD" class="input" />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Manufacturer</label>
-        <input v-model="location" placeholder="Enter Manufacturer" class="input" />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">History Count</label>
-        <input v-model="status" placeholder="Enter History Count" class="input" />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Unit</label>
-        <input v-model="version" placeholder="Enter Unit" class="input" />
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Category</label>
-        <select v-model="category" class="input">
-          <option disabled value="">Select Category</option>
-          <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option>
-        </select>
-      </div>
-
-      <button class="btn btn-primary save-btn"  @click="createMachine">Save</button>
     </div>
 
-    <!-- Right Section -->
+    <!-- Right Section - Scrollable -->
     <div class="right-section">
-      <div class="grid-4">
+      <div class="grid-horizontal">
         <!-- Inspection -->
         <div class="field">
-          <label class="field-label">Inspection Code</label>
+          <label class="field-label">Daily Inspection</label>
           <input v-model="searchInspection" placeholder="Search inspection..." class="input" />
           <div class="list-box">
             <div v-for="item in filteredInspection" :key="item.value" class="list-item-row">
@@ -138,6 +145,14 @@
         <FormViewer v-if="isModalOpen" :id="currentId" />
       </div>
     </div>
+
+    <!-- Toast Notifications -->
+    <div v-if="showToast" :class="['toast', toastType]">
+      <div class="toast-content">
+        <span class="toast-icon">{{ toastType === 'success' ? '✓' : '✗' }}</span>
+        <span class="toast-message">{{ toastMessage }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -157,6 +172,7 @@ const status = ref("");
 const version = ref("");
 const category = ref("");
 const categories = ref([]);
+const cavity = ref("");
 
 // right - selections
 const selectedInspection = ref([]);
@@ -180,12 +196,27 @@ const searchM3 = ref("");
 const isModalOpen = ref(false);
 const currentId = ref(null);
 
+// toast
+const showToast = ref(false);
+const toastType = ref('success');
+const toastMessage = ref('');
+
 const viewItem = (item) => {
   currentId.value = item.value;
   isModalOpen.value = true;
 };
 const closeModal = () => {
   isModalOpen.value = false;
+};
+
+// toast functions
+const showToastMessage = (type, message) => {
+  toastType.value = type;
+  toastMessage.value = message;
+  showToast.value = true;
+  setTimeout(() => {
+    showToast.value = false;
+  }, 3000);
 };
 
 // upload
@@ -202,6 +233,12 @@ const handleUpload = (event) => {
 const openImageModal = () => {};
 const closeImageModal = () => {};
 
+function handleSelect(event) {
+  // console.log("Selected ID:", category.value); // chính là item.id
+  // console.log("Selected name:", categories.value.find(c => c.id === category.value)?.name);
+  fetchWiByCategoryID(category.value);
+}
+
 const createMachine = async () => {
   try {
     const payload = {
@@ -214,6 +251,7 @@ const createMachine = async () => {
         historyCount: status.value,
         unit: version.value,
         category: category.value,
+        cavity: cavity.value,
 
         // checkbox selections
         inspectionCodes: selectedInspection.value,
@@ -234,9 +272,28 @@ const createMachine = async () => {
           payload
         },
       });
-    console.log("API response:", res.data);
+    
+    // console.log("API response:", res.data);
+    showToastMessage('success', 'Machine created successfully!');
+    
+    // Reset form after success
+    modelId.value = "";
+    creator.value = "";
+    serialNumber.value = "";
+    manufactureDate.value = "";
+    location.value = "";
+    status.value = "";
+    version.value = "";
+    category.value = "";
+    cavity.value = "";
+    selectedInspection.value = [];
+    selectedMaintenance1.value = [];
+    selectedMaintenance2.value = [];
+    selectedMaintenance3.value = [];
+    
   } catch (e) {
     console.error("Error creating machine:", e);
+    showToastMessage('error', 'Failed to create machine. Please try again.');
   }
 };
 
@@ -254,6 +311,42 @@ const fetchCategoryData = async () => {
     console.error("Error fetching Category:", e);
   }
 }
+
+const fetchWiByCategoryID = async (id) => {
+  try {
+    const res = await axiosClient.get("", {
+      params: { c: "WorkingInstructionController", m: "getWiByCategoryId", category_id: id },
+    });
+    if (res.data.status === "success") {
+      const data = res.data.data;
+      console.log(data);
+      
+      inspectionOptions.value = [];
+      m1Options.value = [];
+      m2Options.value = [];
+      m3Options.value = [];
+      data.forEach((item) => {
+        const option = { value: item.id, label: item.code };
+        switch (item.type) {
+          case "Daily Inspection":
+            inspectionOptions.value.push(option);
+            break;
+          case "Maintenance Level 1":
+            m1Options.value.push(option);
+            break;
+          case "Maintenance Level 2":
+            m2Options.value.push(option);
+            break;
+          case "Maintenance Level 3":
+            m3Options.value.push(option);
+            break;
+        }
+      });
+    }
+  } catch (e) {
+    console.error("Error fetching WI:", e);
+  }
+};
 
 // fetch data
 const fetchWiData = async () => {
@@ -323,21 +416,31 @@ const filteredM3 = computed(() =>
   display: flex;
   height: 100vh;
   overflow: hidden;
-  background: #f5f6fa; /* nền tổng thể nhạt, nhẹ mắt */
+  background: #f5f6fa;
   font-family: "Segoe UI", Roboto, sans-serif;
 }
 
-/* LEFT */
+/* LEFT SECTION - FIXED */
 .left-section {
-  width: 30%;
+  width: 20%;
+  background: #fff;
+  border-right: 1px solid #eee;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
+  position: fixed;
+  height: 100vh;
+  left: 0;
+  top: 0;
+  z-index: 100;
+}
+
+.left-content {
+  margin-top: 80px;
   padding: 20px;
+  height: 100%;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-  border-right: 1px solid #eee;
-  background: #fff;
-  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
+  gap: 9px;
 }
 
 .section-title {
@@ -393,46 +496,47 @@ const filteredM3 = computed(() =>
   opacity: 0.9;
 }
 
-/* RIGHT */
+/* RIGHT SECTION - SCROLLABLE */
 .right-section {
-  flex: 1;
+  margin-left: 20%;
+  width: 80%;
+  height: 100vh;
+  overflow-y: auto;
   padding: 20px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
-.grid-4 {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 5px;
-  height: 100%;
+.grid-horizontal {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-height: 100%;
 }
 
 .field {
-  display: flex;
-  flex-direction: column;
   background: #fff;
-  padding: 14px;
+  padding: 20px;
   border-radius: 10px;
   border: 1px solid #eee;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  min-height: 200px;
+  flex-shrink: 0;
 }
 
 .field-label {
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
   color: #333;
 }
 
 .list-box {
-  flex: 1;
+  height: 140px;
   overflow-y: auto;
   border: 1px solid #eaeaea;
   border-radius: 6px;
   padding: 8px;
   background: #fafafa;
+  margin-top: 8px;
 }
 
 .list-item-row {
@@ -462,6 +566,7 @@ const filteredM3 = computed(() =>
   text-overflow: ellipsis;
   font-size: 13px;
   color: #444;
+  cursor: pointer;
 }
 
 .col-right {
@@ -514,5 +619,72 @@ const filteredM3 = computed(() =>
 }
 .modal-close:hover {
   color: #000;
+}
+
+/* TOAST NOTIFICATIONS */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  z-index: 3000;
+  min-width: 300px;
+  transform: translateX(100%);
+  animation: slideIn 0.3s ease forwards;
+}
+
+.toast.success {
+  background: linear-gradient(135deg, #52c41a, #73d13d);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+}
+
+.toast.error {
+  background: linear-gradient(135deg, #ff4d4f, #ff7875);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.3);
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toast-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.toast-message {
+  font-size: 14px;
+}
+
+@keyframes slideIn {
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .left-section {
+    width: 25%;
+  }
+  .right-section {
+    margin-left: 25%;
+    width: 75%;
+  }
+}
+
+@media (max-width: 768px) {
+  .left-section {
+    width: 30%;
+  }
+  .right-section {
+    margin-left: 30%;
+    width: 70%;
+  }
 }
 </style>
