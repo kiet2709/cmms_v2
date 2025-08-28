@@ -18,6 +18,8 @@ import WorkingInstructionPage from '../pages/WorkingInstructionPage.vue'
 import UpdateEquipmentPage from '../pages/UpdateEquipmentPage.vue'
 import TodayEquipment from '../pages/TodayEquipment.vue'
 import DailyInspectionPage from '../pages/DailyInspectionPage.vue'
+import PermissionPage from '../pages/PermissionPage.vue'
+import AccountTypePage from '../pages/AccountTypePage.vue'
 
 const routes = [
   {
@@ -60,7 +62,7 @@ const routes = [
             component: UpdateEquipmentPage,
           },
           {
-            path: 'categories',
+            path: 'equipments/categories',
             name: 'CategoryPage',
             component: CategoryPage,
           },
@@ -83,6 +85,11 @@ const routes = [
             path: 'user/permission',
             name: 'PermissionPage',
             component: PermissionPage,
+          },
+          {
+            path: 'user/type',
+            name: 'AccoutTypePage',
+            component: AccountTypePage,
           },
           {
             path: 'working-instructions',

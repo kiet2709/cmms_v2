@@ -226,7 +226,7 @@ const breadcrumbItems = [
                         <EyeOutlined />
                       </Button>
                     </Tooltip>
-                    <Tooltip title="Edit Equipment">
+                    <!-- <Tooltip title="Edit Equipment">
                       <Button type="text" @click="handleEdit(item.equipment_id)" class="edit-btn">
                         <EditOutlined />
                       </Button>
@@ -235,7 +235,7 @@ const breadcrumbItems = [
                       <Button type="text" danger @click="confirmDelete(item)" class="delete-btn">
                         <DeleteOutlined />
                       </Button>
-                    </Tooltip>
+                    </Tooltip> -->
                   </div>
                 </td>
               </tr>

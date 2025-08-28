@@ -169,43 +169,32 @@ const breadcrumbItems = [
 </script>
 
 <template>
-  <div class="equipment-management">
-    <!-- Breadcrumb -->
-    <Breadcrumb class="breadcrumb-nav">
-      <Breadcrumb.Item>
-        <router-link to="/">
-          <HomeOutlined />
-          <span>Home</span>
-        </router-link>
-      </Breadcrumb.Item>
-      <Breadcrumb.Item v-for="item in breadcrumbItems" :key="item.title">
-        <router-link v-if="item.path" :to="item.path">{{ item.title }}</router-link>
-        <span v-else>{{ item.title }}</span>
-      </Breadcrumb.Item>
-    </Breadcrumb>
-
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1>Working Instructions</h1>
-          <p class="subtitle">Manage and monitor daily working instructions</p>
-        </div>
-        <div class="action-buttons">
-          <Space>
-            <Button @click="fetchInstructions(pagination.current, pagination.pageSize)" :loading="loading">
-              <ReloadOutlined />
-              Refresh
-            </Button>
-            <Button type="primary" @click="handleAddNew">
-              <PlusOutlined />
-              Add Instruction
-            </Button>
-          </Space>
+  <div class="app-container">
+    <div class="app-header">
+      <div class="header-left">
+        <h1 class="app-title">
+          Working Instructions
+        </h1>
+        <div class="breadcrumb">
+          <span>Instructions</span>
+          <span class="separator">›</span>
+          <span class="current">List Instructions</span>
         </div>
       </div>
+      <div class="header-right">
+        <Space>
+          <Button @click="fetchInstructions(pagination.current, pagination.pageSize)" :loading="loading">
+            <ReloadOutlined />
+            Refresh
+          </Button>
+          <Button type="primary" @click="handleAddNew">
+            <PlusOutlined />
+            Add Instruction
+          </Button>
+        </Space>
+      </div>
     </div>
-
+    <div class="equipment-management">
     <!-- Main Content Card -->
     <Card class="main-content-card">
       <!-- Search and Filter Bar -->
@@ -269,7 +258,7 @@ const breadcrumbItems = [
                 <th>Task Code</th>
                 <th>Description</th>
                 <th>Daily Inspection / Maintenance</th>
-                <th>Timestamp</th>
+                <th>Creation Date</th>
                 <th>View</th>
                 <th>Actions</th>
               </tr>
@@ -382,14 +371,76 @@ const breadcrumbItems = [
 
 
   </div>
+  </div>
+  
 </template>
 
 <style scoped>
 /* Dùng style tương tự EquipmentPage.vue */
+.app-container {
+  min-height: 100vh;
+  background: rgb(245,245,245);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Header */
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.title-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.breadcrumb {
+  font-size: 14px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.separator {
+  color: #dee2e6;
+}
+
+.current {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.header-right {
+  display: flex;
+  gap: 12px;
+}
+
 .equipment-management {
   padding: 24px;
   background: #f5f5f5;
-  min-height: 100vh;
 }
 
 .breadcrumb-nav {
@@ -529,7 +580,10 @@ const breadcrumbItems = [
   background: white;
   font-size: 16px;
 }
-
+.modern-table thead {
+  background: #f3f3f3;
+  border-bottom: 2px solid #e9e8e8;
+}
 .modern-table th {
   padding: 16px 12px;
   font-weight: 600;
