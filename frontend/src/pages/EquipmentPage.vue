@@ -268,28 +268,20 @@ const breadcrumbItems = [
 </script>
 
 <template>
-  <div class="equipment-management">
-    <!-- Breadcrumb -->
-    <Breadcrumb class="breadcrumb-nav">
-      <Breadcrumb.Item>
-        <router-link to="/">
-          <HomeOutlined />
-          <span>Home</span>
-        </router-link>
-      </Breadcrumb.Item>
-      <Breadcrumb.Item v-for="item in breadcrumbItems" :key="item.title">
-        <router-link v-if="item.path" :to="item.path">{{ item.title }}</router-link>
-        <span v-else>{{ item.title }}</span>
-      </Breadcrumb.Item>
-    </Breadcrumb>
-
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1>Equipment Management</h1>
-          <p class="subtitle">Manage and monitor your equipment inventory</p>
+  <div class="app-container">
+    <!-- Header -->
+    <div class="app-header">
+      <div class="header-left">
+        <h1 class="app-title">
+          Equipment Management
+        </h1>
+        <div class="breadcrumb">
+          <span>Equipment</span>
+          <span class="separator">›</span>
+          <span class="current">List Equipment</span>
         </div>
+      </div>
+      <div class="header-right">
         <div class="action-buttons">
           <Space>
             <Button @click="handleRefresh" :loading="loading">
@@ -308,287 +300,328 @@ const breadcrumbItems = [
         </div>
       </div>
     </div>
-
-
-    <!-- Main Content Card -->
-    <Card class="main-content-card">
-      <!-- Search and Filter Bar -->
-      <div class="toolbar">
-        <div class="search-section">
-          <Input.Search
-            v-model:value="searchQuery"
-            placeholder="Search equipment by ID, family, model, or date..."
-            size="large"
-            class="search-input"
-            allow-clear
-          />
+    <div class="equipment-management">
+      <!-- Main Content Card -->
+      <Card class="main-content-card">
+        <!-- Search and Filter Bar -->
+        <div class="toolbar">
+          <div class="search-section">
+            <Input.Search
+              v-model:value="searchQuery"
+              placeholder="Search equipment by ID, family, model, or date..."
+              size="large"
+              class="search-input"
+              allow-clear
+            />
+          </div>
+          <div class="filter-section">
+            <Space>
+              <Dropdown 
+                v-model:open="filterVisible" 
+                placement="bottomRight"
+                trigger="click"
+              >
+                <Button>
+                  <FilterOutlined />
+                  Filters
+                  <span v-if="filters.family || filters.category" class="filter-badge">●</span>
+                </Button>
+                <template #overlay>
+                  <div class="filter-dropdown">
+                    <div class="filter-group">
+                      <label>Family</label>
+                      <Select
+                        v-model:value="filters.family"
+                        placeholder="Select family"
+                        allow-clear
+                        style="width: 200px"
+                      >
+                        <Select.Option v-for="family in uniqueFamilies" :key="family" :value="family">
+                          {{ family }}
+                        </Select.Option>
+                      </Select>
+                    </div>
+                    <div class="filter-group">
+                      <label>Category</label>
+                      <Select
+                        v-model:value="filters.category"
+                        placeholder="Select category"
+                        allow-clear
+                        style="width: 200px"
+                      >
+                        <Select.Option v-for="category in uniqueCategories" :key="category" :value="category">
+                          {{ category }}
+                        </Select.Option>
+                      </Select>
+                    </div>
+                    <div class="filter-actions">
+                      <Button size="small" @click="clearFilters">Clear All</Button>
+                    </div>
+                  </div>
+                </template>
+              </Dropdown>
+            </Space>
+          </div>
         </div>
-        <div class="filter-section">
-          <Space>
-            <Dropdown 
-              v-model:open="filterVisible" 
-              placement="bottomRight"
-              trigger="click"
-            >
-              <Button>
-                <FilterOutlined />
-                Filters
-                <span v-if="filters.family || filters.category" class="filter-badge">●</span>
+
+        <!-- Results Info -->
+        <div class="results-info">
+          <span>Showing {{ sortedData.length }} of {{ pagination.total }} equipment</span>
+        </div>
+
+        <!-- Equipment Table -->
+        <div class="table-container" :class="{ 'loading': loading }">
+          <div v-if="loading" class="loading-overlay">
+            <div class="loading-spinner">Loading...</div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="modern-table">
+              <thead>
+                <tr>
+                  <th class="sortable" @click="sortBy('machine_id')">
+                    <div class="th-content">
+                      Machine ID
+                      <span class="sort-indicator">
+                        <span v-if="sortConfig.key !== 'machine_id'">⇅</span>
+                        <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
+                        <span v-else class="sort-desc">↓</span>
+                      </span>
+                    </div>
+                  </th>
+                  <th class="sortable" @click="sortBy('family')">
+                    <div class="th-content">
+                      Family
+                      <span class="sort-indicator">
+                        <span v-if="sortConfig.key !== 'family'">⇅</span>
+                        <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
+                        <span v-else class="sort-desc">↓</span>
+                      </span>
+                    </div>
+                  </th>
+                  <!-- <th>Family</th> -->
+                  <th>Model</th>
+                  <th>Cavity</th>
+                  <th>Manufacturer</th>
+                  <th class="sortable" @click="sortBy('manufacturing_date')">
+                    <div class="th-content">
+                      Manufacturing Date
+                      <span class="sort-indicator">
+                        <span v-if="sortConfig.key !== 'manufacturing_date'">⇅</span>
+                        <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
+                        <span v-else class="sort-desc">↓</span>
+                      </span>
+                    </div>
+                  </th>
+                  <th class="sortable" @click="sortBy('history_count')">
+                    <div class="th-content">
+                      History Count
+                      <span class="sort-indicator">
+                        <span v-if="sortConfig.key !== 'history_count'">⇅</span>
+                        <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
+                        <span v-else class="sort-desc">↓</span>
+                      </span>
+                    </div>
+                  </th>
+                  <th>Unit</th>
+                  <th>Category</th>
+                  <th>Master Plan</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in sortedData" :key="item.uuid" class="table-row">
+                  <td class="machine-id">
+                    <strong>{{ item.machine_id }}</strong>
+                  </td>
+                  <td>{{ item.family }}</td>
+                  <td>{{ item.model }}</td>
+                  <td>{{ item.cavity }}</td>
+                  <td>{{ item.manufacturer }}</td>
+                  <td>{{ item.manufacturing_date }}</td>
+                  <td class="history-count">{{ formatNumber(item.history_count) }}</td>
+                  <td>{{ item.unit }}</td>
+                  <td>
+                    <Tag :color="getCategoryColor(item.category)">
+                      {{ item.category }}
+                    </Tag>
+                  </td>
+                  <td>
+                    <Button type="link" @click="openMasterPlan(item.uuid)" class="view-plan-btn">
+                      <FileSearchOutlined />
+                      View
+                    </Button>
+                  </td>
+                  <td>
+                    <div class="action-buttons-cell">
+                      <Tooltip title="Edit Equipment">
+                        <Button type="text" @click="handleEdit(item.uuid)" class="edit-btn">
+                          <EditOutlined />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip title="Delete Equipment">
+                        <Button type="text" danger @click="confirmDelete(item)" class="delete-btn">
+                          <DeleteOutlined />
+                        </Button>
+                      </Tooltip>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty State -->
+          <div v-if="!loading && sortedData.length === 0" class="empty-state">
+            <div class="empty-content">
+              <FileSearchOutlined class="empty-icon" />
+              <h3>No equipment found</h3>
+              <p>Try adjusting your search criteria or add new equipment</p>
+              <Button type="primary" @click="handleAddNew">
+                <PlusOutlined />
+                Add Equipment
               </Button>
-              <template #overlay>
-                <div class="filter-dropdown">
-                  <div class="filter-group">
-                    <label>Family</label>
-                    <Select
-                      v-model:value="filters.family"
-                      placeholder="Select family"
-                      allow-clear
-                      style="width: 200px"
-                    >
-                      <Select.Option v-for="family in uniqueFamilies" :key="family" :value="family">
-                        {{ family }}
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div class="filter-group">
-                    <label>Category</label>
-                    <Select
-                      v-model:value="filters.category"
-                      placeholder="Select category"
-                      allow-clear
-                      style="width: 200px"
-                    >
-                      <Select.Option v-for="category in uniqueCategories" :key="category" :value="category">
-                        {{ category }}
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div class="filter-actions">
-                    <Button size="small" @click="clearFilters">Clear All</Button>
-                  </div>
-                </div>
-              </template>
-            </Dropdown>
-          </Space>
-        </div>
-      </div>
-
-      <!-- Results Info -->
-      <div class="results-info">
-        <span>Showing {{ sortedData.length }} of {{ pagination.total }} equipment</span>
-      </div>
-
-      <!-- Equipment Table -->
-      <div class="table-container" :class="{ 'loading': loading }">
-        <div v-if="loading" class="loading-overlay">
-          <div class="loading-spinner">Loading...</div>
-        </div>
-        
-        <div class="table-responsive">
-          <table class="modern-table">
-            <thead>
-              <tr>
-                <th class="sortable" @click="sortBy('machine_id')">
-                  <div class="th-content">
-                    Machine ID
-                    <span class="sort-indicator">
-                      <span v-if="sortConfig.key !== 'machine_id'">⇅</span>
-                      <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
-                      <span v-else class="sort-desc">↓</span>
-                    </span>
-                  </div>
-                </th>
-                <th>Family</th>
-                <th>Model</th>
-                <th>Cavity</th>
-                <th>Manufacturer</th>
-                <th class="sortable" @click="sortBy('manufacturing_date')">
-                  <div class="th-content">
-                    Manufacturing Date
-                    <span class="sort-indicator">
-                      <span v-if="sortConfig.key !== 'manufacturing_date'">⇅</span>
-                      <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
-                      <span v-else class="sort-desc">↓</span>
-                    </span>
-                  </div>
-                </th>
-                <th class="sortable" @click="sortBy('history_count')">
-                  <div class="th-content">
-                    History Count
-                    <span class="sort-indicator">
-                      <span v-if="sortConfig.key !== 'history_count'">⇅</span>
-                      <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
-                      <span v-else class="sort-desc">↓</span>
-                    </span>
-                  </div>
-                </th>
-                <th>Unit</th>
-                <th>Category</th>
-                <th>Master Plan</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in sortedData" :key="item.uuid" class="table-row">
-                <td class="machine-id">
-                  <strong>{{ item.machine_id }}</strong>
-                </td>
-                <td>{{ item.family }}</td>
-                <td>{{ item.model }}</td>
-                <td>{{ item.cavity }}</td>
-                <td>{{ item.manufacturer }}</td>
-                <td>{{ item.manufacturing_date }}</td>
-                <td class="history-count">{{ formatNumber(item.history_count) }}</td>
-                <td>{{ item.unit }}</td>
-                <td>
-                  <Tag :color="getCategoryColor(item.category)">
-                    {{ item.category }}
-                  </Tag>
-                </td>
-                <td>
-                  <Button type="link" @click="openMasterPlan(item.uuid)" class="view-plan-btn">
-                    <FileSearchOutlined />
-                    View
-                  </Button>
-                </td>
-                <td>
-                  <div class="action-buttons-cell">
-                    <Tooltip title="Edit Equipment">
-                      <Button type="text" @click="handleEdit(item.uuid)" class="edit-btn">
-                        <EditOutlined />
-                      </Button>
-                    </Tooltip>
-                    <Tooltip title="Delete Equipment">
-                      <Button type="text" danger @click="confirmDelete(item)" class="delete-btn">
-                        <DeleteOutlined />
-                      </Button>
-                    </Tooltip>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
 
-        <!-- Empty State -->
-        <div v-if="!loading && sortedData.length === 0" class="empty-state">
-          <div class="empty-content">
-            <FileSearchOutlined class="empty-icon" />
-            <h3>No equipment found</h3>
-            <p>Try adjusting your search criteria or add new equipment</p>
-            <Button type="primary" @click="handleAddNew">
-              <PlusOutlined />
-              Add Equipment
+        <!-- Enhanced Pagination -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            <span>
+              Showing {{ (pagination.current - 1) * pagination.pageSize + 1 }} to 
+              {{ Math.min(pagination.current * pagination.pageSize, pagination.total) }} 
+              of {{ pagination.total }} results
+            </span>
+          </div>
+          <div class="pagination-controls">
+            <Button 
+              :disabled="pagination.current === 1" 
+              @click="handlePageChange(pagination.current - 1)"
+              class="pagination-btn"
+            >
+              Previous
+            </Button>
+            
+            <div class="page-numbers">
+              <span class="current-page">{{ pagination.current }}</span>
+              <span class="page-separator">of</span>
+              <span class="total-pages">{{ pagination.totalPages }}</span>
+            </div>
+            
+            <Button 
+              :disabled="pagination.current === pagination.totalPages" 
+              @click="handlePageChange(pagination.current + 1)"
+              class="pagination-btn"
+            >
+              Next
             </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <!-- Enhanced Pagination -->
-      <div class="pagination-container">
-        <div class="pagination-info">
-          <span>
-            Showing {{ (pagination.current - 1) * pagination.pageSize + 1 }} to 
-            {{ Math.min(pagination.current * pagination.pageSize, pagination.total) }} 
-            of {{ pagination.total }} results
-          </span>
+      <!-- Master Plan Modal -->
+      <Modal 
+        v-model:open="showMasterPlanModal" 
+        title="Equipment Master Plan" 
+        @cancel="closeMasterPlan"
+        width="1400px"
+        class="master-plan-modal"
+      >
+        <template #footer>
+          <Button @click="closeMasterPlan">Close</Button>
+        </template>
+        <div class="master-plan-content">
+          <MasterPlan />
         </div>
-        <div class="pagination-controls">
-          <Button 
-            :disabled="pagination.current === 1" 
-            @click="handlePageChange(pagination.current - 1)"
-            class="pagination-btn"
-          >
-            Previous
-          </Button>
-          
-          <div class="page-numbers">
-            <span class="current-page">{{ pagination.current }}</span>
-            <span class="page-separator">of</span>
-            <span class="total-pages">{{ pagination.totalPages }}</span>
+      </Modal>
+
+      <!-- Enhanced Delete Confirmation Modal -->
+      <Modal
+        v-model:open="showDeleteModal"
+        title="Confirm Equipment Deletion"
+        @ok="performDelete"
+        @cancel="cancelDelete"
+        ok-text="Yes, Delete"
+        cancel-text="Cancel"
+        ok-type="danger"
+        class="delete-modal"
+      >
+        <div class="delete-content">
+          <div class="warning-icon">
+            <ExclamationCircleOutlined />
           </div>
-          
-          <Button 
-            :disabled="pagination.current === pagination.totalPages" 
-            @click="handlePageChange(pagination.current + 1)"
-            class="pagination-btn"
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-    </Card>
-
-    <!-- Master Plan Modal -->
-    <Modal 
-      v-model:open="showMasterPlanModal" 
-      title="Equipment Master Plan" 
-      @cancel="closeMasterPlan"
-      width="1400px"
-      class="master-plan-modal"
-    >
-      <template #footer>
-        <Button @click="closeMasterPlan">Close</Button>
-      </template>
-      <div class="master-plan-content">
-        <MasterPlan />
-      </div>
-    </Modal>
-
-    <!-- Enhanced Delete Confirmation Modal -->
-    <Modal
-      v-model:open="showDeleteModal"
-      title="Confirm Equipment Deletion"
-      @ok="performDelete"
-      @cancel="cancelDelete"
-      ok-text="Yes, Delete"
-      cancel-text="Cancel"
-      ok-type="danger"
-      class="delete-modal"
-    >
-      <div class="delete-content">
-        <div class="warning-icon">
-          <ExclamationCircleOutlined />
-        </div>
-        <div class="warning-text">
-          <p>Are you sure you want to delete this equipment?</p>
-          <div class="equipment-info">
-            <strong>{{ deleteTarget?.machine_id }}</strong>
-            <span class="equipment-details">
-              {{ deleteTarget?.family }} - {{ deleteTarget?.model }}
-            </span>
+          <div class="warning-text">
+            <p>Are you sure you want to delete this equipment?</p>
+            <div class="equipment-info">
+              <strong>{{ deleteTarget?.machine_id }}</strong>
+              <span class="equipment-details">
+                {{ deleteTarget?.family }} - {{ deleteTarget?.model }}
+              </span>
+            </div>
+            <p class="warning-note">This action cannot be undone.</p>
           </div>
-          <p class="warning-note">This action cannot be undone.</p>
         </div>
-      </div>
-    </Modal>
+      </Modal>
+    </div>
   </div>
+  
 </template>
 
 <style scoped>
-.equipment-management {
-  padding: 24px;
-  background: #f5f5f5;
+.app-container {
   min-height: 100vh;
+  background: rgb(245,245,245);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
-
-.breadcrumb-nav {
-  margin-bottom: 24px;
-  font-size: 14px;
-}
-
-.breadcrumb-nav a {
-  color: #666;
-  text-decoration: none;
-  display: inline-flex;
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
 }
 
-.breadcrumb-nav a:hover {
-  color: #1890ff;
+.app-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
 }
-
+.User-management {
+  padding: 10px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+.breadcrumb {
+  margin-top: 5px;
+  font-size: 14px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.current {
+  color: #667eea;
+  font-weight: 500;
+}
+.equipment-management {
+  padding: 20px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
 .page-header {
   background: white;
   border-radius: 12px;
@@ -635,7 +668,7 @@ const breadcrumbItems = [
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 6px;
   gap: 16px;
 }
 
@@ -870,7 +903,7 @@ const breadcrumbItems = [
 }
 
 .pagination-btn {
-  border-radius: 6px;
+  border-radius: 6px ;
 }
 
 /* Modal Styles */
