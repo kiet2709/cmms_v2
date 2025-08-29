@@ -2,11 +2,12 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class DailyTask_model extends CI_Model {
+     protected $table = 'daily_tasks';
 
     public function insert_daily_tasks()
     {
         // Lấy danh sách equipment_working_instructions + join working_instructions
-        $this->db->select('ewi.equipment_id, ewi.working_instruction_id, wi.type');
+        $this->db->select('ewi.equipment_id, ewi.working_instruction_id, wi.type, wi.uuid as uuid, wi.code, wi.schema, wi.name, wi.category_id');
         $this->db->from('equipment_working_instructions ewi');
         $this->db->join('working_instructions wi', 'wi.uuid = ewi.working_instruction_id');
         $this->db->where('ewi.deleted_at IS NULL');
@@ -28,25 +29,30 @@ class DailyTask_model extends CI_Model {
 
             if (!$exists) {
                 // Chưa có record nào -> insert mới
-                $this->insert_task($row->equipment_id, $row->working_instruction_id, $today);
+                $this->insert_task($row->equipment_id, $row, $today);
             } else {
                 // Đã có -> check date_start
                 $last_date = date('Y-m-d', strtotime($exists->date_start));
                 if ($last_date != $today) {
                     // Insert thêm bản mới cho hôm nay
-                    $this->insert_task($row->equipment_id, $row->working_instruction_id, $today);
+                    $this->insert_task($row->equipment_id, $row, $today);
                 }
                 // Nếu $last_date == $today thì bỏ qua (lazy init)
             }
         }
     }
 
-    private function insert_task($equipment_id, $wi_id, $today)
+    private function insert_task($equipment_id, $wi, $today)
     {
         $data = [
             'uuid'       => $this->generate_uuid(),
             'equipment_id' => $equipment_id,
-            'wi_id'      => $wi_id,
+            'wi_id'      => $wi->uuid,
+            'code'    => $wi->code,
+            'name'      => $wi->name,
+            'type'      => $wi->type,
+            'schema'    => $wi->schema,
+            'category_id'=> $wi->category_id,
             'date_start' => $today,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
@@ -154,6 +160,23 @@ class DailyTask_model extends CI_Model {
                 }
             }
 
+            $this->db->from('daily_tasks');
+            $this->db->where('status', 'done');
+            $this->db->where('inspected_date IS NOT NULL', null, false);
+            $this->db->where('DATE(inspected_date)', $today);
+            $count_done_today = $this->db->count_all_results();
+
+            $this->db->from('daily_tasks');
+            $this->db->group_start()
+                ->where('date_start', $today)
+            ->group_end();
+            $this->db->or_group_start()
+                ->where('date_start !=', $today)
+                ->where('status IS NULL', null, false)
+                ->where('inspected_date IS NULL', null, false)
+            ->group_end();
+            $count_pending_today = $this->db->count_all_results();
+
             $inspectors = implode(', ', array_keys($item['inspectors_set']));
             $lastInspected = isset($latestMap[$eid]) ? $latestMap[$eid] : null;
 
@@ -163,6 +186,8 @@ class DailyTask_model extends CI_Model {
                 'model'          => $item['model'],
                 'cavity'         => $item['cavity'],
                 'family'         => $item['family'],
+                'count_done'    => $count_done_today,
+                'count_pending' => $count_pending_today,
                 'category_name'  => $item['category_name'],
                 'status'         => $isCompleted ? 'completed' : 'incomplete',
                 'inspectors'     => $inspectors,      // "username1, username2, ..."
@@ -177,9 +202,9 @@ class DailyTask_model extends CI_Model {
         $today = date('Y-m-d');
 
         $this->db->select('
-            working_instructions.code,
-            working_instructions.uuid as wi_id,
-            working_instructions.name as content,
+            daily_tasks.code,
+            daily_tasks.uuid as wi_id,
+            daily_tasks.name as content,
             daily_tasks.inspected_date,
             daily_tasks.date_start,
             daily_tasks.status,
@@ -188,7 +213,6 @@ class DailyTask_model extends CI_Model {
             users.username as inspector_name
         ');
         $this->db->from('daily_tasks');
-        $this->db->join('working_instructions', 'daily_tasks.wi_id = working_instructions.uuid', 'left');
         $this->db->join('users', 'users.uuid = daily_tasks.inspector_id', 'left');
         $this->db->where('daily_tasks.deleted_by IS NULL');
         $this->db->where('daily_tasks.deleted_at IS NULL');
@@ -200,6 +224,14 @@ class DailyTask_model extends CI_Model {
             $this->db->or_where('daily_tasks.inspected_date IS NULL');
         $this->db->group_end();
 
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+    public function getById($id) {
+        $this->db->select('*');
+        $this->db->from($this->table);
+        $this->db->where('uuid', $id);
         $query = $this->db->get();
         return $query->result_array();
     }

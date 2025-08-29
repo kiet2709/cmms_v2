@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axiosClient from '@/utils/axiosClient';
+import DailyInspectionPage from './DailyInspectionPage.vue'
 import { 
   EditOutlined, 
   DeleteOutlined, 
@@ -84,8 +85,18 @@ function handleAddNew() {
   router.push({ name: 'CreateEquipment' });
 }
 
-function handleViewTasks(equipmentId) {
-  router.push({ name: 'DailyInspection', params: { uuid: equipmentId } });
+// state modal view task
+const showViewTaskModal = ref(false);
+const selectedEquipment = ref(null);
+
+function handleViewTasks(item) {
+  selectedEquipment.value = item;
+  showViewTaskModal.value = true;
+}
+
+function closeViewTaskModal() {
+  showViewTaskModal.value = false;
+  selectedEquipment.value = null;
 }
 
 // filter tại chỗ
@@ -164,17 +175,17 @@ const breadcrumbItems = [
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>Today's Equipments</h1>
-          <p class="subtitle">List of equipments scheduled for today</p>
+          <h1 v-translate>Today's Equipments</h1>
+          <p class="subtitle" v-translate>List of equipments scheduled for today</p>
         </div>
         <div class="action-buttons">
           <Space>
             <Button @click="handleRefresh" :loading="loading">
               <ReloadOutlined /> Refresh
             </Button>
-            <Button type="primary" @click="handleAddNew">
+            <!-- <Button type="primary" @click="handleAddNew">
               <PlusOutlined /> Add Equipment
-            </Button>
+            </Button> -->
           </Space>
         </div>
       </div>
@@ -202,6 +213,7 @@ const breadcrumbItems = [
                 <th>Cavity</th>
                 <th>Category</th>
                 <th>Status</th>
+                <th>Done</th>
                 <th>Inspectors</th>
                 <th>Inspected Date</th>
                 <th>Actions</th>
@@ -217,12 +229,13 @@ const breadcrumbItems = [
                 <td>
                   <Tag :color="getStatusColor(item.status)">{{ item.status }}</Tag>
                 </td>
+                <td>{{ item.count_done + '/' + item.count_pending }}</td>
                 <td>{{ item.inspectors }}</td>
                 <td>{{ item.inspected_date }}</td>
                 <td>
                   <div class="action-buttons-cell">
-                    <Tooltip title="View Tasks">
-                      <Button type="text" @click="handleViewTasks(item.equipment_id)">
+                    <Tooltip title="View Tasks of Equipment">
+                      <Button type="text" @click="handleViewTasks(item)">
                         <EyeOutlined />
                       </Button>
                     </Tooltip>
@@ -231,7 +244,7 @@ const breadcrumbItems = [
                         <EditOutlined />
                       </Button>
                     </Tooltip>
-                    <Tooltip title="Delete Equipment">
+                    <Tooltip title="Delete Equipment Task">
                       <Button type="text" danger @click="confirmDelete(item)" class="delete-btn">
                         <DeleteOutlined />
                       </Button>
@@ -244,6 +257,22 @@ const breadcrumbItems = [
         </div>
       </div>
     </Card>
+
+    <!-- View Tasks Modal -->
+    <Modal
+      v-model:open="showViewTaskModal"
+      title="Daily Inspection"
+      width="97%"
+      :style="{ top: '3px'}"
+      :footer="null"
+      @cancel="closeViewTaskModal"
+    >
+      <DailyInspectionPage
+        v-if="selectedEquipment"
+        :uuid="selectedEquipment.equipment_id"
+        :machine-id="selectedEquipment.machine_id"
+      />
+    </Modal>
 
     <!-- Delete Confirmation -->
     <Modal v-model:open="showDeleteModal" title="Confirm Delete" @ok="performDelete" @cancel="cancelDelete" ok-text="Yes, Delete" cancel-text="Cancel" ok-type="danger">
@@ -694,18 +723,17 @@ const breadcrumbItems = [
 
 
 /* CSS cho tất cả th có class sortable hoặc tất cả th nếu muốn */
-th.sortable, th {
-  text-align: center !important;       /* căn giữa text */
-}
+/* th.sortable, th {
+  text-align: center !important;       
 
 .th-content {
   display: flex !important;
-  justify-content: center !important;  /* căn giữa theo chiều ngang */
-  align-items: center !important;      /* căn giữa theo chiều dọc */
-  gap: 4px !important;                 /* khoảng cách giữa text và icon */
+  justify-content: center !important;  
+  align-items: center !important;     
+  gap: 4px !important;                 
 }
 
 .sort-indicator {
   display: inline-flex !important;
-}
+} */
 </style>

@@ -18,6 +18,9 @@ return new class extends Migration
             $table->string('type');            // daily_inspection, maintenance_level_1, ...
             $table->json('schema');            // JSON form
             $table->string('category_id')->nullable();
+            $table->string('frequency')->nullable();
+            $table->string('unit_value')->nullable();
+            $table->string('unit_type')->nullable();
             $table->string('created_by')->nullable();
             $table->string('updated_by')->nullable();
             $table->string('deleted_by')->nullable();

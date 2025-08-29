@@ -6,13 +6,29 @@ import axiosClient from '@/utils/axiosClient';
 import { 
   EditOutlined, DeleteOutlined, FileSearchOutlined, 
   ExclamationCircleOutlined, ReloadOutlined, 
-  FilterOutlined, HomeOutlined, EyeOutlined
+  FilterOutlined, HomeOutlined, EyeOutlined,
+  ThunderboltOutlined,PlayCircleOutlined , RocketOutlined, ToolOutlined
 } from '@ant-design/icons-vue';
 import { Modal, Button, Input, Card, Space, Breadcrumb, Tooltip, Tag, Dropdown, Select } from 'ant-design-vue';
 import FormViewer from './FormViewer.vue';
+import WITaskViewer from './WITaskViewer.vue';
 
 const route = useRoute();
 const uuid = route.params.uuid;
+
+// Props definition
+const props = defineProps({
+  uuid: {
+    type: String,
+    required: true
+  },
+  machineId: {
+    type: String,
+    required: true
+  }
+})
+
+
 
 const loading = ref(false);
 const data = ref([]);
@@ -24,9 +40,11 @@ async function fetchDailyTasks() {
   loading.value = true;
   try {
     const res = await axiosClient.get('', {
-      params: { c: 'DailyTaskController', m: 'getDailyTasksByEquipment', equipment_id: uuid }
+      params: { c: 'DailyTaskController', m: 'getDailyTasksByEquipment', equipment_id: props.uuid }
     });
     data.value = res.data?.data || [];
+    console.log(props.uuid);
+    
   } finally {
     loading.value = false;
   }
@@ -54,7 +72,7 @@ function clearFilters() {
 }
 
 function getStatusColor(status) {
-  const colors = { complete: 'green', incomplete: 'red', pending: 'orange', default: 'default' };
+  const colors = { complete: 'green', incomplete: 'red', pending: 'orange', default: 'default', start: 'blue', };
   return colors[status] || colors.default;
 }
 
@@ -104,23 +122,12 @@ function closeModal() {
 
 <template>
   <div class="equipment-management">
-    <!-- Breadcrumb -->
-    <Breadcrumb class="breadcrumb-nav">
-      <Breadcrumb.Item>
-        <router-link to="/"><HomeOutlined /><span>Home</span></router-link>
-      </Breadcrumb.Item>
-      <Breadcrumb.Item v-for="item in breadcrumbItems" :key="item.title">
-        <router-link v-if="item.path" :to="item.path">{{ item.title }}</router-link>
-        <span v-else>{{ item.title }}</span>
-      </Breadcrumb.Item>
-    </Breadcrumb>
-
     <!-- Page Header -->
     <div class="page-header">
       <div class="header-content">
         <div class="title-section">
           <h1>Daily Tasks</h1>
-          <p class="subtitle">Tasks of equipment: {{ uuid }}</p>
+          <p class="subtitle">Tasks of equipment ID: {{ props.machineId }}</p>
         </div>
         <div class="action-buttons">
           <Space><Button @click="handleRefresh" :loading="loading"><ReloadOutlined /> Refresh</Button></Space>
@@ -147,14 +154,12 @@ function closeModal() {
                 <td>{{ task.content }}</td>
                 <td>{{ task.date_start }}</td>
                 <td>{{ task.inspected_date }}</td>
-                <td><Tag :color="getStatusColor(task.status)">{{ task.status }}</Tag></td>
+                <td><Tag :color="getStatusColor(task.status ?? 'start')">{{ task.status ?? 'start' }}</Tag></td>
                 <td>{{ task.result }}</td>
                 <td>{{ task.inspector_name }}</td>
                 <td>
                   <div class="action-buttons-cell">
-                    <Tooltip title="View task details"><Button type="text" @click="openFormViewer(task)"><EyeOutlined /></Button></Tooltip>
-                    <Tooltip title="Edit task"><Button type="text"><EditOutlined /></Button></Tooltip>
-                    <Tooltip title="Delete task"><Button type="text" danger @click="confirmDelete(task)"><DeleteOutlined /></Button></Tooltip>
+                    <Tooltip title="Execute Tasks"><Button type="text" @click="openFormViewer(task)"><ToolOutlined  /></Button></Tooltip>
                   </div>
                 </td>
               </tr>
@@ -186,11 +191,11 @@ function closeModal() {
     </Modal>
 
     <!-- 👁️ Form Viewer Modal -->
-    <Modal v-model:open="isModalOpen" title="Instruction Details" @cancel="closeModal" width="800px">
+    <Modal :style="{ top: '3px'}" v-model:open="isModalOpen" title="Instruction Details" @cancel="closeModal" width="800px">
       <template #footer>
         <Button @click="closeModal">Close</Button>
       </template>
-      <FormViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
+      <WITaskViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
     </Modal>
   </div>
 </template>

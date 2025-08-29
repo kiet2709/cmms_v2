@@ -14,6 +14,11 @@ return new class extends Migration
         Schema::create('daily_tasks', function (Blueprint $table) {
             $table->uuid();
             $table->string('wi_id')->nullable();
+            $table->string('code')->nullable(); // mã code để user nhận diện
+            $table->string('name')->nullable();
+            $table->string('type')->nullable();;            // daily_inspection, maintenance_level_1, ...
+            $table->json('schema')->nullable();;            // JSON form
+            $table->string('category_id')->nullable();
             $table->string('equipment_id')->nullable();
             $table->string('status')->nullable();
             $table->string('result')->nullable();
