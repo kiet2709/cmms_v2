@@ -343,7 +343,12 @@ const breadcrumbItems = [
     </Card>
 
     <!-- Modal -->
-    <Modal v-model:open="isModalOpen" title="Instruction Details" @cancel="closeModal" width="800px">
+    <Modal 
+      v-model:open="isModalOpen" 
+      title="Instruction Details" 
+      @cancel="closeModal" 
+      :style="{ top: '3px'}"
+      width="800px">
       <template #footer>
         <Button @click="closeModal">Close</Button>
       </template>
