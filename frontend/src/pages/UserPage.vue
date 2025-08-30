@@ -51,8 +51,8 @@ const newUser = ref({
   username: '',
   position: '',
   role: {
-uuid: '',
-name: '',
+    uuid: '',
+    name: '',
   },
   password: ''
 })
@@ -177,7 +177,7 @@ const filteredData = computed(() => {
 
   // Apply filters
   if (filters.value.role) {
-    filtered = filtered.filter(item => item.role === filters.value.role);
+    filtered = filtered.filter(item => item.role.uuid === filters.value.role);
   }
   
 
@@ -222,8 +222,7 @@ const sortedData = computed(() => {
 });
 
 // Get unique values for filter options
-const uniqueFamilies = computed(() => [...new Set(data.value.map(item => item.family).filter(Boolean))]);
-const uniqueCategories = computed(() => [...new Set(data.value.map(item => item.category).filter(Boolean))]);
+const rolessss = computed(() => [...new Set(data.value.map(item => item.role).filter(Boolean))]);
 
 function clearFilters() {
   filters.value = {
@@ -308,8 +307,15 @@ async function performAddUser() {
     await formRef.value.validate()
     loading.value = true
     // gọi API ở đây
-
-    await axiosClient.post('', newUser.value, {
+    const payload = {
+      employment_id: newUser.value.employment_id,
+      employment_name: newUser.value.employment_name,
+      username: newUser.value.username,
+      position: newUser.value.position,
+      role_uuid: newUser.value.role.uuid, // chỉ gửi uuid
+      password: newUser.value.password,
+    }
+    await axiosClient.post('', payload, {
       params: {
         c: 'UserController',
         m: 'createUser',
@@ -610,8 +616,8 @@ function resetForm() {
                       allow-clear
                       style="width: 200px"
                     >
-                      <Select.Option v-for="role in uniqueFamilies" :key="role" :value="role">
-                        {{ role }}
+                      <Select.Option v-for="role in roles" :key="role.uuid" :value="role.uuid">
+                        {{ role.name }}
                       </Select.Option>
                     </Select>
                   </div>

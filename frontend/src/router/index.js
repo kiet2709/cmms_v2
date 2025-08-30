@@ -95,7 +95,7 @@ const createLocalizedRoutes = () => {
               component: UpdateEquipmentPage,
             },
             {
-              path: 'categories',
+              path: 'equipments/categories',
               name: 'CategoryPage',
               component: CategoryPage,
             },
@@ -113,6 +113,11 @@ const createLocalizedRoutes = () => {
               path: 'user/permission',
               name: 'PermissionPage',
               component: PermissionPage,
+            },
+            {
+              path: 'user/type',
+              name: 'AccountTypePage',
+              component: AccountTypePage,
             },
             {
               path: 'working-instructions',
