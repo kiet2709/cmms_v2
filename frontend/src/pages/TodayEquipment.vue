@@ -156,41 +156,39 @@ const breadcrumbItems = [
 </script>
 
 <template>
-  <div class="equipment-management">
-    <!-- Breadcrumb -->
-    <Breadcrumb class="breadcrumb-nav">
-      <Breadcrumb.Item>
-        <router-link to="/">
-          <HomeOutlined />
-          <span>Home</span>
-        </router-link>
-      </Breadcrumb.Item>
-      <Breadcrumb.Item v-for="item in breadcrumbItems" :key="item.title">
-        <router-link v-if="item.path" :to="item.path">{{ item.title }}</router-link>
-        <span v-else>{{ item.title }}</span>
-      </Breadcrumb.Item>
-    </Breadcrumb>
-
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="header-content">
-        <div class="title-section">
-          <h1 v-translate>Today's Equipments</h1>
-          <p class="subtitle" v-translate>List of equipments scheduled for today</p>
+  <div class="app-container">
+    <div class="app-header">
+      <div class="header-left">
+        <h1 class="app-title">
+          Today's Equipments
+        </h1>
+        <div class="breadcrumb">
+          <span>Tasks</span>
+          <span class="separator">›</span>
+          <span class="current">List Daily Inspection</span>
         </div>
+      </div>
+      <div class="header-right">
         <div class="action-buttons">
           <Space>
             <Button @click="handleRefresh" :loading="loading">
-              <ReloadOutlined /> Refresh
+              <ReloadOutlined />
+              Refresh
             </Button>
+            <!-- <Button @click="handleExport" icon="download">
+              <DownloadOutlined />
+              Export
+            </Button> -->
             <!-- <Button type="primary" @click="handleAddNew">
-              <PlusOutlined /> Add Equipment
+              <PlusOutlined />
+              Add Equipment
             </Button> -->
           </Space>
         </div>
       </div>
     </div>
-
+  </div>
+  <div class="equipment-management">
     <!-- Main Content Card -->
     <Card class="main-content-card">
       <!-- Search and Filter Bar -->
@@ -292,33 +290,60 @@ const breadcrumbItems = [
 </template>
 
 
-
-
-
-
 <style scoped>
+.app-container {
+  background: rgb(245,245,245);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.User-management {
+  padding: 10px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+.breadcrumb {
+  margin-top: 5px;
+  font-size: 14px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.current {
+  color: #667eea;
+  font-weight: 500;
+}
 .equipment-management {
   padding: 24px;
   background: #f5f5f5;
   min-height: 100vh;
 }
 
-.breadcrumb-nav {
-  margin-bottom: 24px;
-  font-size: 14px;
-}
-
-.breadcrumb-nav a {
-  color: #666;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.breadcrumb-nav a:hover {
-  color: #1890ff;
-}
 
 .page-header {
   background: white;

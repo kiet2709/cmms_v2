@@ -6,7 +6,7 @@
           Equipment Category Management
         </h1>
         <div class="breadcrumb">
-          <span @click="$router.push('/dashboard/equipments')">Equipment</span>
+          <span class="link-span" @click="$router.push('/dashboard/equipments')">Equipment</span>
           <span class="separator">›</span>
           <span class="current">Category</span>
         </div>
@@ -200,6 +200,10 @@
 <script setup>
 import { EditOutlined, DeleteOutlined, FileSearchOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue';
 import { ref, onMounted } from 'vue';
+import { 
+  Button, 
+} from 'ant-design-vue';
+
 import { useRouter } from 'vue-router';
 import axiosClient from '@/utils/axiosClient';
 
@@ -400,6 +404,9 @@ function editCategory(index) {
 .current {
   color: #667eea;
   font-weight: 500;
+}
+.link-span {
+  cursor: pointer;
 }
 .category-container {
   min-height: 100vh;

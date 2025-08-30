@@ -1,5 +1,17 @@
 <template>
-  <div class="page-container">
+  <div class="app-container">
+    <div class="app-header">
+      <div class="header-left">
+        <h1 class="app-title" v-translate>Update Equipment</h1>
+        <div class="breadcrumb">
+          <span class="link-span" @click="$router.push('/dashboard/equipments')">Equipment</span>
+          <span class="separator">›</span>
+          <span class="current">Update Equipment</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-container" style="margin-top: 16px;">
     <!-- Left Section -->
     <div class="left-section">
       <div class="left-content">
@@ -70,7 +82,7 @@
             <div v-for="item in filteredInspection" :key="item.value" class="list-item-row">
               <div class="col-left">
                 <input type="checkbox" :id="item.value" :value="item.value" v-model="selectedInspection" />
-                <label :for="item.value">{{ item.label }}</label>
+                 <label :for="item.value">{{ item.label + ' | ' + item.description + ' | ' + item.frequency }}</label>
               </div>
               <div class="col-right">
                 <span class="view-btn" @click="viewItem(item)">
@@ -89,7 +101,7 @@
             <div v-for="item in filteredM1" :key="item.value" class="list-item-row">
               <div class="col-left">
                 <input type="checkbox" :id="item.value" :value="item.value" v-model="selectedMaintenance1" />
-                <label :for="item.value">{{ item.label }}</label>
+                <label :for="item.value">{{ item.label + ' | ' + item.description + ' | ' + item.frequency }}</label>
               </div>
               <div class="col-right">
                 <span class="view-btn" @click="viewItem(item)">
@@ -108,7 +120,7 @@
             <div v-for="item in filteredM2" :key="item.value" class="list-item-row">
               <div class="col-left">
                 <input type="checkbox" :id="item.value" :value="item.value" v-model="selectedMaintenance2" />
-                <label :for="item.value">{{ item.label }}</label>
+                <label :for="item.value">{{ item.label + ' | ' + item.description + ' | ' + item.frequency }}</label>
               </div>
               <div class="col-right">
                 <span class="view-btn" @click="viewItem(item)">
@@ -127,7 +139,7 @@
             <div v-for="item in filteredM3" :key="item.value" class="list-item-row">
               <div class="col-left">
                 <input type="checkbox" :id="item.value" :value="item.value" v-model="selectedMaintenance3" />
-                <label :for="item.value">{{ item.label }}</label>
+                <label :for="item.value">{{ item.label + ' | ' + item.description + ' | ' + item.frequency }}</label>
               </div>
               <div class="col-right">
                 <span class="view-btn" @click="viewItem(item)">
@@ -434,12 +446,9 @@ const fetchWiData = async () => {
       m3Options.value = []
 
       data.forEach(item => {
-        const option = {
-          value: item.id,
-          label: item.code,
-          type: item.type
-        }
-        console.log(item.type);
+        let frequency = item.frequency == 'Unit' ? item.unit_value + ' ' + item.unit_type : item.frequency;
+        const option = { value: item.id, label: item.code, description: item.name, frequency: frequency, type: item.type };
+          console.log(item.type);
 
       switch (item.type?.toLowerCase()) {
         case "daily inspection":
@@ -496,6 +505,61 @@ const filteredM3 = computed(() =>
 </script>
 
 <style scoped>
+.app-container {
+  background: rgb(245,245,245);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.title-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.breadcrumb {
+  font-size: 14px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.separator {
+  color: #dee2e6;
+}
+
+.current {
+  color: #667eea;
+  font-weight: 500;
+}
+.link-span {
+  cursor: pointer;
+}
 .action-buttons {
   display: flex;
   gap: 12px; /* khoảng cách giữa 2 nút */
@@ -534,19 +598,21 @@ const filteredM3 = computed(() =>
   background: #fff;
   border-right: 1px solid #eee;
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
-  position: fixed;
-  height: 100vh;
+  /* position: fixed; */
+  /* height: 100vh; */
+  border-radius: 10px;
+  margin-left: 20px;
   left: 0;
   top: 0;
   z-index: 100;
 }
 
 .left-content {
-  margin-top: 80px;
+  /* margin-top: 80px;   */
   padding: 20px;
   height: 100%;
   overflow-y: auto;
-  display: flex;
+  display: flex;  
   flex-direction: column;
   gap: 9px;
 }
@@ -605,11 +671,10 @@ const filteredM3 = computed(() =>
 
 /* RIGHT SECTION - SCROLLABLE */
 .right-section {
-  margin-left: 20%;
   width: 80%;
-  height: 100vh;
+  /* height: 100vh; */
   overflow-y: auto;
-  padding: 20px;
+  padding-left: 20px;
 }
 
 .grid-horizontal {

@@ -1,100 +1,447 @@
-
-
 <template>
-  <div class="auth-management">
+  <div class="app-container">
     <!-- Header -->
-    <div class="header">
-      <div class="header-content">
-        <i class="fas fa-shield-alt header-icon"></i>
-        <div>
-          <h1>Authorization Management</h1>
-          <p>Manage user permissions and access control</p>
+    <div class="app-header">
+      <div class="header-left">
+        <h1 class="app-title" v-translate>Form Builder Studio</h1>
+        <div class="breadcrumb">
+          <span class="link-span" @click="$router.push('/dashboard/working-instructions')">Instructions</span>
+          <span class="separator">›</span>
+          <span class="current">Form Builder</span>
         </div>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-outline" @click="clearForm">
+          <span class="btn-icon">🗑️</span>
+          Clear Form
+        </button>
+        <button class="btn btn-primary" @click="saveForm" :disabled="saving">
+          <span v-if="!saving" class="btn-icon">💾</span>
+          <div v-if="saving" class="spinner"></div>
+          {{ saving ? 'Saving...' : 'Save WI' }}
+        </button>
       </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="main-container">
-      <!-- Sidebar - Account Types -->
-      <div class="sidebar">
-        <div class="sidebar-header">
-          <i class="fas fa-users"></i>
-          <h2>Account Types</h2>
+    <div class="main-content">
+      <!-- Left Panel: Toolbox -->
+      <div class="left-panel">
+        <div class="panel-header">
+          <h3 class="panel-title" v-translate>Component Toolbox</h3>
+          <div class="component-count">{{ components.length }} items</div>
         </div>
-        <div class="account-types">
-          <div 
-            v-for="accountType in accountTypes" 
-            :key="accountType.id"
-            class="account-type"
-            :class="{ active: selectedAccountType?.id === accountType.id }"
-            @click="selectAccountType(accountType)"
+        
+        <div class="search-section">
+          <div class="search-container">
+            <input 
+              v-model="searchToolbox" 
+              placeholder="Search components..." 
+              class="search-input"
+            />
+            <span class="search-icon">🔍</span>
+          </div>
+        </div>
+
+        <div class="components-grid">
+          <div
+            class="component-card"
+            v-for="comp in filteredComponents"
+            :key="comp.type"
+            draggable="true"
+            @dragstart="onDragStart(comp)"
+            @dragend="onDragEnd"
           >
-            <i :class="accountType.icon"></i>
-            <div class="account-info">
-              <span class="account-name">{{ accountType.name }}</span>
-              <span class="account-desc">{{ accountType.description }}</span>
-            </div>
-            <div class="account-badge">{{ accountType.userCount }}</div>
+            <div class="component-icon">{{ comp.icon }}</div>
+            <div class="component-label">{{ translateReactive(comp.label).value }}</div>
+            <div class="component-desc">{{ translateReactive(comp.description).value }}</div>
           </div>
         </div>
       </div>
 
-      <!-- Main Content - Permissions -->
-      <div class="content-area">
-        <div v-if="!selectedAccountType" class="empty-state">
-          <i class="fas fa-hand-point-left"></i>
-          <h3>Select an Account Type</h3>
-          <p>Choose an account type from the sidebar to manage permissions</p>
+      <!-- Middle Panel: Form Builder -->
+      <div class="form-builder">
+        <div class="panel-header">
+          <h3 class="panel-title" v-translate>Form Builder</h3>
+          <button class="btn-add" @click="addStep">➕ Add Step</button>
+          <div class="items-count">{{ totalItems  }} items</div>
+          
         </div>
+        <div v-for="(step, stepIndex) in steps" :key="step.id" class="step-block">
+          <h4>Step {{ stepIndex + 1 }}</h4>
 
-        <div v-else class="permissions-container">
-          <div class="content-header">
-            <div class="account-selected">
-              <i :class="selectedAccountType.icon"></i>
-              <div>
-                <h2>{{ selectedAccountType.name }} Permissions</h2>
-                <p>Configure access permissions for {{ selectedAccountType.name.toLowerCase() }} accounts</p>
-              </div>
-            </div>
-            <button class="save-btn" @click="savePermissions">
-              <i class="fas fa-save"></i>
-              Save Changes
-            </button>
+          <div 
+          class="drop-zone"
+          :class="{ 'drag-over': step.isDragOver }"
+          @dragover.prevent="onDragOver(step)"
+          @dragleave="onDragLeave(step)"
+          @drop="onDrop(stepIndex)"
+        >
+          <div v-if="step.formItems.length === 0" class="empty-state">
+            <div class="empty-icon">📝</div>
+            <h4 v-translate>Start Building Your Form</h4>
+            <p v-translate>Drag components from the toolbox to begin creating your form</p>
           </div>
 
-          <div class="permissions-grid">
-            <div 
-              v-for="resource in resources" 
-              :key="resource.id"
-              class="permission-card"
-            >
-              <div class="card-header">
-                <i :class="resource.icon"></i>
-                <div>
-                  <h3>{{ resource.name }}</h3>
-                  <p>{{ resource.description }}</p>
+          <div
+            v-for="(item, index) in  step.formItems"
+            :key="item.id || index"   
+            class="form-item-card"
+            :class="{ 'selected': selectedItem?.step === stepIndex && selectedItem?.index === index }"
+            @click="selectItem(stepIndex, index)"
+          >
+          <div class="item-header">
+            <div class="item-type">
+              <span class="type-icon">{{ getComponentIcon(item.type) }}</span>
+              <span class="type-label">{{ getComponentLabel(item.type) }}</span>
+            </div>
+            <div class="item-actions">
+              <button class="action-btn" @click.stop="duplicateItem(stepIndex, index)" title="Duplicate">
+                <span>📋</span>
+              </button>
+              <button class="action-btn danger" @click.stop="removeItem(stepIndex, index)" title="Remove">
+                <span>🗑️</span>
+              </button>
+            </div>
+          </div>
+          <div class="item-content">
+              <!-- Label Component -->
+              <div v-if="item.type === 'label'" class="config-section">
+                <div class="input-group">
+                  <label>Heading Level</label>
+                  <select v-model="item.heading" class="form-select">
+                    <option v-for="n in 6" :key="n" :value="'h' + n">Heading {{ n }}</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label>Label Text</label>
+                  <input v-model="item.text" placeholder="Enter label text..." class="form-input" />
+                </div>
+                <div class="style-options">
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="item.bold" />
+                    <span class="checkmark"></span>
+                    <strong>Bold</strong>
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="item.italic" />
+                    <span class="checkmark"></span>
+                    <em>Italic</em>
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="item.underline" />
+                    <span class="checkmark"></span>
+                    <u>Underline</u>
+                  </label>
                 </div>
               </div>
 
-              <div class="permissions-list">
-                <div 
-                  v-for="permission in permissions" 
-                  :key="permission.id"
-                  class="permission-item"
-                >
-                  <div class="permission-info">
-                    <i :class="permission.icon"></i>
-                    <span>{{ permission.name }}</span>
+              <!-- Yes/No Question -->
+              <div v-else-if="item.type === 'yesno'" class="config-section">
+                <div class="input-group">
+                  <label>Question</label>
+                  <input v-model="item.question" placeholder="Enter yes/no question..." class="form-input" />
+                </div>
+              </div>
+
+              <!-- Multiple Choice -->
+              <div v-else-if="item.type === 'multiple'" class="config-section">
+                <div class="input-group">
+                  <label>Question</label>
+                  <input v-model="item.question" placeholder="Enter multiple choice question..." class="form-input" />
+                </div>
+                <div class="input-group">
+                  <label>Options <span class="help-text">(comma separated)</span></label>
+                  <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
+                </div>
+              </div>
+
+              <!-- Single Choice -->
+              <div v-else-if="item.type === 'single'" class="config-section">
+                <div class="input-group">
+                  <label>Question</label>
+                  <input v-model="item.question" placeholder="Enter single choice question..." class="form-input" />
+                </div>
+                <div class="input-group">
+                  <label>Options <span class="help-text">(comma separated)</span></label>
+                  <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
+                </div>
+              </div>
+
+              <!-- Static Image -->
+              <div v-else-if="item.type === 'staticImage'" class="config-section">
+                <div class="image-upload-area">
+                  <input 
+                    type="file"
+                    :id="'file-' + stepIndex + '-' + index"
+                    @change="onImageUpload($event, stepIndex, index)"
+                    accept="image/*"
+                    class="file-input"
+                  />
+                  <label :for="'file-' + stepIndex + '-' + index" class="file-upload-btn">
+                    <span class="upload-icon">📤</span>
+                    Choose Image
+                  </label>
+                  <div v-if="item.imageUrl" class="image-preview">
+                    <img :src="item.imageUrl" class="preview-image" />
+                    <div class="image-overlay">
+                      <button @click="removeImage(stepIndex, index)" class="overlay-btn">
+                        <span>🗑️</span>
+                      </button>
+                    </div>
                   </div>
-                  <label class="toggle-switch">
-                    <input 
-                      type="checkbox" 
-                      :checked="isPermissionGranted(resource.id, permission.id)"
-                      @change="togglePermission(resource.id, permission.id)"
-                    >
-                    <span class="slider"></span>
+                </div>
+              </div>
+
+              <!-- User Upload Image -->
+              <div v-else-if="item.type === 'userImage'" class="config-section">
+                <div class="info-box">
+                  <span class="info-icon">ℹ️</span>
+                  <span>This will allow users to upload images when filling the form</span>
+                </div>
+              </div>
+            </div>
+
+        </div>
+        
+       
+
+
+        
+
+            
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Preview & Settings -->
+      <div class="preview-panel">
+        <div class="panel-tabs">
+          <button 
+            class="tab-btn" 
+            :class="{ active: activeTab === 'settings' }"
+            @click="activeTab = 'settings'"
+          >
+            Settings
+          </button>
+          <button 
+            class="tab-btn" 
+            :class="{ active: activeTab === 'preview' }"
+            @click="activeTab = 'preview'"
+          >
+            Preview
+          </button>
+        </div>
+
+        <!-- Settings Tab -->
+        <div v-if="activeTab === 'settings'" class="settings-content">
+          <div class="settings-section">
+            <h4 class="section-title">Form Configuration</h4>
+            
+            <div class="meta-field">
+              <label>DL/ML</label>
+              <select v-model="formMeta.type" class="form-select">
+                <option disabled value="">-- Select DL/ML --</option>
+                <option>Daily Inspection</option>
+                <option>Maintenance Level 1</option>
+                <option>Maintenance Level 2</option>
+                <option>Maintenance Level 3</option>
+              </select>
+            </div>
+
+            <div class="meta-field">
+              <label>Category</label>
+              <select v-model="formMeta.category" class="form-select">
+                <option disabled value="">-- Select Category --</option>
+                <option 
+                  v-for="cat in categories" 
+                  :key="cat.code" 
+                  :value="cat.code"
+                >
+                  {{ cat.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="meta-field">
+              <label>Generated Code</label>
+              <input 
+                :value="generatedCode" 
+                readonly 
+                class="form-input readonly"
+                placeholder="Auto-generated based on type and category"
+              />
+            </div>
+
+            <div class="meta-field">
+              <label>Description</label>
+              <textarea 
+                v-model="formMeta.description" 
+                placeholder="Enter form description..." 
+                class="form-textarea"
+                rows="3"
+              ></textarea>
+            </div>
+  
+
+            <div class="meta-field">
+              <label>Frequency</label>
+              <select v-model="formMeta.frequency" class="form-select">
+                <option disabled value="">-- Select Frequency --</option>
+                <option v-for="frequency in frequencies" 
+                  :key="frequency" 
+                  :value="frequency">
+                  {{ frequency }}
+                </option>
+              </select>
+            </div>
+
+            <div v-if="formMeta.frequency == 'Unit'" class="meta-field">
+              <label>Unit Value</label>
+              <input 
+                v-model="formMeta.unitValue"
+                class="form-input"
+                placeholder="Enter Unit Value..."
+              />
+            </div>
+
+            <div v-if="formMeta.frequency == 'Unit'" class="meta-field">
+              <label>Unit Type</label>
+              <input 
+                v-model="formMeta.unitType"
+                class="form-input"
+                placeholder="Enter Unit Type..."
+              />
+            </div>
+
+          </div>
+
+          <div class="settings-section">
+            <h4 class="section-title">Form Statistics</h4>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value">{{ formItems.length }}</div>
+                <div class="stat-label">Total Items</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ questionCount }}</div>
+                <div class="stat-label">Questions</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ imageCount }}</div>
+                <div class="stat-label">Images</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview Tab -->
+        <div v-if="activeTab === 'preview'" class="preview-content">
+          <div class="preview-header">
+            <h4 class="section-title">Form Preview</h4>
+            <div class="preview-info">
+              <span class="info-badge">{{ totalItems  }} items</span>
+            </div>
+          </div>
+
+          <div v-if="totalItems === 0" class="preview-empty">
+            <div class="empty-icon">📄</div>
+            <p>No form items to preview</p>
+          </div>
+
+          <div class="preview-form">
+            <div v-for="(item, index) in flatItems" :key="item.id || index" class="preview-item">
+              <!-- Render Label -->
+              <component
+                v-if="item.type === 'label'"
+                :is="item.heading"
+                :style="{
+                  fontWeight: item.bold ? 'bold' : 'normal',
+                  fontStyle: item.italic ? 'italic' : 'normal',
+                  textDecoration: item.underline ? 'underline' : 'none'
+                }"
+                class="preview-heading"
+              >
+                {{ item.text || 'Untitled Label' }}
+              </component>
+
+              <!-- Render Yes/No -->
+              <div v-else-if="item.type === 'yesno'" class="question-block">
+                <p class="question-text">{{ item.question || 'Yes/No question not set' }}</p>
+                <div class="options-group">
+                  <label class="radio-label">
+                    <input type="radio" :name="'yn' + index" value="Yes" />
+                    <span class="radio-custom"></span>
+                    Yes
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" :name="'yn' + index" value="No" />
+                    <span class="radio-custom"></span>
+                    No
                   </label>
                 </div>
+              </div>
+
+              <!-- Render Multiple Choice -->
+              <div v-else-if="item.type === 'multiple'" class="question-block">
+                <p class="question-text">{{ item.question || 'Multiple choice question not set' }}</p>
+                <div class="options-group">
+                  <template v-if="item.options && item.options.trim()">
+                    <div 
+                      v-for="(opt, i) in item.options.split(',')" 
+                      :key="i"
+                    >
+                      <label class="checkbox-label">
+                        <input type="checkbox" />
+                        <span class="checkmark"></span>
+                        {{ opt.trim() }}
+                      </label>
+                    </div>
+                  </template>
+
+                  <div v-else class="no-options">
+                    <em>No options defined</em>
+                  </div>
+                </div>
+              </div>
+              <!-- Render Single Choice -->
+              <div v-else-if="item.type === 'single'" class="question-block">
+                <p class="question-text">{{ item.question || 'Single choice question not set' }}</p>
+                <div class="options-group">
+                  <!-- Nếu có options -->
+                  <template v-if="item.options && item.options.trim()">
+                    <div 
+                      v-for="(opt, i) in item.options.split(',')" 
+                      :key="i"
+                    >
+                      <label class="radio-label">
+                        <input type="radio" :name="'single' + index" />
+                        <span class="radio-custom"></span>
+                        {{ opt.trim() }}
+                      </label>
+                    </div>
+                  </template>
+
+                  <!-- Nếu không có options -->
+                  <div v-else class="no-options">
+                    <em>No options defined</em>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Render Static Image -->
+              <div v-else-if="item.type === 'staticImage'" class="image-block">
+                <img v-if="item.imageUrl" :src="item.imageUrl" class="preview-image-large" />
+                <div v-else class="image-placeholder">
+                  <span class="placeholder-icon">🖼️</span>
+                  <p>No image uploaded</p>
+                </div>
+              </div>
+
+              <!-- Render User Image Upload -->
+              <div v-else-if="item.type === 'userImage'" class="upload-block">
+                <label class="upload-label">Upload Image</label>
+                <input type="file" class="file-input-preview" accept="image/*" disabled />
+                <small class="help-text">Users will be able to upload images here</small>
               </div>
             </div>
           </div>
@@ -103,340 +450,612 @@
     </div>
 
     <!-- Success Toast -->
-    <div v-if="showToast" class="toast">
-      <i class="fas fa-check-circle"></i>
-      <span>Permissions saved successfully!</span>
+    <div v-if="showSuccess" class="toast success">
+      <span class="toast-icon">✅</span>
+      <span>Form saved successfully!</span>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div v-if="saving" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner large"></div>
+        <p>Saving your form...</p>
+      </div>
     </div>
   </div>
 </template>
 
-<script>
-import { ref, reactive, computed } from 'vue'
+<script setup>
+import { ref, computed, watch, onMounted } from "vue";
+import axiosClient from "../utils/axiosClient";
+import { useTranslation } from '@/utils/translation.js'
 
-export default {
-  name: 'AuthorizationManagement',
-  setup() {
-    // Reactive data
-    const selectedAccountType = ref(null)
-    const showToast = ref(false)
-    
-    // Account Types
-    const accountTypes = reactive([
-      {
-        id: 1,
-        name: 'User',
-        description: 'Standard user access',
-        icon: 'fas fa-user',
-        userCount: 245
-      },
-      {
-        id: 2,
-        name: 'Manager',
-        description: 'Management level access',
-        icon: 'fas fa-user-tie',
-        userCount: 28
-      },
-      {
-        id: 3,
-        name: 'Admin',
-        description: 'Full system access',
-        icon: 'fas fa-user-shield',
-        userCount: 5
-      }
-    ])
+const { translateReactive } = useTranslation()
 
-    // Resources that need authorization
-    const resources = reactive([
-      {
-        id: 1,
-        name: 'Master Data',
-        description: 'Core system data management',
-        icon: 'fas fa-database'
-      },
-      {
-        id: 2,
-        name: 'Master Plan',
-        description: 'Strategic planning and roadmaps',
-        icon: 'fas fa-project-diagram'
-      },
-      {
-        id: 3,
-        name: 'User Management',
-        description: 'User accounts and profiles',
-        icon: 'fas fa-users-cog'
-      },
-      {
-        id: 4,
-        name: 'Account Types',
-        description: 'Role and permission management',
-        icon: 'fas fa-key'
-      }
-    ])
+// Enhanced components with icons and descriptions
+const components = ref([
+  { 
+    type: "label", 
+    label: "Label", 
+    icon: "🏷️",
+    description: "Add headings and text labels"
+  },
+  { 
+    type: "yesno", 
+    label: "Yes/No Question", 
+    icon: "❓",
+    description: "Simple yes or no question"
+  },
+  { 
+    type: "multiple", 
+    label: "Multiple Choice", 
+    icon: "☑️",
+    description: "Multiple selection options"
+  },
+  { 
+    type: "single", 
+    label: "Single Choice", 
+    icon: "🔘",
+    description: "Single selection from options"
+  },
+  { 
+    type: "staticImage", 
+    label: "Static Image", 
+    icon: "🖼️",
+    description: "Display an image in the form"
+  },
+  { 
+    type: "userImage", 
+    label: "User Upload", 
+    icon: "📤",
+    description: "Allow users to upload images"
+  },
+]);
 
-    // Available permissions
-    const permissions = reactive([
-      {
-        id: 1,
-        name: 'View',
-        icon: 'fas fa-eye'
-      },
-      {
-        id: 2,
-        name: 'Add',
-        icon: 'fas fa-plus'
-      },
-      {
-        id: 3,
-        name: 'Edit',
-        icon: 'fas fa-edit'
-      },
-      {
-        id: 4,
-        name: 'Delete',
-        icon: 'fas fa-trash'
-      }
-    ])
+// UI State
+const activeTab = ref('settings');
+const selectedItem = ref(null);
+const saving = ref(false);
+const isDragOver = ref(false);
 
-    // Permission matrix (accountTypeId -> resourceId -> permissionId -> boolean)
-    const permissionMatrix = reactive({
-      1: { // User
-        1: { 1: true, 2: false, 3: false, 4: false }, // Master Data
-        2: { 1: true, 2: false, 3: false, 4: false }, // Master Plan
-        3: { 1: true, 2: false, 3: true, 4: false },  // User Management
-        4: { 1: false, 2: false, 3: false, 4: false } // Account Types
-      },
-      2: { // Manager
-        1: { 1: true, 2: true, 3: true, 4: false }, // Master Data
-        2: { 1: true, 2: true, 3: true, 4: true },  // Master Plan
-        3: { 1: true, 2: true, 3: true, 4: true },  // User Management
-        4: { 1: true, 2: false, 3: false, 4: false } // Account Types
-      },
-      3: { // Admin
-        1: { 1: true, 2: true, 3: true, 4: true }, // Master Data
-        2: { 1: true, 2: true, 3: true, 4: true }, // Master Plan
-        3: { 1: true, 2: true, 3: true, 4: true }, // User Management
-        4: { 1: true, 2: true, 3: true, 4: true }  // Account Types
-      }
-    })
+const showSuccess = ref(false);
+const searchToolbox = ref('');
 
-    // Methods
-    const selectAccountType = (accountType) => {
-      selectedAccountType.value = accountType
-    }
+// Data
+const categories = ref([]);
+const dragged = ref(null);
+const formItems = ref([]);
 
-    const isPermissionGranted = (resourceId, permissionId) => {
-      if (!selectedAccountType.value) return false
-      return permissionMatrix[selectedAccountType.value.id]?.[resourceId]?.[permissionId] || false
-    }
+const formMeta = ref({
+  code: "",
+  type: "",
+  description: "",
+  category: "",
+  frequency: "",
+  unitType: "",
+  unitValue: ""
+});
 
-    const togglePermission = (resourceId, permissionId) => {
-      if (!selectedAccountType.value) return
-      
-      const accountId = selectedAccountType.value.id
-      if (!permissionMatrix[accountId]) {
-        permissionMatrix[accountId] = {}
-      }
-      if (!permissionMatrix[accountId][resourceId]) {
-        permissionMatrix[accountId][resourceId] = {}
-      }
-      
-      permissionMatrix[accountId][resourceId][permissionId] = !permissionMatrix[accountId][resourceId][permissionId]
-    }
+const frequencies = [
+  'Daily',
+  'Shift',
+  'Unit'
+]
 
-    const savePermissions = () => {
-      // Simulate API call
-      showToast.value = true
-      setTimeout(() => {
-        showToast.value = false
-      }, 3000)
-    }
+// Type and category mappings
+const typeMap = {
+  "Daily Inspection": "DI",
+  "Maintenance Level 1": "ML01",
+  "Maintenance Level 2": "ML02",
+  "Maintenance Level 3": "ML03",
+};
 
-    return {
-      selectedAccountType,
-      showToast,
-      accountTypes,
-      resources,
-      permissions,
-      permissionMatrix,
-      selectAccountType,
-      isPermissionGranted,
-      togglePermission,
-      savePermissions
+// Computed properties
+const generatedCode = computed(() => {
+  const typeCode = typeMap[formMeta.value.type] || "";
+  const categoryCode = formMeta.value.category || "";
+  if (typeCode && categoryCode) {
+    return `${typeCode}-${categoryCode}-XXXXXX`;
+  }
+  return "";
+});
+
+const filteredComponents = computed(() => {
+  if (!searchToolbox.value) return components.value;
+  return components.value.filter(comp => 
+    comp.label.toLowerCase().includes(searchToolbox.value.toLowerCase()) ||
+    comp.description.toLowerCase().includes(searchToolbox.value.toLowerCase())
+  );
+});
+
+const questionCount = computed(() =>
+  flatItems.value.filter(i => ['yesno','multiple','single'].includes(i.type)).length
+);
+
+const imageCount = computed(() =>
+  flatItems.value.filter(i => ['staticImage','userImage'].includes(i.type)).length
+);
+
+// Sync generated code to meta
+watch(generatedCode, (val) => {
+  formMeta.value.code = val;
+});
+
+// Utility functions
+const uid = () => Math.random().toString(36).slice(2, 10);
+const steps = ref([
+  { id: uid(), formItems: [], isDragOver: false }
+]);
+const getComponentIcon = (type) => {
+  const comp = components.value.find(c => c.type === type);
+  return comp ? comp.icon : '📝';
+};
+
+const getComponentLabel = (type) => {
+  const comp = components.value.find(c => c.type === type);
+  return comp ? comp.label : type;
+};
+const totalItems = computed(() =>
+  steps.value.reduce((sum, s) => sum + s.formItems.length, 0)
+);
+const flatItems = computed(() =>
+  steps.value.flatMap(s => s.formItems)
+);
+const addStep = () => {
+  steps.value.push({ id: uid(), formItems: [], isDragOver: false });
+};
+// Form item management
+const selectItem = (stepIndex, index) => {
+  if (selectedItem.value && selectedItem.value.step === stepIndex && selectedItem.value.index === index) {
+    selectedItem.value = null;
+  } else {
+    selectedItem.value = { step: stepIndex, index };
+  }
+};
+
+const duplicateItem = (stepIndex, index) => {
+  const item = JSON.parse(JSON.stringify(steps.value[stepIndex].formItems[index]));
+  item.id = uid();
+  steps.value[stepIndex].formItems.splice(index + 1, 0, item);
+};
+const removeItem = async (stepIndex, index) => {
+  const item = steps.value[stepIndex].formItems[index];
+  if (item.type === "staticImage" && item.imageUrl) {
+    try {
+      await axiosClient.post('', {}, {
+        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.imageUrl },
+      });
+    } catch (err) {
+      console.error("Delete image failed:", err);
     }
   }
-}
+  steps.value[stepIndex].formItems.splice(index, 1);
+  selectedItem.value = null;
+};
+
+
+
+const clearForm = () => {
+  if (confirm('Are you sure you want to clear the entire form? This action cannot be undone.')) {
+    steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
+    selectedItem.value = null;
+    formMeta.value = { code:"", type:"", description:"", category:"", frequency:"", unitType:"", unitValue:"" };
+  }
+};
+
+// Drag and drop handlers
+const onDragStart = (comp) => {
+  dragged.value = comp;
+};
+
+const onDragEnd = () => {
+  dragged.value = null;
+};
+
+const onDragOver = (step) => {
+  step.isDragOver = true;
+};
+const onDragLeave = (step) => {
+  step.isDragOver = false;
+};
+
+const onDrop = (stepIndex) => {
+  const step = steps.value[stepIndex];
+  step.isDragOver = false;
+  if (!dragged.value) return;
+
+  const newItem = { id: uid() };
+  switch (dragged.value.type) {
+    case "label": Object.assign(newItem, { type:"label", text:"", heading:"h3", bold:false, italic:false, underline:false }); break;
+    case "yesno": Object.assign(newItem, { type:"yesno", question:"" }); break;
+    case "multiple": Object.assign(newItem, { type:"multiple", question:"", options:"" }); break;
+    case "single": Object.assign(newItem, { type:"single", question:"", options:"" }); break;
+    case "staticImage": Object.assign(newItem, { type:"staticImage", imageUrl:"" }); break;
+    case "userImage": Object.assign(newItem, { type:"userImage" }); break;
+  }
+  step.formItems.push(newItem);
+  selectedItem.value = { step: stepIndex, index: step.formItems.length - 1 };
+  dragged.value = null;
+};
+
+// Image upload handler
+const onImageUpload = async (event, stepIndex, index) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  try {
+    const res = await axiosClient.post('', form, {
+      params: { c: 'WorkingInstructionController', m: 'upload' },
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    const url = res.data.url;
+    steps.value[stepIndex].formItems[index].imageUrl = url;
+  } catch (err) {
+    console.error("Upload failed:", err);
+  }
+};
+
+const removeImage = async (stepIndex, index) => {
+  const item = steps.value[stepIndex].formItems[index];
+  if (item?.imageUrl) {
+    try {
+      await axiosClient.post('', {}, {
+        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.imageUrl },
+      });
+    } catch (err) {
+      console.error("Delete image failed:", err);
+    }
+  }
+  item.imageUrl = '';
+};
+
+// Save form
+const saveForm = async () => {
+  try {
+    saving.value = true;
+    const payload = {
+      meta: { ...formMeta.value, category_code: formMeta.value.category },
+      content: JSON.parse(JSON.stringify(steps.value)), // gửi nhiều step
+    };
+    console.log(payload);
+    
+    await axiosClient.post('', payload, {
+      params: { c: 'WorkingInstructionController', m: 'save' },
+      headers: { 'Content-Type': 'application/json' },
+    });
+    steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
+    selectedItem.value = null;
+    formItems.value = [];
+    formMeta.value = {
+      code: "",
+      type: "",
+      description: "",
+      category: "",
+      frequency: "",
+      unitType: "",
+      unitValue: ""
+    };
+    selectedItem.value = -1;
+
+    showSuccess.value = true;
+    setTimeout(() => {
+      showSuccess.value = false;
+    }, 3000);
+  } catch (err) {
+    console.error("Save failed:", err);
+    alert("Save failed! Please try again.");
+  } finally {
+    saving.value = false;
+  }
+};
+
+// Load categories
+const getCategories = async () => {
+  try {
+    const res = await axiosClient.get('', {
+      params: {
+        c: 'CategoryController',
+        m: 'getAllCategories',
+        limit: 1000
+      }
+    });
+    categories.value = res.data.data;
+    console.log("Categories:", categories.value);
+  } catch (err) {
+    console.error("Load categories failed:", err);
+  }
+};
+
+onMounted(() => {
+  getCategories();
+});
 </script>
 
 <style scoped>
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
-.auth-management {
+.app-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: rgb(245,245,245);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 /* Header */
-.header {
-  background: white;
-  padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.header-content {
-  max-width: 1400px;
-  margin: 0 auto;
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px 30px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
 
-.header-icon {
-  font-size: 3rem;
-  color: rgb(58, 140, 255);
-}
-
-.header h1 {
-  color: rgb(58, 140, 255);
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.header p {
-  color: #666;
-  font-size: 1.1rem;
-}
-
-/* Main Container */
-.main-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 2rem;
-  min-height: calc(100vh - 140px);
-}
-
-/* Sidebar */
-.sidebar {
-  background: white;
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-  height: fit-content;
-  position: sticky;
-  top: 2rem;
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
-  color: rgb(58, 140, 255);
-}
-
-.sidebar-header i {
-  font-size: 1.5rem;
-}
-
-.sidebar-header h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.account-type {
-  padding: 1.25rem;
-  margin-bottom: 1rem;
-  border-radius: 15px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.account-type::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(58, 140, 255, 0.1), transparent);
-  transition: left 0.5s;
-}
-
-.account-type:hover::before {
-  left: 100%;
-}
-
-.account-type:hover {
-  background: rgba(58, 140, 255, 0.08);
-  border-color: rgba(58, 140, 255, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(58, 140, 255, 0.15);
-}
-
-.account-type.active {
-  background: rgb(58, 140, 255);
-  color: white;
-  border-color: rgb(58, 140, 255);
-  box-shadow: 0 8px 25px rgba(58, 140, 255, 0.3);
-}
-
-.account-type i {
-  font-size: 1.5rem;
-  width: 2rem;
-  text-align: center;
-}
-
-.account-info {
-  flex: 1;
+.header-left {
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
-.account-name {
+.app-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.title-icon {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.breadcrumb {
+  font-size: 14px;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.separator {
+  color: #dee2e6;
+}
+
+.current {
+  color: #667eea;
+  font-weight: 500;
+}
+.link-span {
+  cursor: pointer;
+}
+.header-right {
+  display: flex;
+  gap: 12px;
+}
+
+/* Buttons */
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
   font-weight: 600;
-  font-size: 1.1rem;
-  margin-bottom: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
 }
 
-.account-desc {
-  font-size: 0.9rem;
-  opacity: 0.8;
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.account-badge {
-  background: rgba(58, 140, 255, 0.2);
-  color: rgb(58, 140, 255);
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.account-type.active .account-badge {
-  background: rgba(255, 255, 255, 0.2);
+.btn-primary {
+  background: #3a8cff;
   color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
-/* Content Area */
-.content-area {
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-outline {
+  background: rgba(255, 255, 255, 0.2);
+  color: #495057;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+/* Main Content */
+.main-content {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  min-height: calc(100vh - 80px);
+}
+
+/* Panels */
+.left-panel,
+.form-builder,
+.preview-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.left-panel {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+.form-builder {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview-panel {
+  width: 350px;
+  flex-shrink: 0;
+}
+
+/* Panel Headers */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.panel-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.component-count,
+.items-count {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Search Section */
+.search-section {
+  margin-bottom: 20px;
+}
+
+.search-container {
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 45px;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: rgba(248, 249, 250, 0.8);
+}
+
+.search-input:focus {
+  border-color: #667eea;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
   background: white;
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #6c757d;
+  pointer-events: none;
+}
+
+/* Components Grid */
+.components-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.component-card {
+  padding: 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  background: rgba(248, 249, 250, 0.8);
+  cursor: grab;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.component-card:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.component-card:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.component-icon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.component-label {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.component-desc {
+  font-size: 12px;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+/* Drop Zone */
+.drop-zone {
+  min-height: 400px;
+  border: 2px dashed #dee2e6;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  background: rgba(248, 249, 250, 0.3);
+}
+
+.drop-zone.drag-over {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+  transform: scale(1.02);
 }
 
 .empty-state {
@@ -444,233 +1063,585 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 400px;
-  color: #999;
+  height: 300px;
   text-align: center;
+  color: #6c757d;
 }
 
-.empty-state i {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  color: rgb(58, 140, 255);
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
   opacity: 0.5;
 }
 
-.empty-state h3 {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+.empty-state h4 {
+  margin: 0 0 8px 0;
+  color: #495057;
+  font-size: 18px;
 }
 
-/* Content Header */
-.content-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 2px solid #f0f2f5;
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+  max-width: 250px;
 }
 
-.account-selected {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.account-selected i {
-  font-size: 2.5rem;
-  color: rgb(58, 140, 255);
-}
-
-.account-selected h2 {
-  color: rgb(58, 140, 255);
-  font-size: 1.8rem;
-  margin-bottom: 0.25rem;
-}
-
-.account-selected p {
-  color: #666;
-}
-
-.save-btn {
-  background: rgb(58, 140, 255);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 4px 15px rgba(58, 140, 255, 0.3);
-}
-
-.save-btn:hover {
-  background: rgb(48, 120, 235);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(58, 140, 255, 0.4);
-}
-
-/* Permissions Grid */
-.permissions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1.5rem;
-}
-
-.permission-card {
-  border: 2px solid #f0f2f5;
-  border-radius: 15px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  background: #fafbfc;
-}
-
-.permission-card:hover {
-  border-color: rgba(58, 140, 255, 0.3);
-  box-shadow: 0 8px 25px rgba(58, 140, 255, 0.15);
-  transform: translateY(-3px);
-}
-
-.card-header {
+/* Form Item Cards */
+.form-item-card {
   background: white;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  border-bottom: 2px solid #f0f2f5;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.card-header i {
-  font-size: 1.8rem;
-  color: rgb(58, 140, 255);
+.form-item-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-.card-header h3 {
-  color: rgb(58, 140, 255);
-  font-size: 1.3rem;
-  margin-bottom: 0.25rem;
+.form-item-card.selected {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.02);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.card-header p {
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.permissions-list {
-  padding: 1.5rem;
-}
-
-.permission-item {
+.item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.item-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-icon {
+  font-size: 18px;
+}
+
+.type-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 14px;
 }
 
-.permission-item:last-child {
-  border-bottom: none;
+.action-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
-.permission-item:hover {
-  background: rgba(58, 140, 255, 0.05);
-  margin: 0 -1rem;
-  padding: 1rem;
+.action-btn.danger:hover {
+  background: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+}
+
+/* Configuration Sections */
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.input-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.help-text {
+  font-size: 11px;
+  color: #6c757d;
+  font-weight: 400;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  padding: 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: #667eea;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-input.readonly {
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.style-options {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.checkbox-label input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+}
+
+.checkmark {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #dee2e6;
+  border-radius: 4px;
+  background: white;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark {
+  background: #667eea;
+  border-color: #667eea;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* Image Upload */
+.image-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.file-input {
+  display: none;
+}
+
+.file-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #3a8cff;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.file-upload-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.upload-icon {
+  font-size: 16px;
+}
+
+.image-preview {
+  position: relative;
+  display: inline-block;
+}
+
+.preview-image {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.image-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.overlay-btn {
+  background: rgba(220, 53, 69, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay-btn:hover {
+  background: #dc3545;
+  transform: scale(1.1);
+}
+
+.info-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(13, 202, 240, 0.1);
+  border: 1px solid rgba(13, 202, 240, 0.2);
+  border-radius: 8px;
+  color: #0dcaf0;
+  font-size: 14px;
+}
+
+.info-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* Panel Tabs */
+.panel-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  background: rgba(248, 249, 250, 0.5);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: #6c757d;
+}
+
+.tab-btn.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-icon {
+  font-size: 16px;
+}
+
+/* Settings Content */
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meta-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stat-card {
+  background: #3a8cff;
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Preview Content */
+.preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.info-badge {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #6c757d;
+}
+
+.preview-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.preview-item {
+  padding: 16px;
+  background: #fafbfc;
+  border: 1px solid #e9ecef;
   border-radius: 8px;
 }
 
-.permission-info {
+.preview-heading {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+}
+
+.question-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-text {
+  margin: 0;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.radio-label {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-weight: 500;
-  color: #333;
-}
-
-.permission-info i {
-  font-size: 1.1rem;
-  color: rgb(58, 140, 255);
-  width: 1.5rem;
-  text-align: center;
-}
-
-/* Toggle Switch */
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 50px;
-  height: 24px;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
+  gap: 8px;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 24px;
+  font-size: 14px;
+  color: #495057;
 }
 
-.slider:before {
+.radio-label input[type="radio"] {
   position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .4s;
+  opacity: 0;
+}
+
+.radio-custom {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #dee2e6;
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  background: white;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
 }
 
-input:checked + .slider {
-  background-color: rgb(58, 140, 255);
+.radio-label input[type="radio"]:checked + .radio-custom {
+  border-color: #667eea;
 }
 
-input:checked + .slider:before {
-  transform: translateX(26px);
+.radio-label input[type="radio"]:checked + .radio-custom::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: #667eea;
+  border-radius: 50%;
 }
 
-.slider:hover {
-  box-shadow: 0 0 0 3px rgba(58, 140, 255, 0.2);
+.no-options {
+  color: #6c757d;
+  font-style: italic;
+  font-size: 13px;
 }
 
-/* Toast */
+.image-block {
+  display: flex;
+  justify-content: center;
+}
+
+.preview-image-large {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  color: #6c757d;
+}
+
+.placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.upload-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upload-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.file-input-preview {
+  padding: 8px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  background: #f8f9fa;
+  font-size: 14px;
+}
+
+.help-text {
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Toast Notifications */
 .toast {
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  background: rgb(58, 140, 255);
-  color: white;
-  padding: 1rem 1.5rem;
+  top: 20px;
+  right: 20px;
+  padding: 16px 20px;
   border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  box-shadow: 0 8px 25px rgba(58, 140, 255, 0.3);
-  animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+  gap: 12px;
   z-index: 1000;
+  animation: slideInRight 0.3s ease;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.toast i {
-  font-size: 1.2rem;
+.toast.success {
+  background: rgba(40, 167, 69, 0.95);
+  color: white;
+  backdrop-filter: blur(10px);
 }
 
-@keyframes slideIn {
+.toast-icon {
+  font-size: 18px;
+}
+
+@keyframes slideInRight {
   from {
     transform: translateX(100%);
     opacity: 0;
@@ -681,219 +1652,152 @@ input:checked + .slider:before {
   }
 }
 
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-.modern-table td {
-  padding: 16px 12px;
-  border-bottom: 1px solid #f5f5f5;
-  vertical-align: middle;
-}
-
-.table-row {
-  transition: background-color 0.2s;
-}
-
-.table-row:hover {
-  background: #fafafa;
-}
-
-.machine-id {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.history-count {
-  font-weight: 500;
-}
-
-.view-plan-btn {
-  color: #1890ff;
-}
-
-.action-buttons-cell {
+/* Loading */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
   display: flex;
-  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
 }
 
-.edit-btn:hover {
-  color: #1890ff;
-  background: #f6ffed;
-}
-
-.delete-btn:hover {
-  color: #ff4d4f;
-  background: #fff2f0;
-}
-
-.empty-state {
+.loading-content {
   text-align: center;
-  padding: 60px 20px;
-  color: #999;
+  color: #495057;
 }
 
-.empty-content {
-  max-width: 300px;
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
   margin: 0 auto;
 }
 
-.empty-icon {
-  font-size: 64px;
-  color: #d9d9d9;
-  margin-bottom: 24px;
+.spinner.large {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+  margin-bottom: 16px;
 }
 
-.empty-content h3 {
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.empty-content p {
-  margin-bottom: 24px;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.pagination-info {
-  color: #666;
-  font-size: 14px;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-numbers {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.current-page {
-  font-weight: 600;
-  color: #1890ff;
-}
-
-.page-separator {
-  color: #999;
-}
-
-.pagination-btn {
-  border-radius: 6px;
-}
-
-/* Modal Styles */
-.master-plan-modal .ant-modal-header {
-  border-radius: 12px 12px 0 0;
-}
-
-.master-plan-content {
-  padding: 20px 0;
-}
-
-.todo-note {
-  color: #666;
-  font-style: italic;
-  padding: 16px;
-  background: #f9f9f9;
-  border-radius: 6px;
-  margin-top: 16px;
-}
-
-.delete-modal .ant-modal-header {
-  border-radius: 12px 12px 0 0;
-}
-
-.delete-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.warning-icon {
-  font-size: 24px;
-  color: #ff4d4f;
-  flex-shrink: 0;
-  margin-top: 4px;
-}
-
-.warning-text {
-  flex: 1;
-}
-
-.equipment-info {
-  margin: 16px 0;
-  padding: 12px;
-  background: #fff2f0;
-  border-radius: 6px;
-  border-left: 3px solid #ff4d4f;
-}
-
-.equipment-info strong {
-  display: block;
-  font-size: 16px;
-  margin-bottom: 4px;
-}
-
-.equipment-details {
-  color: #666;
-  font-size: 14px;
-}
-
-.warning-note {
-  color: #999;
-  font-size: 13px;
-  margin: 16px 0 0 0;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
-  .main-container {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+@media (max-width: 1400px) {
+  .main-content {
+    flex-direction: column;
+    gap: 20px;
   }
   
-  .permissions-grid {
+  .left-panel,
+  .preview-panel {
+    width: 100%;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .header-right {
+    justify-content: center;
+  }
+  
+  .main-content {
+    padding: 16px;
+  }
+  
+  .panel-tabs {
+    flex-direction: column;
+  }
+  
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .main-container {
-    padding: 1rem;
+  .app-title {
+    font-size: 24px;
   }
   
-  .header {
-    padding: 1.5rem;
+  .left-panel,
+  .form-builder,
+  .preview-panel {
+    padding: 16px;
   }
   
-  .header h1 {
-    font-size: 2rem;
+  .components-grid {
+    gap: 8px;
   }
   
-  .content-header {
+  .component-card {
+    padding: 12px;
+  }
+  
+  .style-options {
     flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-  
-  .permission-card {
-    min-width: unset;
+    gap: 8px;
   }
 }
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus states for keyboard navigation */
+.component-card:focus,
+.form-item-card:focus,
+.tab-btn:focus,
+.action-btn:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.5);
+}
+
 </style>

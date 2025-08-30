@@ -278,6 +278,8 @@ const completedItems = computed(() => {
     if (item.type === 'single' && selectedAnswers.value['single' + index]) completed++
     if (item.type === 'userImage' && uploadedFiles.value[index]) completed++
   })
+  console.log(completed);
+  
   return completed
 })
 

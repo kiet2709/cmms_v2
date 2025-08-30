@@ -5,7 +5,7 @@
       <div class="header-left">
         <h1 class="app-title" v-translate>Form Builder Studio</h1>
         <div class="breadcrumb">
-          <span @click="$router.push('/dashboard/working-instructions')">Instructions</span>
+          <span class="link-span" @click="$router.push('/dashboard/working-instructions')">Instructions</span>
           <span class="separator">›</span>
           <span class="current">Form Builder</span>
         </div>
@@ -856,7 +856,9 @@ onMounted(() => {
   color: #667eea;
   font-weight: 500;
 }
-
+.link-span {
+  cursor: pointer;
+}
 .header-right {
   display: flex;
   gap: 12px;

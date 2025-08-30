@@ -7,7 +7,7 @@
           Manage account types
         </h1>
         <div class="breadcrumb">
-          <span @click="$router.push('/dashboard/user')">User</span>
+          <span class="link-span" @click="$router.push('/dashboard/user')">User</span>
           <span class="separator">›</span>
           <span class="current">Account Type</span>
         </div>
@@ -196,6 +196,10 @@
 <script setup>
 import { EditOutlined, DeleteOutlined, FileSearchOutlined, ExclamationCircleOutlined } from '@ant-design/icons-vue';
 import { ref, onMounted } from 'vue';
+import { 
+  Button, 
+} from 'ant-design-vue';
+
 import { useRouter } from 'vue-router';
 import axiosClient from '@/utils/axiosClient';
 import roleApi from '@/stores/roleApi'
@@ -397,7 +401,9 @@ function editCategory(index) {
   color: #667eea;
   font-weight: 500;
 }
-
+.link-span {
+  cursor: pointer;
+}
 .page-title {
   font-size: 2.5rem;
   font-weight: 600;
