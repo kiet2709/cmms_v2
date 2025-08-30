@@ -47,13 +47,13 @@
 
         <div class="form-group">
           <label class="form-label">Category</label>
-          <select v-model="category" class="input">
+          <select v-model="category" class="input"  @change="handleSelect">
             <option disabled value="">Select Category</option>
             <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option>
           </select>
         </div>
         <div class="action-buttons">
-          <button class="btn cancel-btn">Cancel</button> 
+          <button class="btn cancel-btn" @click="cancelUpdate">Cancel</button> 
           <button class="btn save-btn" @click="updateMachine">Update</button>
         </div>
       </div>
@@ -209,6 +209,8 @@ const toastMessage = ref("");
 const toastType = ref("success");
 const toastIcon = computed(() => toastType.value === "success" ? "✓" : "✗");
 
+const WIOfMachine = ref([]);
+
 const cancelUpdate = () => {
   router.push('/dashboard/equipments');
 };
@@ -245,6 +247,84 @@ const fetchCategoryData = async () => {
     console.error("Error fetching Category:", e);
   }
 }
+
+const fetchWIByMachineId = async (machineId) => {
+  try {
+    const res = await axiosClient.get("", {
+      params: { c: "WorkingInstructionController", m: "getWiByMachineId", equipment_id: machineId },
+    });
+    if (res.data.status === "success") {
+      WIOfMachine.value = res.data.data;
+
+      selectedInspection.value = WIOfMachine.value
+        .filter(wi => wi.type?.toLowerCase() === "daily inspection")
+        .map(wi => wi.wi_id);
+
+      selectedMaintenance1.value = WIOfMachine.value
+        .filter(wi => wi.type?.toLowerCase() === "maintenance level 1")
+        .map(wi => wi.wi_id);
+
+      selectedMaintenance2.value = WIOfMachine.value
+        .filter(wi => wi.type?.toLowerCase() === "maintenance level 2")
+        .map(wi => wi.wi_id);
+
+      selectedMaintenance3.value = WIOfMachine.value
+        .filter(wi => wi.type?.toLowerCase() === "maintenance level 3")
+        .map(wi => wi.wi_id);
+
+      
+    }
+  } catch (e) {
+    console.error("Error fetching Category:", e);
+  }
+}
+
+function handleSelect(event) {
+  // console.log("Selected ID:", category.value); // chính là item.id
+  // console.log("Selected name:", categories.value.find(c => c.id === category.value)?.name);
+  fetchWiByCategoryID(category.value);
+}
+
+const fetchWiByCategoryID = async (id) => {
+  try {
+    const res = await axiosClient.get("", {
+      params: { c: "WorkingInstructionController", m: "getWiByCategoryId", category_id: id },
+    });
+    if (res.data.status === "success") {
+      const data = res.data.data;
+      console.log(data);
+      
+      inspectionOptions.value = [];
+      m1Options.value = [];
+      m2Options.value = [];
+      m3Options.value = [];
+      data.forEach((item) => {
+        
+        const option = { value: item.uuid, label: item.code, type: item.type };
+        switch (item.type) {
+          case "Daily Inspection":
+            inspectionOptions.value.push(option);
+            break;
+          case "Maintenance Level 1":
+            m1Options.value.push(option);
+            break;
+          case "Maintenance Level 2":
+            m2Options.value.push(option);
+            break;
+          case "Maintenance Level 3":
+            m3Options.value.push(option);
+            break;
+        }
+        // fetchWIByMachineId(uuid);
+      });
+      
+
+      
+    }
+  } catch (e) {
+    console.error("Error fetching WI:", e);
+  }
+};
 
 // upload
 const images = ref([]);
@@ -356,7 +436,8 @@ const fetchWiData = async () => {
       data.forEach(item => {
         const option = {
           value: item.id,
-          label: item.code
+          label: item.code,
+          type: item.type
         }
         console.log(item.type);
 
@@ -388,6 +469,7 @@ onMounted(() => {
   fetchWiData();
   fetchEquipmentData();
   fetchCategoryData();
+  fetchWIByMachineId(uuid);
 })
 
 // filters

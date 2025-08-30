@@ -226,9 +226,9 @@
             <h4 class="section-title">Form Configuration</h4>
             
             <div class="meta-field">
-              <label>DL/ML</label>
+              <label>Daily Inspection / Maintenance</label>
               <select v-model="formMeta.type" class="form-select">
-                <option disabled value="">-- Select DL/ML --</option>
+                <option disabled value="">-- Select DI/ML --</option>
                 <option>Daily Inspection</option>
                 <option>Maintenance Level 1</option>
                 <option>Maintenance Level 2</option>

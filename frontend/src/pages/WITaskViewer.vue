@@ -395,13 +395,40 @@ const resetForm = () => {
 
 const submitForm = () => {
   if (isFormValid.value) {
+    // clone schema gốc
+    const updatedSchema = JSON.parse(JSON.stringify(formItems.value))
+
+    // gắn câu trả lời vào schema mới
+    updatedSchema.forEach((item, index) => {
+      if (item.type === 'yesno') {
+        item.answer = selectedAnswers.value['yn' + index] || null
+      }
+      if (item.type === 'multiple') {
+        item.answer = selectedAnswers.value['multiple' + index] || []
+      }
+      if (item.type === 'single') {
+        item.answer = selectedAnswers.value['single' + index] || null
+      }
+      if (item.type === 'userImage') {
+        item.answer = uploadedFiles.value[index] || null
+      }
+    })
+
+    // gói thông tin
     const formData = {
+      uuid: props.id,
       wiCode: WICode.value,
-      answers: selectedAnswers.value,
-      files: uploadedFiles.value
+      schema: updatedSchema
     }
-    console.log('Submitting form:', formData)
-    alert('Form submitted successfully!')
+
+    console.log("📌 Schema sau khi user submit:")
+    console.log(JSON.stringify(formData, null, 2))
+    console.log('--------');
+    console.log(WICode);
+    
+    
+
+    alert("Form submitted successfully (check console)!")
   }
 }
 
