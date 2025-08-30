@@ -312,9 +312,10 @@ async function performAddUser() {
       employment_name: newUser.value.employment_name,
       username: newUser.value.username,
       position: newUser.value.position,
-      role_uuid: newUser.value.role.uuid, // chỉ gửi uuid
+      role_id: newUser.value.role.uuid, // chỉ gửi uuid
       password: newUser.value.password,
     }
+    console.log(payload);
     await axiosClient.post('', payload, {
       params: {
         c: 'UserController',
