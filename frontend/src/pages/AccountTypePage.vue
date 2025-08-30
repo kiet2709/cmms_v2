@@ -29,7 +29,7 @@
               <input 
                 type="text" 
                 id="nameType" 
-                v-model="accounttype" 
+                v-model="TypeName" 
                 placeholder="Enter account type..." 
                 required
                 class="form-input"
@@ -43,7 +43,7 @@
               <input 
                 type="text" 
                 id="name" 
-                v-model="categoryName" 
+                v-model="TypeDescription" 
                 placeholder="Enter description..." 
                 required
                 class="form-input"
@@ -51,7 +51,7 @@
             </div>
           </div>
           
-          <button type="submit" class="submit-btn" :disabled="loading" @click="saveCategory">
+          <button type="submit" class="submit-btn" :disabled="loading" @click="saveType">
             {{ loading ? 'Saving...' : 'Save' }}
           </button>
         </div>
@@ -97,25 +97,7 @@
                         @click="openEditModal(item)"
                       />
 
-                      <!-- Modal Edit -->
-                      <a-modal
-                        v-model:open="showEditModal"
-                        title="Edit Category"
-                        @ok="submitEdit"
-                        @cancel="cancelEdit"
-                        ok-text="Save"
-                        cancel-text="Cancel"
-                      >
-                        <a-form layout="vertical">
-                          <a-form-item label="Category Code">
-                            <a-input v-model:value="editForm.code" placeholder="Enter category code" />
-                          </a-form-item>
-
-                          <a-form-item label="Category Name">
-                            <a-input v-model:value="editForm.name" placeholder="Enter category name" />
-                          </a-form-item>
-                        </a-form>
-                      </a-modal>
+                      
                        <!-- Nút delete -->
                       <DeleteOutlined 
                         class="delete-btn" 
@@ -123,21 +105,7 @@
                         @click="deleteCategory(item)" 
                       />
 
-                      <!-- Modal xác nhận xoá -->
-                      <a-modal
-                        v-model:open="showDeleteModal"
-                        title="Confirm Delete"
-                        @ok="performDelete"
-                        @cancel="cancelDelete"
-                        ok-text="Yes, delete"
-                        cancel-text="Cancel"
-                      >
-                        <p>
-                          <ExclamationCircleOutlined style="color: red; margin-right: 8px;" />
-                          Are you sure you want to delete 
-                          <strong>{{ deleteTarget?.name }}</strong>?
-                        </p>
-                      </a-modal>
+                      
                       <!-- <button class="delete-btn" @click="deleteCategory(index)" title="Delete">
                         <i class="btn-icon">🗑️</i>
                       </button> -->
@@ -179,6 +147,40 @@
               </Button>
             </div>
           </div>
+          <!-- Modal Edit -->
+          <Modal
+            v-model:open="showEditModal"
+            title="Edit Account Type"
+            @ok="submitEdit"
+            @cancel="cancelEdit"
+            ok-text="Save"
+            cancel-text="Cancel"
+          >
+            <a-form layout="vertical">
+              <a-form-item label="Name Account Type">
+                <a-input v-model:value="editForm.name" placeholder="Enter name account type" />
+              </a-form-item>
+
+              <a-form-item label="Description">
+                <a-input v-model:value="editForm.description" placeholder="Enter description" />
+              </a-form-item>
+            </a-form>
+          </Modal>
+          <!-- Modal xác nhận xoá -->
+          <a-modal
+            v-model:open="showDeleteModal"
+            title="Confirm Delete"
+            @ok="performDelete"
+            @cancel="cancelDelete"
+            ok-text="Yes, delete"
+            cancel-text="Cancel"
+          >
+            <p>
+              <ExclamationCircleOutlined style="color: red; margin-right: 8px;" />
+              Are you sure you want to delete 
+              <strong>{{ deleteTarget?.name }}</strong>?
+            </p>
+          </a-modal>
         </div>
         
         
@@ -198,6 +200,8 @@ import { EditOutlined, DeleteOutlined, FileSearchOutlined, ExclamationCircleOutl
 import { ref, onMounted } from 'vue';
 import { 
   Button, 
+  Modal,
+  message
 } from 'ant-design-vue';
 
 import { useRouter } from 'vue-router';
@@ -208,8 +212,8 @@ const router = useRouter();
 
 const loading = ref(false);
 const data = ref([]);
-const categoryName = ref('');
-const accounttype = ref('');
+// const TypeName = ref('');
+// const TypeDescription= ref('');
 const showDeleteModal = ref(false);
 const deleteTarget = ref(null)
 const showEditModal = ref(false)
@@ -221,21 +225,20 @@ const pagination = ref({
   total: 0,
   totalPages: 0,
 });
-onMounted(async () => {
-  roles.value = await roleApi.getRoles()
-})
+
 // fetch categories
-async function fetchCategories(page = 1, limit = 10) {
+async function fetchRoles(page = 1, limit = 10) {
   loading.value = true;
   try {
-    const res = await axiosClient.get('', {
+    const res = await axiosClient.get("", {
       params: {
-        c: 'CategoryController',
-        m: 'getAllCategories',
+        c: "RoleController",
+        m: "getRoles",
         page,
-        limit
-      }
+        limit,
+      },
     });
+
     const apiData = res.data.data || [];
     const totalItems = res.data.total_in_all_page || 0;
     const totalPages = res.data.total_pages || 1;
@@ -245,19 +248,17 @@ async function fetchCategories(page = 1, limit = 10) {
     pagination.value.pageSize = limit;
     pagination.value.totalPages = totalPages;
 
-    data.value = apiData.map((item, index) => ({
+    roles.value = apiData.map((item, index) => ({
       no: (page - 1) * limit + index + 1,
-      ...item
+      ...item,
     }));
-    console.log(data.value);
-    
   } finally {
     loading.value = false;
   }
 }
 
 function handlePageChange(newPage) {
-  fetchCategories(newPage, pagination.value.pageSize);
+  fetchRoles(newPage, pagination.value.pageSize);
 }
 const editForm = ref({
   id: null,
@@ -271,10 +272,38 @@ function openEditModal(item) {
   showEditModal.value = true
 }
 
-function submitEdit() {
-  console.log("Updating:", editForm.value)
-  // gọi API update category tại đây
-  showEditModal.value = false
+async function submitEdit() {
+  if (!editForm.value.name.trim()) {
+    alert('Please enter a role name.')
+    return
+  }
+
+  loading.value = true
+  try {
+    const res = await axiosClient.post(
+      '',
+      {
+        uuid: editForm.value.uuid,        // cần uuid để xác định role
+        name: editForm.value.name.trim(),
+        description: editForm.value.description.trim(),
+      },
+      {
+        params: {
+          c: 'RoleController',
+          m: 'updateRole',
+        },
+      }
+    )
+    await new Promise(r => setTimeout(r, 1000))
+    message.success('Account Type created successfully!')
+    fetchRoles(pagination.value.current, pagination.value.pageSize) // refresh data
+  } catch (err) {
+    console.error(err)
+    alert('Error updating role')
+  } finally {
+    loading.value = false
+    showEditModal.value = false
+  }
 }
 
 function cancelEdit() {
@@ -290,64 +319,61 @@ function cancelDelete() {
   deleteTarget.value = null
 }
 
-// Khi nhấn nút, chuyển route
-function goToAddCategory() {
-  router.push('/dashboard/categories/add');
-}
+
 
 onMounted(() => {
-  fetchCategories(pagination.value.current, pagination.value.pageSize);
-});
+  fetchRoles(pagination.value.current, pagination.value.pageSize);
+}); 
 
 
-async function saveCategory() {
-  if (!categoryName.value.trim()) {
+async function saveType() {
+  if (!TypeName.value.trim()) {
     alert('Please enter a category name.');
     return;
   }
 
   loading.value = true;
   try {
-    const res = await axiosClient.post('', {
-      c: 'CategoryController',
-      m: 'createCategory',
-      name: categoryName.value.trim(),
-      code: accounttype.value.trim()
+    const res = await axiosClient.post('',{
+      name: TypeName.value.trim(),
+      description: TypeDescription.value.trim()}, {
+      params: {
+        c: 'RoleController',
+        m: 'createRole',
+      },
     });
-    alert(res.data.message || 'Category saved successfully!');
-    categoryName.value = '';
+    TypeName.value = '';
+    message.success('Account Type saved successfully!')
+    fetchRoles(pagination.value.current, pagination.value.pageSize) // refresh data
   } catch (err) {
     console.error(err);
-    alert('Error saving category.');
+    alert('Error saving account type.');
   } finally {
     loading.value = false;
   }
 }
-function editCategory(index) {
-  const item = data.value[index];
-  const newName = prompt("Enter new category name:", item.name);
-  if (newName && newName.trim()) {
-    data.value[index].name = newName.trim();
+// ✅ gọi API xoá khi nhấn OK trên modal
+async function performDelete() {
+  if (!deleteTarget.value) return
+  try {
+    await axiosClient.delete('', {
+      params: {
+        c: 'RoleController',
+        m: 'deleteRole',
+        uuid: deleteTarget.value.uuid
+      }
+    })
+    data.value = data.value.filter(c => c.uuid !== deleteTarget.value.uuid)
+    message.success('Account Type deleted successfully!')
+    fetchRoles(pagination.value.current, pagination.value.pageSize) // refresh data
+  } catch (err) {
+    console.error(err)
+    alert('Error deleting category')
+  } finally {
+    showDeleteModal.value = false
+    deleteTarget.value = null
   }
 }
-// ✅ gọi API xoá khi nhấn OK trên modal
-// async function performDelete() {
-//   if (!deleteTarget.value) return
-//   try {
-//     await axiosClient.post('', {
-//       c: 'CategoryController',
-//       m: 'deleteCategory',
-//       uuid: deleteTarget.value.uuid,
-//     })
-//     data.value = data.value.filter(c => c.uuid !== deleteTarget.value.uuid)
-//   } catch (err) {
-//     console.error(err)
-//     alert('Error deleting category')
-//   } finally {
-//     showDeleteModal.value = false
-//     deleteTarget.value = null
-//   }
-// }
 
 
 
@@ -503,7 +529,7 @@ function editCategory(index) {
 
 .form-input:focus {
   outline: none;
-  border-color: #495057;
+  border-color: #f1f8ff;
   box-shadow: 0 0 0 2px rgba(73, 80, 87, 0.1);
 }
 

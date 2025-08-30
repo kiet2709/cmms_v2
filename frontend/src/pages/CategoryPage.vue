@@ -102,24 +102,7 @@
                       />
 
                       <!-- Modal Edit -->
-                      <a-modal
-                        v-model:open="showEditModal"
-                        title="Edit Category"
-                        @ok="submitEdit"
-                        @cancel="cancelEdit"
-                        ok-text="Save"
-                        cancel-text="Cancel"
-                      >
-                        <a-form layout="vertical">
-                          <a-form-item label="Category Code">
-                            <a-input v-model:value="editForm.code" placeholder="Enter category code" />
-                          </a-form-item>
-
-                          <a-form-item label="Category Name">
-                            <a-input v-model:value="editForm.name" placeholder="Enter category name" />
-                          </a-form-item>
-                        </a-form>
-                      </a-modal>
+                      
                        <!-- Nút delete -->
                       <DeleteOutlined 
                         class="delete-btn" 
@@ -127,21 +110,7 @@
                         @click="deleteCategory(item)" 
                       />
 
-                      <!-- Modal xác nhận xoá -->
-                      <a-modal
-                        v-model:open="showDeleteModal"
-                        title="Confirm Delete"
-                        @ok="performDelete"
-                        @cancel="cancelDelete"
-                        ok-text="Yes, delete"
-                        cancel-text="Cancel"
-                      >
-                        <p>
-                          <ExclamationCircleOutlined style="color: red; margin-right: 8px;" />
-                          Are you sure you want to delete 
-                          <strong>{{ deleteTarget?.name }}</strong>?
-                        </p>
-                      </a-modal>
+                      
                       <!-- <button class="delete-btn" @click="deleteCategory(index)" title="Delete">
                         <i class="btn-icon">🗑️</i>
                       </button> -->
@@ -192,6 +161,39 @@
           <p>Add the first category to start managing products</p>
         </div>
       </div>
+      <a-modal
+        v-model:open="showEditModal"
+        title="Edit Category"
+        @ok="submitEdit"
+        @cancel="cancelEdit"
+        ok-text="Save"
+        cancel-text="Cancel"
+      >
+        <a-form layout="vertical">
+          <a-form-item label="Category Code">
+            <a-input v-model:value="editForm.code" placeholder="Enter category code" />
+          </a-form-item>
+
+          <a-form-item label="Category Name">
+            <a-input v-model:value="editForm.name" placeholder="Enter category name" />
+          </a-form-item>
+        </a-form>
+      </a-modal>
+      <!-- Modal xác nhận xoá -->
+      <a-modal
+        v-model:open="showDeleteModal"
+        title="Confirm Delete"
+        @ok="performDelete"
+        @cancel="cancelDelete"
+        ok-text="Yes, delete"
+        cancel-text="Cancel"
+      >
+        <p>
+          <ExclamationCircleOutlined style="color: red; margin-right: 8px;" />
+          Are you sure you want to delete 
+          <strong>{{ deleteTarget?.name }}</strong>?
+        </p>
+      </a-modal>
     </div>
      
   </div>
@@ -310,13 +312,18 @@ async function saveCategory() {
   loading.value = true;
   try {
     const res = await axiosClient.post('', {
-      c: 'CategoryController',
-      m: 'createCategory',
       name: categoryName.value.trim(),
       code: categoryCode.value.trim()
+    }, {
+       params: {
+          c: 'CategoryController',
+          m: 'createCategory',
+        },
     });
-    alert(res.data.message || 'Category saved successfully!');
     categoryName.value = '';
+    categoryCode.value = '';
+    message.success('Category saved successfully!')
+    fetchCategories(pagination.value.current, pagination.value.pageSize) // refresh data
   } catch (err) {
     console.error(err);
     alert('Error saving category.');

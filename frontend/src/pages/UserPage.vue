@@ -30,6 +30,7 @@ import {
 } from 'ant-design-vue';
 
 const loading = ref(false);
+const deleteConfirmInput = ref('');
 const data = ref([]);
 const searchQuery = ref('');
 const filterVisible = ref(false);
@@ -132,15 +133,14 @@ function handlePageChange(newPage) {
 
 function handleEdit(user) {
   isEditMode.value = true
-  Object.assign(newUser.value, user) // copy dữ liệu user sang form
+  newUser.value = JSON.parse(JSON.stringify(user))
   showUserModal.value = true
 }
-
 function confirmDelete(item) {
   deleteTarget.value = item;
+  deleteConfirmInput.value = ''; // reset input
   showDeleteModal.value = true;
 }
-
 
 
 function cancelDelete() {
@@ -361,7 +361,6 @@ async function performEditUser() {
         m: 'updateUser',
       }}
   )
-    console.log("Data gửi update:", newUser.value)
     message.success('User updated successfully!')
     resetForm();
     
@@ -795,6 +794,7 @@ function resetForm() {
       cancel-text="Cancel"
       ok-type="danger"
       class="delete-modal"
+      :ok-button-props="{ disabled: deleteConfirmInput !== deleteTarget?.employment_id }"
     >
       <div class="delete-content">
         <div class="warning-icon">
@@ -808,6 +808,14 @@ function resetForm() {
               {{ deleteTarget?.employment_id }} - {{ deleteTarget?.username }}
             </span>
           </div>
+
+          <!-- Input xác nhận -->
+          <p>Please type the employee ID below to confirm:</p>
+          <a-input
+            v-model:value="deleteConfirmInput"
+            placeholder="Enter employee ID"
+          />
+
           <p class="warning-note">This action cannot be undone.</p>
         </div>
       </div>
