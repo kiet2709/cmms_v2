@@ -87,7 +87,7 @@ class UserController extends CI_Controller
 			"employment_name" => $data["employment_name"],
 			"username"        => $data["username"],
 			"position"        => $data["position"],
-			"role_id"            => $data["role"],
+			"role_id"          => $data["role_id"],
 			"password"        => password_hash($data["password"], PASSWORD_BCRYPT), // mã hóa password
 			"created_at"      => date("Y-m-d H:i:s"),
 		];

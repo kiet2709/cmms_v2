@@ -62,12 +62,9 @@ class CategoryController extends CI_Controller
 
 		$insertData = [
 			"uuid" => $this->uuidv4(),
-			"employment_id"   => $data["employment_id"],
-			"employment_name" => $data["employment_name"],
-			"username"        => $data["username"],
-			"position"        => $data["position"],
-			"role_id"            => $data["role"],
-			"password"        => password_hash($data["password"], PASSWORD_BCRYPT), // mã hóa password
+			"code"   => $data["code"],
+			"name" => $data["name"],
+			"created_by" => "admin",
 			"created_at"      => date("Y-m-d H:i:s"),
 		];
 
@@ -82,5 +79,19 @@ class CategoryController extends CI_Controller
 				"message" => "Không thể thêm user"
 			]);
 		}
+	}
+	private function uuidv4()
+	{
+		return sprintf(
+			'%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+			mt_rand(0, 0xffff),
+			mt_rand(0, 0xffff),
+			mt_rand(0, 0xffff),
+			mt_rand(0, 0x0fff) | 0x4000,
+			mt_rand(0, 0x3fff) | 0x8000,
+			mt_rand(0, 0xffff),
+			mt_rand(0, 0xffff),
+			mt_rand(0, 0xffff)
+		);
 	}
 }
