@@ -19,6 +19,7 @@ import TodayEquipment from '../pages/TodayEquipment.vue'
 import DailyInspectionPage from '../pages/DailyInspectionPage.vue'
 import PermissionPage from '../pages/PermissionPage.vue'
 import AccountTypePage from '../pages/AccountTypePage.vue'
+import MaintenanceMachinePage from '../pages/MaintenanceMachinePage.vue'
 
 // Supported languages
 export const SUPPORTED_LANGUAGES = {
@@ -133,6 +134,11 @@ const createLocalizedRoutes = () => {
               path: 'tasks/daily',
               name: 'TodayEquipment',
               component: TodayEquipment,
+            },
+            {
+              path: 'tasks/maintenance',
+              name: 'MaintenanceMachine',
+              component: MaintenanceMachinePage,
             },
             {
               path: 'tasks/daily/:uuid',

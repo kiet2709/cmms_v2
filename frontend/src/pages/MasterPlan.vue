@@ -141,6 +141,7 @@
       title="Instruction Details" 
       @cancel="handleModalCancel" 
       width="800px"
+      :style="{ top: '3px' }"
     >
       <template #footer>
         <Button @click="handleModalCancel">Close</Button>
