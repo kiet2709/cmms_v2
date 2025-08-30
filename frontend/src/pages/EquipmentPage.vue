@@ -527,13 +527,14 @@ const breadcrumbItems = [
         title="Equipment Master Plan" 
         @cancel="closeMasterPlan"
         width="1400px"
+        :style="{ top: '3px' }"
         class="master-plan-modal"
       >
         <template #footer>
           <Button @click="closeMasterPlan">Close</Button>
         </template>
         <div class="master-plan-content">
-          <MasterPlan />
+          <MasterPlan :key="selectedUuid" :id="selectedUuid" />
         </div>
       </Modal>
 
@@ -547,6 +548,7 @@ const breadcrumbItems = [
         cancel-text="Cancel"
         ok-type="danger"
         class="delete-modal"
+        :ok-button-props="{ disabled: !isMatched }"
       >
         <div class="delete-content">
           <div class="warning-icon">
