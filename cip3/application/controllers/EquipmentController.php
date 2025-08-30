@@ -152,6 +152,7 @@ class EquipmentController extends CI_Controller
         );
         // update working instructions mapping
         $this->Equipment_model->updateWorkingInstructions($data['uuid'], $allWi ?? []);
+        $this->Equipment_model->deleteObsoleteTasks($data['uuid'], $allWi ?? []);
 
         $this->db->trans_complete();
 

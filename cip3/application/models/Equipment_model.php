@@ -136,4 +136,27 @@ class Equipment_model extends CI_Model {
         // Insert mới toàn bộ
         $this->db->insert_batch('equipment_working_instructions', $batch);
     }
+
+    public function deleteObsoleteTasks($equipmentId, $newWiList) {
+        // Xử lý ngày hôm nay
+        $today = date('Y-m-d');
+
+        // Xóa những task không còn trong newWiList
+        $this->db->where('equipment_id', $equipmentId);
+        
+        // NOT IN wi_id
+        if (!empty($newWiList)) {
+            $this->db->where_not_in('wi_id', $newWiList);
+        }
+
+        // Điều kiện OR: (date_start = today OR inspected_date IS NULL OR status IS NULL)
+        $this->db->group_start();
+        $this->db->where('date_start', $today);
+        $this->db->or_where('inspected_date IS NULL', null, false);
+        $this->db->or_where('status IS NULL', null, false);
+        $this->db->group_end();
+
+        // Thực hiện DELETE
+        return $this->db->delete('daily_tasks');
+    }
 }

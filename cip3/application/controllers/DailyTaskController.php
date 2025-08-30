@@ -53,4 +53,6 @@ class DailyTaskController extends CI_Controller {
                     ->set_content_type('application/json')
                     ->set_output(json_encode($result));
     }
+
+    
 }

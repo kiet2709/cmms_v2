@@ -235,4 +235,13 @@ class DailyTask_model extends CI_Model {
         $query = $this->db->get();
         return $query->result_array();
     }
+
+    public function doTask($uuid, $schema) 
+    {
+        $this->db->where('uuid', $uuid);
+        return $this->db->update('daily_tasks', [
+            'schema' => $schema,
+            'status' => 'done'
+        ]);
+    }
 }
