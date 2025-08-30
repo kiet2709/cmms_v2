@@ -6,8 +6,6 @@
         <img :src="logo" alt="CMMS Logo" class="logo-image" />
         <div class="brand-text">
           <span class="brand-name" v-translate>CMMS</span>
-          <!-- <span class="brand-subtitle">cmms</span> -->
-           
         </div>
       </div>
     </div>
@@ -15,7 +13,7 @@
     <!-- Navigation Menu -->
     <nav class="navbar-nav">
       <div class="nav-menu">
-        <!-- Equipment Menu -->
+        <!-- User Menu -->
         <div 
           class="nav-item" 
           :class="{ active: selectedKey.startsWith('/dashboard/user') }"
@@ -23,13 +21,11 @@
           @mouseleave="showSubmenu = null"
         >
           <div class="nav-link">
-                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <circle cx="12" cy="10" r="3"></circle>
-            <path d="M6 20c0-3 3-5 6-5s6 2 6 5"></path>
-          </svg>
-
-
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="10" r="3"></circle>
+              <path d="M6 20c0-3 3-5 6-5s6 2 6 5"></path>
+            </svg>
             <span v-translate>User</span>
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6,9 12,15 18,9"></polyline>
@@ -70,6 +66,7 @@
             </div>
           </div>
         </div>
+
         <!-- Equipment Menu -->
         <div 
           class="nav-item" 
@@ -123,7 +120,6 @@
           </div>
         </div>
 
-        
         <!-- Working Instructions Menu -->
         <div 
           class="nav-item" 
@@ -133,11 +129,9 @@
         >
           <div class="nav-link">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14,2 14,8 20,8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10,9 9,9 8,9"></polyline>
+              <path d="M9 2H15a2 2 0 0 1 2 2V4H19a2 2 0 0 1 2 2V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2H7V4a2 2 0 0 1 2-2z"/>
+              <path d="M9 10l2 2 4-4"/>
+              <path d="M9 16l2 2 4-4"/>
             </svg>
             <span v-translate>Instructions</span>
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -170,12 +164,10 @@
           </div>
         </div>
 
-
-
-        <!-- Tasks Menu -->
+        <!-- Tasks Menu with Tree Structure -->
         <div 
           class="nav-item" 
-          :class="{ active: selectedKey.startsWith('/dashboard/tasks/daily') }"
+          :class="{ active: selectedKey.startsWith('/dashboard/tasks') }"
           @mouseenter="showSubmenu = 'tasks'"
           @mouseleave="showSubmenu = null"
         >
@@ -192,28 +184,84 @@
               <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
           </div>
-          <div class="submenu" :class="{ show: showSubmenu === 'tasks' }">
-            <div class="submenu-content">
-              <a @click="onMenuClick('/dashboard/tasks/daily')" class="submenu-item">
-                <svg class="submenu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 3h18v18H3V3z"></path>
-                  <path d="M9 9h6v6H9V9z"></path>
-                </svg>
-                <div>
-                  <div class="submenu-title" v-translate>List Daily Inspection</div>
-                  <div class="submenu-desc" v-translate>View all daily inspection</div>
+          <div class="tree-submenu" :class="{ show: showSubmenu === 'tasks' }" @mouseleave="showMaintenanceTree = false">
+            <div class="tree-submenu-content">
+              <!-- Daily Inspection -->
+              <a @click="onMenuClick('/dashboard/tasks/daily')" class="tree-item">
+                <div class="tree-item-content">
+                  <svg class="tree-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3h18v18H3V3z"></path>
+                    <path d="M9 9h6v6H9V9z"></path>
+                  </svg>
+                  <div class="tree-text">
+                    <div class="tree-title" v-translate>List Daily Inspection</div>
+                    <div class="tree-desc" v-translate>View all daily inspection</div>
+                  </div>
                 </div>
               </a>
-              <!-- <a @click="onMenuClick('/dashboard/daily-tasks/add')" class="submenu-item">
-                <svg class="submenu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <div>
-                  <div class="submenu-title">Add Instruction</div>
-                  <div class="submenu-desc">Create new instruction</div>
+              
+              <!-- Maintenance with Expandable Tree -->
+              <div class="tree-item expandable" :class="{ expanded: showMaintenanceTree }">
+                <div 
+                  class="tree-item-content" 
+                  @click="toggleMaintenanceTree"
+                  @mouseenter="showMaintenanceTree = true"
+                  
+                >
+                  <svg class="tree-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                  </svg>
+                  <div class="tree-text">
+                    <div class="tree-title" v-translate>Maintenance</div>
+                    <div class="tree-desc" v-translate>Maintenance levels</div>
+                  </div>
+                  <svg class="tree-arrow" :class="{ rotated: showMaintenanceTree }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                  </svg>
                 </div>
-              </a> -->
+                
+                <!-- Tree Children (Maintenance Levels) -->
+                <div class="tree-children" :class="{ show: showMaintenanceTree }">
+                  <div class="tree-children-content">
+                    <a @click="onMenuClick('/dashboard/tasks/maintenance/level1')" class="tree-child">
+                      <div class="tree-connector"></div>
+                      <svg class="tree-child-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                      </svg>
+                      <div class="tree-child-text">
+                        <div class="tree-child-title">Level 1</div>
+                        <div class="tree-child-desc">Basic maintenance tasks</div>
+                      </div>
+                    </a>
+                    
+                    <a @click="onMenuClick('/dashboard/tasks/maintenance/level2')" class="tree-child">
+                      <div class="tree-connector"></div>
+                      <svg class="tree-child-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.2 15.89A10 10 0 1 1 8 2.83"></path>
+                        <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                      </svg>
+                      <div class="tree-child-text">
+                        <div class="tree-child-title">Level 2</div>
+                        <div class="tree-child-desc">Intermediate maintenance tasks</div>
+                      </div>
+                    </a>
+                    
+                    <a @click="onMenuClick('/dashboard/tasks/maintenance/level3')" class="tree-child">
+                      <div class="tree-connector"></div>
+                      <svg class="tree-child-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                      </svg>
+                      <div class="tree-child-text">
+                        <div class="tree-child-title">Level 3</div>
+                        <div class="tree-child-desc">Advanced maintenance tasks</div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -229,7 +277,7 @@
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 11H5a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h4m6-6h4a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-4m-6 0v4a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-4m-6 0h6"></path>
             </svg>
-            <span v-translate>Authorization</span>
+            <span v-translate>ONLY USE FOR TEST</span>
             <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="6,9 12,15 18,9"></polyline>
             </svg>
@@ -241,7 +289,7 @@
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
                 </svg>
                 <div>
-                  <div class="submenu-title" v-translate>Authorization</div>
+                  <div class="submenu-title" v-translate>TEST</div>
                   <div class="submenu-desc" v-translate>Demo</div>
                 </div>
               </a>
@@ -275,7 +323,6 @@
             {{ user.name.charAt(0).toUpperCase() }}
           </div>
           <div class="user-menu-info">
-            
             <div class="user-menu-name">{{ user.name }}</div>
             <div class="user-menu-role">{{ $tSync(user.role) }}</div>
           </div>
@@ -288,22 +335,15 @@
           </svg>
           <span v-translate>Profile</span>
         </a>
-<a class="user-menu-item flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg cursor-pointer">
-  <!-- Globe Icon -->
-  <svg class="menu-item-icon w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 0c2.21 0 4 4.48 4 10s-1.79 10-4 10-4-4.48-4-10 1.79-10 4-10zm0 0c5.52 0 10 2.24 10 5s-4.48 5-10 5S2 9.76 2 7s4.48-5 10-5z"/>
-  </svg>
-
-  <!-- Label -->
-  <span class="text-gray-700 font-medium" v-translate>Language</span>
-
-  <!-- Language Switcher -->
-  <div class="ml-auto">
-    <LanguageSwitcher />
-  </div>
-</a>
-
-
+        <a class="user-menu-item flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+          <svg class="menu-item-icon w-5 h-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 0c2.21 0 4 4.48 4 10s-1.79 10-4 10-4-4.48-4-10 1.79-10 4-10zm0 0c5.52 0 10 2.24 10 5s-4.48 5-10 5S2 9.76 2 7s4.48-5 10-5z"/>
+          </svg>
+          <span class="text-gray-700 font-medium" v-translate>Language</span>
+          <div class="ml-auto">
+            <LanguageSwitcher />
+          </div>
+        </a>
         <a @click="handleMenuClick('logout')" class="user-menu-item logout">
           <svg class="menu-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -312,8 +352,6 @@
           </svg>
           <span v-translate>Logout</span>
         </a>
-
-        
       </div>
     </div>
 
@@ -336,7 +374,6 @@ import logo from "@/assets/logo.png";
 import axiosClient from "@/utils/axiosClient";
 import LanguageSwitcher from "./LanguageSwitcher.vue";
 
-
 const router = useRouter();
 const route = useRoute();
 
@@ -349,6 +386,7 @@ const props = defineProps({
 
 const selectedKey = ref(route.path);
 const showSubmenu = ref(null);
+const showMaintenanceTree = ref(false);
 const showUserMenu = ref(false);
 const showMobileMenu = ref(false);
 
@@ -366,7 +404,14 @@ function onMenuClick(path) {
     router.push(path);
   }
   showSubmenu.value = null;
+  showMaintenanceTree.value = false;
   closeMobileMenu();
+}
+
+function toggleMaintenanceTree() {
+  router.push('/dashboard/tasks/maintenance');
+  showMaintenanceTree.value = !showMaintenanceTree.value;
+  
 }
 
 const handleMenuClick = async (key) => {
@@ -397,6 +442,7 @@ function toggleMobileMenu() {
 function closeMobileMenu() {
   showMobileMenu.value = false;
   showSubmenu.value = null;
+  showMaintenanceTree.value = false;
   showUserMenu.value = false;
 }
 
@@ -406,6 +452,7 @@ function handleClickOutside(event) {
   }
   if (!event.target.closest('.nav-item')) {
     showSubmenu.value = null;
+    showMaintenanceTree.value = false;
   }
 }
 
@@ -483,13 +530,6 @@ watch(
   line-height: 1;
 }
 
-.brand-subtitle {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
-  letter-spacing: 0.5px;
-}
-
 /* Navigation */
 .navbar-nav {
   flex: 1;
@@ -547,11 +587,7 @@ watch(
   transform: rotate(180deg);
 }
 
-.single-item .nav-link {
-  cursor: pointer;
-}
-
-/* Submenu */
+/* Regular Submenu */
 .submenu {
   position: absolute;
   top: 100%;
@@ -569,6 +605,7 @@ watch(
   transform: translateX(-50%) translateY(10px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-width: 280px;
+  z-index: 1000;
 }
 
 .submenu.show {
@@ -617,6 +654,176 @@ watch(
   line-height: 1.2;
 }
 
+/* Tree Submenu (for tasks) */
+.tree-submenu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: visible;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%) translateY(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 320px;
+  z-index: 1000;
+}
+
+.tree-submenu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tree-submenu-content {
+  padding: 0.75rem;
+}
+
+/* Tree Item */
+.tree-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.tree-item-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 12px;
+  color: #374151;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.tree-item:hover .tree-item-content,
+.tree-item.expandable:hover .tree-item-content {
+  background: #3a8cff;
+  color: white;
+  transform: translateX(4px);
+}
+
+.tree-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.tree-text {
+  flex: 1;
+}
+
+.tree-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.tree-desc {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  line-height: 1.2;
+}
+
+.tree-arrow {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+}
+
+.tree-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+/* Tree Children */
+.tree-children {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tree-children.show {
+  max-height: 300px;
+}
+
+.tree-children-content {
+  padding-left: 2rem;
+  border-left: 2px solid rgba(58, 140, 255, 0.1);
+  margin-left: 1rem;
+  margin-top: 0.5rem;
+}
+
+.tree-child {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  color: #6b7280;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 0.25rem;
+}
+
+.tree-child:hover {
+  background: rgba(58, 140, 255, 0.1);
+  color: #3a8cff;
+  transform: translateX(4px);
+}
+
+.tree-connector {
+  position: absolute;
+  left: -2rem;
+  top: 50%;
+  width: 1rem;
+  height: 2px;
+  background: rgba(58, 140, 255, 0.2);
+  transform: translateY(-50%);
+}
+
+.tree-connector::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  background: rgba(58, 140, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.tree-child-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.tree-child-text {
+  flex: 1;
+}
+
+.tree-child-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.tree-child-desc {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  line-height: 1.2;
+}
+
 /* User Section */
 .navbar-user {
   position: relative;
@@ -631,7 +838,7 @@ watch(
 
 .user-info {
   text-align: right;
-  color: white;
+  color: black;
 }
 
 .user-name {
@@ -839,10 +1046,6 @@ watch(
   
   .mobile-overlay {
     display: block;
-  }
-  
-  .brand-subtitle {
-    display: none;
   }
   
   .brand-name {

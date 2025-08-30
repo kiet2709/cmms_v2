@@ -59,158 +59,161 @@
       </div>
 
       <!-- Middle Panel: Form Builder -->
-      <div class="form-builder">
+      <div class="form-builder" >
         <div class="panel-header">
           <h3 class="panel-title" v-translate>Form Builder</h3>
           <button class="btn-add" @click="addStep">➕ Add Step</button>
           <div class="items-count">{{ totalItems  }} items</div>
           
         </div>
-        <div v-for="(step, stepIndex) in steps" :key="step.id" class="step-block">
-          <h4>Step {{ stepIndex + 1 }}</h4>
+        <div   style="overflow-y: scroll; max-height: 100vh;">
+          <div v-for="(step, stepIndex) in steps" :key="step.id" class="step-block">
+            <h4>Step {{ stepIndex + 1 }}</h4>
 
-          <div 
-          class="drop-zone"
-          :class="{ 'drag-over': step.isDragOver }"
-          @dragover.prevent="onDragOver(step)"
-          @dragleave="onDragLeave(step)"
-          @drop="onDrop(stepIndex)"
-        >
-          <div v-if="step.formItems.length === 0" class="empty-state">
-            <div class="empty-icon">📝</div>
-            <h4 v-translate>Start Building Your Form</h4>
-            <p v-translate>Drag components from the toolbox to begin creating your form</p>
-          </div>
-
-          <div
-            v-for="(item, index) in  step.formItems"
-            :key="item.id || index"   
-            class="form-item-card"
-            :class="{ 'selected': selectedItem?.step === stepIndex && selectedItem?.index === index }"
-            @click="selectItem(stepIndex, index)"
+            <div 
+            class="drop-zone"
+            :class="{ 'drag-over': step.isDragOver }"
+            @dragover.prevent="onDragOver(step)"
+            @dragleave="onDragLeave(step)"
+            @drop="onDrop(stepIndex)"
           >
-          <div class="item-header">
-            <div class="item-type">
-              <span class="type-icon">{{ getComponentIcon(item.type) }}</span>
-              <span class="type-label">{{ getComponentLabel(item.type) }}</span>
+            <div v-if="step.formItems.length === 0" class="empty-state">
+              <div class="empty-icon">📝</div>
+              <h4 v-translate>Start Building Your Form</h4>
+              <p v-translate>Drag components from the toolbox to begin creating your form</p>
             </div>
-            <div class="item-actions">
-              <button class="action-btn" @click.stop="duplicateItem(stepIndex, index)" title="Duplicate">
-                <span>📋</span>
-              </button>
-              <button class="action-btn danger" @click.stop="removeItem(stepIndex, index)" title="Remove">
-                <span>🗑️</span>
-              </button>
+
+            <div
+              v-for="(item, index) in  step.formItems"
+              :key="item.id || index"   
+              class="form-item-card"
+              :class="{ 'selected': selectedItem?.step === stepIndex && selectedItem?.index === index }"
+              @click="selectItem(stepIndex, index)"
+            >
+            <div class="item-header">
+              <div class="item-type">
+                <span class="type-icon">{{ getComponentIcon(item.type) }}</span>
+                <span class="type-label">{{ getComponentLabel(item.type) }}</span>
+              </div>
+              <div class="item-actions">
+                <button class="action-btn" @click.stop="duplicateItem(stepIndex, index)" title="Duplicate">
+                  <span>📋</span>
+                </button>
+                <button class="action-btn danger" @click.stop="removeItem(stepIndex, index)" title="Remove">
+                  <span>🗑️</span>
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="item-content">
-              <!-- Label Component -->
-              <div v-if="item.type === 'label'" class="config-section">
-                <div class="input-group">
-                  <label>Heading Level</label>
-                  <select v-model="item.heading" class="form-select">
-                    <option v-for="n in 6" :key="n" :value="'h' + n">Heading {{ n }}</option>
-                  </select>
+            <div class="item-content">
+                <!-- Label Component -->
+                <div v-if="item.type === 'label'" class="config-section">
+                  <div class="input-group">
+                    <label>Heading Level</label>
+                    <select v-model="item.heading" class="form-select">
+                      <option v-for="n in 6" :key="n" :value="'h' + n">Heading {{ n }}</option>
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label>Label Text</label>
+                    <input v-model="item.text" placeholder="Enter label text..." class="form-input" />
+                  </div>
+                  <div class="style-options">
+                    <label class="checkbox-label">
+                      <input type="checkbox" v-model="item.bold" />
+                      <span class="checkmark"></span>
+                      <strong>Bold</strong>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" v-model="item.italic" />
+                      <span class="checkmark"></span>
+                      <em>Italic</em>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" v-model="item.underline" />
+                      <span class="checkmark"></span>
+                      <u>Underline</u>
+                    </label>
+                  </div>
                 </div>
-                <div class="input-group">
-                  <label>Label Text</label>
-                  <input v-model="item.text" placeholder="Enter label text..." class="form-input" />
-                </div>
-                <div class="style-options">
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="item.bold" />
-                    <span class="checkmark"></span>
-                    <strong>Bold</strong>
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="item.italic" />
-                    <span class="checkmark"></span>
-                    <em>Italic</em>
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="item.underline" />
-                    <span class="checkmark"></span>
-                    <u>Underline</u>
-                  </label>
-                </div>
-              </div>
 
-              <!-- Yes/No Question -->
-              <div v-else-if="item.type === 'yesno'" class="config-section">
-                <div class="input-group">
-                  <label>Question</label>
-                  <input v-model="item.question" placeholder="Enter yes/no question..." class="form-input" />
+                <!-- Yes/No Question -->
+                <div v-else-if="item.type === 'yesno'" class="config-section">
+                  <div class="input-group">
+                    <label>Question</label>
+                    <input v-model="item.question" placeholder="Enter yes/no question..." class="form-input" />
+                  </div>
                 </div>
-              </div>
 
-              <!-- Multiple Choice -->
-              <div v-else-if="item.type === 'multiple'" class="config-section">
-                <div class="input-group">
-                  <label>Question</label>
-                  <input v-model="item.question" placeholder="Enter multiple choice question..." class="form-input" />
+                <!-- Multiple Choice -->
+                <div v-else-if="item.type === 'multiple'" class="config-section">
+                  <div class="input-group">
+                    <label>Question</label>
+                    <input v-model="item.question" placeholder="Enter multiple choice question..." class="form-input" />
+                  </div>
+                  <div class="input-group">
+                    <label>Options <span class="help-text">(comma separated)</span></label>
+                    <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
+                  </div>
                 </div>
-                <div class="input-group">
-                  <label>Options <span class="help-text">(comma separated)</span></label>
-                  <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
-                </div>
-              </div>
 
-              <!-- Single Choice -->
-              <div v-else-if="item.type === 'single'" class="config-section">
-                <div class="input-group">
-                  <label>Question</label>
-                  <input v-model="item.question" placeholder="Enter single choice question..." class="form-input" />
+                <!-- Single Choice -->
+                <div v-else-if="item.type === 'single'" class="config-section">
+                  <div class="input-group">
+                    <label>Question</label>
+                    <input v-model="item.question" placeholder="Enter single choice question..." class="form-input" />
+                  </div>
+                  <div class="input-group">
+                    <label>Options <span class="help-text">(comma separated)</span></label>
+                    <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
+                  </div>
                 </div>
-                <div class="input-group">
-                  <label>Options <span class="help-text">(comma separated)</span></label>
-                  <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
-                </div>
-              </div>
 
-              <!-- Static Image -->
-              <div v-else-if="item.type === 'staticImage'" class="config-section">
-                <div class="image-upload-area">
-                  <input 
-                    type="file"
-                    :id="'file-' + stepIndex + '-' + index"
-                    @change="onImageUpload($event, stepIndex, index)"
-                    accept="image/*"
-                    class="file-input"
-                  />
-                  <label :for="'file-' + stepIndex + '-' + index" class="file-upload-btn">
-                    <span class="upload-icon">📤</span>
-                    Choose Image
-                  </label>
-                  <div v-if="item.imageUrl" class="image-preview">
-                    <img :src="item.imageUrl" class="preview-image" />
-                    <div class="image-overlay">
-                      <button @click="removeImage(stepIndex, index)" class="overlay-btn">
-                        <span>🗑️</span>
-                      </button>
+                <!-- Static Image -->
+                <div v-else-if="item.type === 'staticImage'" class="config-section">
+                  <div class="image-upload-area">
+                    <input 
+                      type="file"
+                      :id="'file-' + stepIndex + '-' + index"
+                      @change="onImageUpload($event, stepIndex, index)"
+                      accept="image/*"
+                      class="file-input"
+                    />
+                    <label :for="'file-' + stepIndex + '-' + index" class="file-upload-btn">
+                      <span class="upload-icon">📤</span>
+                      Choose Image
+                    </label>
+                    <div v-if="item.imageUrl" class="image-preview">
+                      <img :src="item.imageUrl" class="preview-image" />
+                      <div class="image-overlay">
+                        <button @click="removeImage(stepIndex, index)" class="overlay-btn">
+                          <span>🗑️</span>
+                        </button>
+                      </div>
                     </div>
+                  </div>
+                </div>
+
+                <!-- User Upload Image -->
+                <div v-else-if="item.type === 'userImage'" class="config-section">
+                  <div class="info-box">
+                    <span class="info-icon">ℹ️</span>
+                    <span>This will allow users to upload images when filling the form</span>
                   </div>
                 </div>
               </div>
 
-              <!-- User Upload Image -->
-              <div v-else-if="item.type === 'userImage'" class="config-section">
-                <div class="info-box">
-                  <span class="info-icon">ℹ️</span>
-                  <span>This will allow users to upload images when filling the form</span>
-                </div>
-              </div>
+          </div>
+          
+        
+
+
+          
+
+              
             </div>
-
-        </div>
-        
-       
-
-
-        
-
-            
           </div>
         </div>
+
       </div>
 
       <!-- Right Panel: Preview & Settings -->
@@ -238,9 +241,9 @@
             <h4 class="section-title">Form Configuration</h4>
             
             <div class="meta-field">
-              <label>DL/ML</label>
+              <label>Daily Inspection / Maintenance</label>
               <select v-model="formMeta.type" class="form-select">
-                <option disabled value="">-- Select DL/ML --</option>
+                <option disabled value="">-- Select DI/ML --</option>
                 <option>Daily Inspection</option>
                 <option>Maintenance Level 1</option>
                 <option>Maintenance Level 2</option>
@@ -716,28 +719,35 @@ const removeImage = async (stepIndex, index) => {
 const saveForm = async () => {
   try {
     saving.value = true;
+    // const payload = {
+    //   meta: { ...formMeta.value, category_code: formMeta.value.category },
+    //   content: JSON.parse(JSON.stringify(steps.value)), // gửi nhiều step
+    // };
     const payload = {
       meta: { ...formMeta.value, category_code: formMeta.value.category },
-      content: JSON.parse(JSON.stringify(steps.value)), // gửi nhiều step
-    };
+      steps: steps.value.map((s, i) => ({
+        stepIndex: i + 1,
+        items: s.formItems
+      }))
+    }
     console.log(payload);
     
-    await axiosClient.post('', payload, {
-      params: { c: 'WorkingInstructionController', m: 'save' },
-      headers: { 'Content-Type': 'application/json' },
-    });
-    steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
-    selectedItem.value = null;
-    formItems.value = [];
-    formMeta.value = {
-      code: "",
-      type: "",
-      description: "",
-      category: "",
-      frequency: "",
-      unitType: "",
-      unitValue: ""
-    };
+    // await axiosClient.post('', payload, {
+    //   params: { c: 'WorkingInstructionController', m: 'save' },
+    //   headers: { 'Content-Type': 'application/json' },
+    // });
+    // steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
+    // selectedItem.value = null;
+    // formItems.value = [];
+    // formMeta.value = {
+    //   code: "",
+    //   type: "",
+    //   description: "",
+    //   category: "",
+    //   frequency: "",
+    //   unitType: "",
+    //   unitValue: ""
+    // };
     selectedItem.value = -1;
 
     showSuccess.value = true;
