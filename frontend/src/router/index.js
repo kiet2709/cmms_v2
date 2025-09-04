@@ -209,7 +209,16 @@ const createLocalizedRoutes = () => {
 
 const router = createRouter({
   history: createWebHashHistory(),
-  routes: createLocalizedRoutes()
+  routes: createLocalizedRoutes(),
+  scrollBehavior(to, from, savedPosition) {
+    // Nếu dùng nút back/forward thì giữ nguyên vị trí
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      // Mặc định: luôn cuộn lên đầu trang
+      return { top: 0 }
+    }
+  }
 })
 
 // Enhanced route guard with language support

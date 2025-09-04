@@ -212,7 +212,7 @@ const breadcrumbItems = [
                 <th>Cavity</th>
                 <th>Category</th>
                 <th>Status</th>
-                <th>Done</th>
+                <th>Done / Total</th>
                 <th>Technician</th>
                 <th>Maintenance Date</th>
                 <th>Estimate Count</th>

@@ -402,7 +402,7 @@ const breadcrumbItems = [
                     <div class="th-content">
                       Family
                       <span class="sort-indicator">
-                        <span v-if="sortConfig.key !== 'machine_id'">⇅</span>
+                        <span v-if="sortConfig.key !== 'family'">⇅</span>
                         <span v-else-if="sortConfig.order === 'asc'" class="sort-asc">↑</span>
                         <span v-else class="sort-desc">↓</span>
                       </span>

@@ -92,11 +92,29 @@ const selectedEquipment = ref(null);
 function handleViewTasks(item) {
   selectedEquipment.value = item;
   showViewTaskModal.value = true;
+  fetchDailyTasks(item.equipment_id);
 }
 
 function closeViewTaskModal() {
   showViewTaskModal.value = false;
   selectedEquipment.value = null;
+}
+
+const numberOfElement = ref(0);
+
+
+async function fetchDailyTasks(equipmentId) {
+  try {
+    const res = await axiosClient.get('', {
+      params: { c: 'DailyTaskController', m: 'getDailyTasksByEquipment', equipment_id: equipmentId }
+    });
+    
+    numberOfElement.value = res.data?.data.length;
+    console.log(numberOfElement.value);
+    
+  } finally {
+    
+  }
 }
 
 // filter tại chỗ
@@ -211,7 +229,7 @@ const breadcrumbItems = [
                 <th>Cavity</th>
                 <th>Category</th>
                 <th>Status</th>
-                <th>Done</th>
+                <th>Done / Total</th>
                 <th>Inspectors</th>
                 <th>Inspected Date</th>
                 <th>Actions</th>
@@ -261,15 +279,27 @@ const breadcrumbItems = [
       v-model:open="showViewTaskModal"
       title="Daily Inspection"
       width="97%"
-      :style="{ top: '3px'}"
+  :style="{ 
+    top: '3px',
+    maxHeight: 'calc(100vh - 20px)',
+    paddingBottom: '0'
+  }"
+  :body-style="{
+    height: 'auto',
+    maxHeight: 'calc(100vh - 120px)',
+    overflowY: numberOfElement <= 4 ? 'hidden' : 'auto',
+  }"
       :footer="null"
       @cancel="closeViewTaskModal"
     >
+      <!-- <div style="height: 80vh;"> -->
       <DailyInspectionPage
         v-if="selectedEquipment"
         :uuid="selectedEquipment.equipment_id"
         :machine-id="selectedEquipment.machine_id"
+        @tasks-updated="handleRefresh"
       />
+      <!-- </div> -->
     </Modal>
 
     <!-- Delete Confirmation -->

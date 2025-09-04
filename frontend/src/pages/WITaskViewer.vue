@@ -326,6 +326,26 @@ const fetchForm = async (id) => {
 const initializeAnswers = () => {
   selectedAnswers.value = {}
   uploadedFiles.value = {}
+
+  formItems.value.forEach((item, index) => {
+    if (item.type === 'multiple') {
+      // nếu có answer thì gán, không thì mảng rỗng
+      selectedAnswers.value['multiple' + index] = item.answer || []
+    }
+    if (item.type === 'yesno') {
+      selectedAnswers.value['yn' + index] = item.answer || null
+    }
+    if (item.type === 'single') {
+      selectedAnswers.value['single' + index] = item.answer || null
+    }
+    if (item.type === 'userImage') {
+      uploadedFiles.value[index] = item.answer || null
+    }
+  })
+}
+const resetAnswers = () => {
+  selectedAnswers.value = {}
+  uploadedFiles.value = {}
   formItems.value.forEach((item, index) => {
     if (item.type === 'multiple') {
       selectedAnswers.value['multiple' + index] = []
@@ -391,7 +411,7 @@ const updateProgress = () => {
 
 const resetForm = () => {
   if (confirm('Are you sure you want to reset all answers?')) {
-    initializeAnswers()
+    resetAnswers();
   }
 }
 
@@ -420,19 +440,46 @@ const submitForm = () => {
     const formData = {
       uuid: props.id,
       wiCode: WICode.value,
-      schema: updatedSchema
+      schema: updatedSchema,
+      inspectorId: userStore.rawUser.user.uuid,
     }
 
     console.log("📌 Schema sau khi user submit:")
     console.log(JSON.stringify(formData, null, 2))
     console.log('--------');
     console.log(WICode);
+    save(formData);
     
-    
+    emit('submitted')
 
-    alert("Form submitted successfully (check console)!")
-  }
+  };
+    
 }
+
+const emit = defineEmits(['submitted'])
+
+const save = async (formData) => {
+    try {
+      await axiosClient.post('', formData, {
+        params: { c: 'DailyTaskController', m: 'doDailyTask' },
+        headers: { 'Content-Type': 'application/json' },
+      });
+      alert("Submit successfully!");
+    } catch (err) {
+      console.error("Save failed:", err);
+      alert("Save failed! Please try again.");
+    } 
+}
+
+
+import { useUserStore } from '@/stores/user'
+import { onMounted } from 'vue'
+const userStore = useUserStore()
+
+onMounted(() => {
+  userStore.fetchUser()
+})
+
 
 // Watch for prop changes
 watch(

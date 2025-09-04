@@ -7,8 +7,18 @@ class WorkingInstruction_model extends CI_Model
 
     public function getAllWi($limit, $offset)
     {
-        $this->db->select('uuid as id, code, name, type, schema, updated_at, frequency, unit_type, unit_value');
+        $this->db->select('working_instructions.uuid as id, 
+            working_instructions.code, 
+            working_instructions.name, 
+            working_instructions.type, 
+            working_instructions.schema, 
+            working_instructions.updated_at, 
+            working_instructions.frequency, 
+            working_instructions.unit_type, 
+            working_instructions.unit_value, 
+            ct.name as category');
         $this->db->from($this->table);
+        $this->db->join('categories ct', 'working_instructions.category_id = ct.uuid');
         $this->db->limit($limit, $offset);
         $query = $this->db->get();
         return $query->result_array();
