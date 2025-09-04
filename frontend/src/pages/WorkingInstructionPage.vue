@@ -96,12 +96,16 @@ const handleAddNew = () => {
   // router.push({ name: 'CreateWorkingInstruction' });
 };
 
+const code = ref('');
+
 const viewItem = (payload) => {
   const id =
     typeof payload === 'string'
       ? payload
       : payload?.uuid ?? payload?.id ?? payload?.value ?? null;
 
+  code.value = payload.code;    
+  
   currentId.value = id;
   isModalOpen.value = true;
 };
@@ -368,12 +372,12 @@ const breadcrumbItems = [
     <!-- Modal -->
     <Modal 
       v-model:open="isModalOpen" 
-      title="Instruction Details" 
+      :title="code" 
       @cancel="closeModal" 
       :style="{ top: '3px'}"
       width="800px">
       <template #footer>
-        <Button @click="closeModal">Close</Button>
+        <Button @click="closeModal">Closeee</Button>
       </template>
       <FormViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
     </Modal>

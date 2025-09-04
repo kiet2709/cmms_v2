@@ -68,15 +68,15 @@ class CategoryController extends CI_Controller
 			"created_at"      => date("Y-m-d H:i:s"),
 		];
 
-		if ($this->db->insert("users", $insertData)) {
+		if ($this->db->insert("categories", $insertData)) {
 			echo json_encode([
 				"status" => "success",
-				"message" => "User đã được thêm thành công"
+				"message" => "Category đã được thêm thành công"
 			]);
 		} else {
 			echo json_encode([
 				"status" => "error",
-				"message" => "Không thể thêm user"
+				"message" => "Không thể thêm Category"
 			]);
 		}
 	}
