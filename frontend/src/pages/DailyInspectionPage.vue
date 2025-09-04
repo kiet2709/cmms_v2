@@ -106,13 +106,14 @@ const breadcrumbItems = [
 
 const showDeleteModal = ref(false);
 const deleteTarget = ref(null);
-
+const code = ref('');
 // 👁️ Modal view form
 const isModalOpen = ref(false);
 const currentId = ref(null);
 function openFormViewer(task) {
   currentId.value = task.wi_id;
   isModalOpen.value = true;
+  code.value = task.code;
 }
 function closeModal() {
   isModalOpen.value = false;
@@ -191,10 +192,13 @@ function closeModal() {
     </Modal>
 
     <!-- 👁️ Form Viewer Modal -->
-    <Modal :style="{ top: '3px'}" v-model:open="isModalOpen" title="Instruction Details" @cancel="closeModal" width="800px">
-      <template #footer>
-        <Button @click="closeModal">Close</Button>
+    <Modal :style="{ top: '3px'}" v-model:open="isModalOpen" @cancel="closeModal" width="800px" :footer="null">
+      <template #title>
+        {{ code }}
       </template>
+        <template #footer>
+    <Button @click="closeModal">Closeee</Button>
+  </template>
       <WITaskViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
     </Modal>
   </div>

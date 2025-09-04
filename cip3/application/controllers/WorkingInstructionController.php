@@ -90,7 +90,8 @@ class WorkingInstructionController extends CI_Controller
         
         
         $meta = $data['meta'];
-        $content = json_encode($data['content']);
+		//add steps
+        $content = json_encode($data['steps']);
 
         // Lấy category_id từ code
         $category = $this->db->get_where('categories', [

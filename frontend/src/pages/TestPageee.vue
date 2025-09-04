@@ -182,14 +182,21 @@
                       <span class="upload-icon">📤</span>
                       Choose Image
                     </label>
-                    <div v-if="item.imageUrl" class="image-preview">
-                      <img :src="item.imageUrl" class="preview-image" />
+                    <!-- Preview nhiều ảnh -->
+                    <div v-if="item.imageUrls && item.imageUrls.length" class="image-preview-list">
+                    <div 
+                      v-for="(img, i) in item.imageUrls" 
+                      :key="i" 
+                      class="image-preview"
+                    >
+                      <img :src="img" class="preview-image" />
                       <div class="image-overlay">
-                        <button @click="removeImage(stepIndex, index)" class="overlay-btn">
+                        <button @click="removeImage(stepIndex, index, i)" class="overlay-btn">
                           <span>🗑️</span>
                         </button>
                       </div>
                     </div>
+                  </div>
                   </div>
                 </div>
 
@@ -433,7 +440,18 @@
 
               <!-- Render Static Image -->
               <div v-else-if="item.type === 'staticImage'" class="image-block">
-                <img v-if="item.imageUrl" :src="item.imageUrl" class="preview-image-large" />
+                 <!-- Có ảnh -->
+                <div v-if="item.imageUrls && item.imageUrls.length" class="image-preview-grid">
+                  <div 
+                    v-for="(img, i) in item.imageUrls" 
+                    :key="i" 
+                    class="preview-image-wrapper"
+                  >
+                    <img :src="img" class="preview-image-large" />
+                  </div>
+                </div>
+
+                <!-- Không có ảnh -->
                 <div v-else class="image-placeholder">
                   <span class="placeholder-icon">🖼️</span>
                   <p>No image uploaded</p>
@@ -623,10 +641,10 @@ const duplicateItem = (stepIndex, index) => {
 };
 const removeItem = async (stepIndex, index) => {
   const item = steps.value[stepIndex].formItems[index];
-  if (item.type === "staticImage" && item.imageUrl) {
+  if (item.type === "staticImage" && item.imageUrls) {
     try {
       await axiosClient.post('', {}, {
-        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.imageUrl },
+        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.imageUrls },
       });
     } catch (err) {
       console.error("Delete image failed:", err);
@@ -673,7 +691,7 @@ const onDrop = (stepIndex) => {
     case "yesno": Object.assign(newItem, { type:"yesno", question:"" }); break;
     case "multiple": Object.assign(newItem, { type:"multiple", question:"", options:"" }); break;
     case "single": Object.assign(newItem, { type:"single", question:"", options:"" }); break;
-    case "staticImage": Object.assign(newItem, { type:"staticImage", imageUrl:"" }); break;
+    case "staticImage": Object.assign(newItem, { type:"staticImage", imageUrls:"" }); break;
     case "userImage": Object.assign(newItem, { type:"userImage" }); break;
   }
   step.formItems.push(newItem);
@@ -681,40 +699,53 @@ const onDrop = (stepIndex) => {
   dragged.value = null;
 };
 
-// Image upload handler
+// Image upload handler (nhiều ảnh)
 const onImageUpload = async (event, stepIndex, index) => {
-  const file = event.target.files[0];
-  if (!file) return;
+  const files = event.target.files;
+  if (!files || !files.length) return;
 
-  const form = new FormData();
-  form.append("file", file);
+  // nếu chưa có imageUrls thì tạo mảng rỗng
+  if (!steps.value[stepIndex].formItems[index].imageUrls) {
+    steps.value[stepIndex].formItems[index].imageUrls = [];
+  }
 
-  try {
-    const res = await axiosClient.post('', form, {
-      params: { c: 'WorkingInstructionController', m: 'upload' },
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    const url = res.data.url;
-    steps.value[stepIndex].formItems[index].imageUrl = url;
-  } catch (err) {
-    console.error("Upload failed:", err);
+  for (const file of files) {
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await axiosClient.post('', form, {
+        params: { c: 'WorkingInstructionController', m: 'upload' },
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = res.data.url;
+
+      // push vào mảng imageUrls
+      steps.value[stepIndex].formItems[index].imageUrls.push(url);
+    } catch (err) {
+      console.error("Upload failed:", err);
+    }
   }
 };
 
-const removeImage = async (stepIndex, index) => {
+// Xóa 1 ảnh trong mảng
+const removeImage = async (stepIndex, index, imgIndex) => {
   const item = steps.value[stepIndex].formItems[index];
-  if (item?.imageUrl) {
+  const url = item.imageUrls[imgIndex];
+
+  if (url) {
     try {
       await axiosClient.post('', {}, {
-        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.imageUrl },
+        params: { c: 'WorkingInstructionController', m: 'delete_image', path: url },
       });
     } catch (err) {
       console.error("Delete image failed:", err);
     }
   }
-  item.imageUrl = '';
-};
 
+  // Xóa khỏi mảng
+  item.imageUrls.splice(imgIndex, 1);
+};
 // Save form
 const saveForm = async () => {
   try {
@@ -732,22 +763,22 @@ const saveForm = async () => {
     }
     console.log(payload);
     
-    // await axiosClient.post('', payload, {
-    //   params: { c: 'WorkingInstructionController', m: 'save' },
-    //   headers: { 'Content-Type': 'application/json' },
-    // });
-    // steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
-    // selectedItem.value = null;
-    // formItems.value = [];
-    // formMeta.value = {
-    //   code: "",
-    //   type: "",
-    //   description: "",
-    //   category: "",
-    //   frequency: "",
-    //   unitType: "",
-    //   unitValue: ""
-    // };
+    await axiosClient.post('', payload, {
+      params: { c: 'WorkingInstructionController', m: 'save' },
+      headers: { 'Content-Type': 'application/json' },
+    });
+    steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
+    selectedItem.value = null;
+    formItems.value = [];
+    formMeta.value = {
+      code: "",
+      type: "",
+      description: "",
+      category: "",
+      frequency: "",
+      unitType: "",
+      unitValue: ""
+    };
     selectedItem.value = -1;
 
     showSuccess.value = true;
@@ -1304,20 +1335,42 @@ onMounted(() => {
 
 .image-preview {
   position: relative;
-  display: inline-block;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  aspect-ratio: 1 / 1; /* giữ tỉ lệ vuông đẹp */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.2s ease;
 }
 
+.image-preview-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); /* responsive grid */
+  gap: 12px;
+  margin-top: 12px;
+}
 .preview-image {
-  max-width: 200px;
-  max-height: 150px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .image-overlay {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+.image-preview:hover .image-overlay {
+  opacity: 1;
 }
 
 .overlay-btn {
@@ -1575,12 +1628,27 @@ onMounted(() => {
   display: flex;
   justify-content: center;
 }
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* cột tự động */
+  gap: 9px;
+  margin-top: 12px;
+}
 
+.preview-image-wrapper {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1; /* ô vuông */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
 .preview-image-large {
-  max-width: 100%;
-  max-height: 200px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* ảnh cắt gọn vừa khung */
+  display: block;
 }
 
 .image-placeholder {
