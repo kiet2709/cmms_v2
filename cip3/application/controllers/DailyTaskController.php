@@ -27,6 +27,16 @@ class DailyTaskController extends CI_Controller {
             ]));
     }
 
+    private function respond($status_code, $data)
+    {
+        $this->output
+            ->set_status_header($status_code)
+            ->set_content_type('application/json', 'utf-8')
+            ->set_output(json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT))
+            ->_display();
+        exit;
+    }
+
     public function getDailyTasksByEquipment() {
         $equipment_id = $_GET['equipment_id'];
         $tasks = $this->DailyTask_model->get_daily_tasks($equipment_id);
@@ -54,5 +64,14 @@ class DailyTaskController extends CI_Controller {
                     ->set_output(json_encode($result));
     }
 
+
+    public function doDailyTask()
+    {
+        $data = json_decode($this->input->raw_input_stream, true);
+        
+        $this->DailyTask_model->doTask($data['uuid'], $data['schema'], $data['inspectorId']);
+
+        return $this->respond(200, ['error' =>  $data]);
+    }
     
 }

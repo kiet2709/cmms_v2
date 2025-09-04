@@ -381,12 +381,36 @@ const initializeAnswers = () => {
   selectedAnswers.value = {}
   uploadedFiles.value = {}
 
-  // preset cho multiple
-  steps.value.forEach(step => {
-    step.formItems.forEach(item => {
+  formItems.value.forEach((item, index) => {
+    if (item.type === 'multiple') {
+      // nếu có answer thì gán, không thì mảng rỗng
+      selectedAnswers.value['multiple' + index] = item.answer || []
+    }
+    if (item.type === 'yesno') {
+      selectedAnswers.value['yn' + index] = item.answer || null
+    }
+    if (item.type === 'single') {
+      selectedAnswers.value['single' + index] = item.answer || null
+    }
+    if (item.type === 'userImage') {
+      uploadedFiles.value[index] = item.answer || null
+    }
+  })
+}
+const resetAnswers = () => {
+  selectedAnswers.value = {}
+  uploadedFiles.value = {}
+  formItems.value.forEach((item, index) => {
       if (item.type === 'multiple') {
-        selectedAnswers.value[item.id] = []
+        selectedAnswers.value['multiple' + index] = []
       }
+    // preset cho multiple
+    steps.value.forEach(step => {
+      step.formItems.forEach(item => {
+        if (item.type === 'multiple') {
+          selectedAnswers.value[item.id] = []
+        }
+      })
     })
   })
 }
@@ -428,6 +452,51 @@ const updateProgress = () => {
   // trigger computed reactivity if needed
 }
 
+const resetForm = () => {
+  if (confirm('Are you sure you want to reset all answers?')) {
+    resetAnswers();
+  }
+}
+
+const submitForm = () => {
+  if (isFormValid.value) {
+    // clone schema gốc
+    const updatedSchema = JSON.parse(JSON.stringify(formItems.value))
+
+    // gắn câu trả lời vào schema mới
+    updatedSchema.forEach((item, index) => {
+      if (item.type === 'yesno') {
+        item.answer = selectedAnswers.value['yn' + index] || null
+      }
+      if (item.type === 'multiple') {
+        item.answer = selectedAnswers.value['multiple' + index] || []
+      }
+      if (item.type === 'single') {
+        item.answer = selectedAnswers.value['single' + index] || null
+      }
+      if (item.type === 'userImage') {
+        item.answer = uploadedFiles.value[index] || null
+      }
+    })
+
+    // gói thông tin
+    const formData = {
+      uuid: props.id,
+      wiCode: WICode.value,
+      schema: updatedSchema,
+      inspectorId: userStore.rawUser.user.uuid,
+    }
+
+    console.log("📌 Schema sau khi user submit:")
+    console.log(JSON.stringify(formData, null, 2))
+    console.log('--------');
+    console.log(WICode);
+    save(formData);
+    
+    emit('submitted')
+
+  };
+    
 // Nav
 const nextStep = () => {
   if (currentStep.value < steps.value.length - 1) {
@@ -446,7 +515,34 @@ const prevStep = () => {
   if (currentStep.value > 0) currentStep.value--
 }
 
+const emit = defineEmits(['submitted'])
+
+const save = async (formData) => {
+    try {
+      await axiosClient.post('', formData, {
+        params: { c: 'DailyTaskController', m: 'doDailyTask' },
+        headers: { 'Content-Type': 'application/json' },
+      });
+      alert("Submit successfully!");
+    } catch (err) {
+      console.error("Save failed:", err);
+      alert("Save failed! Please try again.");
+    } 
+}
+
+
+import { useUserStore } from '@/stores/user'
+import { onMounted } from 'vue'
+const userStore = useUserStore()
+
+onMounted(() => {
+  userStore.fetchUser()
+})
+
+
+// Watch for prop changes
 // Submit
+/*
 const submitForm = () => {
   // đóng gói lại theo đúng format: steps -> [{ stepIndex, items: [...] }]
   const updatedSteps = steps.value.map(step => ({
@@ -474,17 +570,19 @@ const submitForm = () => {
   console.log(JSON.stringify(formData, null, 2))
   alert("Form submitted successfully (check console)!")
 }
+*/
 
 // Watch id
-watch(
-  () => props.id,
-  (newId) => {
-    if (newId !== undefined && newId !== null && newId !== '') {
-      fetchForm(newId)
-    }
-  },
-  { immediate: true }
-)
+  watch(
+    () => props.id,
+    (newId) => {
+      if (newId !== undefined && newId !== null && newId !== '') {
+        fetchForm(newId)
+      }
+    },
+    { immediate: true }
+  )
+}
 </script>
 
 <style scoped>

@@ -38,7 +38,8 @@ const data = ref([]);
 const searchQuery = ref('');
 const filterVisible = ref(false);
 const filters = ref({
-  type: null
+  type: null,
+  category: null
 });
 
 const pagination = ref({
@@ -144,6 +145,8 @@ const isMatched = computed(() => {
 // Filter options
 const uniqueTypes = computed(() => [...new Set(data.value.map(item => item.type).filter(Boolean))]);
 
+const uniqueCategory = computed(() => [...new Set(data.value.map(item => item.category).filter(Boolean))]);
+
 // Filtered data
 const filteredData = computed(() => {
   let filtered = data.value;
@@ -162,11 +165,15 @@ const filteredData = computed(() => {
     filtered = filtered.filter(item => item.type === filters.value.type);
   }
 
+  if (filters.value.category) {
+    filtered = filtered.filter(item => item.category === filters.value.category);
+  }
+
   return filtered;
 });
 
 const clearFilters = () => {
-  filters.value = { type: null };
+  filters.value = { type: null, category: null };
   filterVisible.value = false;
 };
 
@@ -227,6 +234,7 @@ const breadcrumbItems = [
                 <FilterOutlined />
                 Filters
                 <span v-if="filters.type" class="filter-badge">●</span>
+                <span v-if="filters.category" class="filter-badge">●</span>
               </Button>
               <template #overlay>
                 <div class="filter-dropdown">
@@ -240,6 +248,19 @@ const breadcrumbItems = [
                     >
                       <Select.Option v-for="type in uniqueTypes" :key="type" :value="type">
                         {{ type }}
+                      </Select.Option>
+                    </Select>
+                  </div>
+                  <div class="filter-group">
+                    <label>Category</label>
+                    <Select
+                      v-model:value="filters.category"
+                      placeholder="Select Category"
+                      allow-clear
+                      style="width: 200px"
+                    >
+                      <Select.Option v-for="cate in uniqueCategory" :key="cate" :value="cate">
+                        {{ cate }}
                       </Select.Option>
                     </Select>
                   </div>
@@ -269,6 +290,7 @@ const breadcrumbItems = [
               <tr>
                 <th>Task Code</th>
                 <th>Description</th>
+                <th>Category</th>
                 <th>Daily Inspection / Maintenance</th>
                 <th>Frequency</th>
                 <th>Creation Date</th>
@@ -280,6 +302,7 @@ const breadcrumbItems = [
               <tr v-for="item in filteredData" :key="item.uuid || item.id">
                 <td>{{ item.code }}</td>
                 <td>{{ item.name }}</td>
+                <td>{{ item.category }}</td>
                 <td>{{ item.type }}</td>
                 <td>{{ item.frequency == 'Unit' ? item.unit_value + ' ' + item.unit_type : item.frequency }}</td>
                 <td>{{ item.updated_at }}</td>

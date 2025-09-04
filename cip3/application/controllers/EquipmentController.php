@@ -67,11 +67,14 @@ class EquipmentController extends CI_Controller
       public function createEquipment() {
         // $post = json_decode(file_get_contents('php://input'), true);
         $post = $_REQUEST['payload'] ?? null;
-        if (empty(array_filter($post['data'], fn($v) => $v !== '' && $v !== null))) {
+
+        if (in_array('', $post['data'], true) || in_array(null, $post['data'], true)) {
             return $this->respond(400, ['message' => 'missing field info']);
         }
 
         $data = $post['data'];
+        $date = DateTime::createFromFormat(DATE_RFC1123, $data['manufactureDate']);
+        $manufacturingDate = $date->format('Y-m-d'); 
 
         // build equipment data
         $equipmentData = [
@@ -79,7 +82,7 @@ class EquipmentController extends CI_Controller
             'machine_id'      => $data['machineId'] ?? null,
             'model'           => $data['model'] ?? null,
             'family'          => $data['family'] ?? null,
-            'manufacturing_date'=> $data['manufactureDate'] ?? null,
+            'manufacturing_date'=> $manufacturingDate ?? null,
             'manufacturer'    => $data['manufacturer'] ?? null,
             'history_count'   => $data['historyCount'] ?? null,
             'unit'            => $data['unit'] ?? null,
@@ -120,7 +123,7 @@ class EquipmentController extends CI_Controller
 
     public function updateEquipment() {
         $post = $_REQUEST['payload'] ?? null;
-        if (empty(array_filter($post['data'], fn($v) => $v !== '' && $v !== null))) {
+        if (in_array('', $post['data'], true) || in_array(null, $post['data'], true)) {
             return $this->respond(400, ['message' => 'missing field info']);
         }
 

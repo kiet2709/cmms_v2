@@ -72,7 +72,7 @@ function clearFilters() {
 }
 
 function getStatusColor(status) {
-  const colors = { complete: 'green', incomplete: 'red', pending: 'orange', default: 'default', start: 'blue', };
+  const colors = { complete: 'green', incomplete: 'red', pending: 'orange', default: 'default', start: 'blue', done: 'green'};
   return colors[status] || colors.default;
 }
 
@@ -119,6 +119,16 @@ function closeModal() {
   isModalOpen.value = false;
   currentId.value = null;
 }
+
+const emit = defineEmits(['tasks-updated'])
+
+function loadNewDataWhenSubmittedAndCloseModal()
+{
+  handleRefresh();
+  closeModal();
+  emit('tasks-updated');
+}
+
 </script>
 
 <template>
@@ -196,10 +206,7 @@ function closeModal() {
       <template #title>
         {{ code }}
       </template>
-        <template #footer>
-    <Button @click="closeModal">Closeee</Button>
-  </template>
-      <WITaskViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
+      <WITaskViewer v-if="isModalOpen" :key="currentId" :id="currentId" @submitted="loadNewDataWhenSubmittedAndCloseModal" />
     </Modal>
   </div>
 </template>
@@ -211,7 +218,7 @@ function closeModal() {
 .equipment-management {
   padding: 24px;
   background: #f5f5f5;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 .breadcrumb-nav {

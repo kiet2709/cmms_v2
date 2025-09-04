@@ -199,69 +199,19 @@
                   </div>
                 </div>
               </a>
-              
-              <!-- Maintenance with Expandable Tree -->
-              <div class="tree-item expandable" :class="{ expanded: showMaintenanceTree }">
-                <div 
-                  class="tree-item-content" 
-                  @click="toggleMaintenanceTree"
-                  @mouseenter="showMaintenanceTree = true"
-                  
-                >
+              <a @click="onMenuClick('/dashboard/tasks/maintenance')" class="tree-item">
+                <div class="tree-item-content">
                   <svg class="tree-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
                     <path d="M2 17l10 5 10-5"></path>
                     <path d="M2 12l10 5 10-5"></path>
                   </svg>
                   <div class="tree-text">
-                    <div class="tree-title" v-translate>Maintenance</div>
-                    <div class="tree-desc" v-translate>Maintenance levels</div>
-                  </div>
-                  <svg class="tree-arrow" :class="{ rotated: showMaintenanceTree }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="6,9 12,15 18,9"></polyline>
-                  </svg>
-                </div>
-                
-                <!-- Tree Children (Maintenance Levels) -->
-                <div class="tree-children" :class="{ show: showMaintenanceTree }">
-                  <div class="tree-children-content">
-                    <a @click="onMenuClick('/dashboard/tasks/maintenance/level1')" class="tree-child">
-                      <div class="tree-connector"></div>
-                      <svg class="tree-child-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                      </svg>
-                      <div class="tree-child-text">
-                        <div class="tree-child-title">Level 1</div>
-                        <div class="tree-child-desc">Basic maintenance tasks</div>
-                      </div>
-                    </a>
-                    
-                    <a @click="onMenuClick('/dashboard/tasks/maintenance/level2')" class="tree-child">
-                      <div class="tree-connector"></div>
-                      <svg class="tree-child-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.2 15.89A10 10 0 1 1 8 2.83"></path>
-                        <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
-                      </svg>
-                      <div class="tree-child-text">
-                        <div class="tree-child-title">Level 2</div>
-                        <div class="tree-child-desc">Intermediate maintenance tasks</div>
-                      </div>
-                    </a>
-                    
-                    <a @click="onMenuClick('/dashboard/tasks/maintenance/level3')" class="tree-child">
-                      <div class="tree-connector"></div>
-                      <svg class="tree-child-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                      </svg>
-                      <div class="tree-child-text">
-                        <div class="tree-child-title">Level 3</div>
-                        <div class="tree-child-desc">Advanced maintenance tasks</div>
-                      </div>
-                    </a>
+                    <div class="tree-title" v-translate>List Daily Inspection</div>
+                    <div class="tree-desc" v-translate>View all daily inspection</div>
                   </div>
                 </div>
-              </div>
+              </a>
             </div>
           </div>
         </div>
