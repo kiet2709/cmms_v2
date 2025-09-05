@@ -207,8 +207,8 @@
                     <path d="M2 12l10 5 10-5"></path>
                   </svg>
                   <div class="tree-text">
-                    <div class="tree-title" v-translate>List Daily Inspection</div>
-                    <div class="tree-desc" v-translate>View all daily inspection</div>
+                    <div class="tree-title" v-translate>List Maintenance Machine</div>
+                    <div class="tree-desc" v-translate>View all Maintenance Machine</div>
                   </div>
                 </div>
               </a>

@@ -521,23 +521,6 @@ const breadcrumbItems = [
       <!-- Equipment Table -->
 
 
-      <!-- Master Plan Modal -->
-      <Modal 
-        v-model:open="showMasterPlanModal" 
-        title="Equipment Master Plan" 
-        @cancel="closeMasterPlan"
-        width="1400px"
-        :style="{ top: '3px' }"
-        class="master-plan-modal"
-      >
-        <template #footer>
-          <Button @click="closeMasterPlan">Close</Button>
-        </template>
-        <div class="master-plan-content">
-          <MasterPlan :key="selectedUuid" :id="selectedUuid" />
-        </div>
-      </Modal>
-
       <!-- Enhanced Delete Confirmation Modal -->
       <Modal
         v-model:open="showDeleteModal"
