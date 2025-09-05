@@ -964,7 +964,6 @@ onMounted(() => {
   display: flex;
   gap: 24px;
   padding: 24px;
-  min-height: calc(100vh - 80px);
 }
 
 /* Panels */
@@ -1299,6 +1298,10 @@ onMounted(() => {
 .checkbox-label input[type="checkbox"] {
   position: absolute;
   opacity: 0;
+    width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .checkmark {
