@@ -38,6 +38,13 @@ const data = ref([]);
 const searchQuery = ref('');
 const selectedRowKeys = ref([]);
 const filterVisible = ref(false);
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+onMounted(() => {
+  userStore.fetchUser();
+})
+
 const filters = ref({
   family: null,
   category: null,
@@ -110,18 +117,37 @@ function confirmDelete(item) {
   showDeleteModal.value = true;
 }
 
-function performDelete() {
+async function performDelete() {
   if (!isMatched.value) return;
   // gọi API delete
   if (deleteTarget.value) {
     console.log('Deleting:', deleteTarget.value.uuid);
     // TODO: gọi API xóa
+    try {
+      const payload = {
+        userId: userStore.rawUser.user.uuid,
+        uuid: deleteTarget.value.uuid
+      }
+          
+      await axiosClient.post('', payload, {
+        params: { c: 'EquipmentController', m: 'delete' },
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      handleRefresh();
+      confirmationInput.value = '';
+      showToastNotification("Equipment deleted successfully!", "success");
+    } catch (e) {
+      console.error("Error deleting machine:", e);
+      showToastNotification("Failed to delete equipment. Please try again.", "error");
+    }
   }
   showDeleteModal.value = false;
   deleteTarget.value = null;
 }
 
 function cancelDelete() {
+  confirmationInput.value = '';
   showDeleteModal.value = false;
   deleteTarget.value = null;
 }
@@ -275,6 +301,22 @@ const breadcrumbItems = [
     title: 'Equipment Management'
   }
 ];
+
+// toast
+const showToast = ref(false);
+const toastMessage = ref("");
+const toastType = ref("success");
+const toastIcon = computed(() => toastType.value === "success" ? "✓" : "✗");
+
+const showToastNotification = (message, type = "success") => {
+  toastMessage.value = message;
+  toastType.value = type;
+  showToast.value = true;
+  
+  setTimeout(() => {
+    showToast.value = false;
+  }, 3000);
+};
 </script>
 
 <template>
@@ -521,32 +563,6 @@ const breadcrumbItems = [
       <!-- Equipment Table -->
 
 
-      <!-- Enhanced Delete Confirmation Modal -->
-      <Modal
-        v-model:open="showDeleteModal"
-        title="Confirm Equipment Deletion"
-        @ok="performDelete"
-        @cancel="cancelDelete"
-        ok-text="Yes, Delete"
-        cancel-text="Cancel"
-        ok-type="danger"
-        class="delete-modal"
-        :ok-button-props="{ disabled: !isMatched }"
-      >
-        <div class="delete-content">
-          <div class="warning-icon">
-            <ExclamationCircleOutlined />
-          </div>
-          
-          <Button 
-            :disabled="pagination.current === pagination.totalPages" 
-            @click="handlePageChange(pagination.current + 1)"
-            class="pagination-btn"
-          >
-            Next
-          </Button>
-        </div>
-      </Modal>
 
 
       <!-- Master Plan Modal -->
@@ -608,14 +624,72 @@ const breadcrumbItems = [
           </div>
         </div>
       </Modal>
+      <!-- Toast Notification -->
+      <div v-if="showToast" :class="['toast', toastType]">
+        <div class="toast-content">
+          <span class="toast-icon">{{ toastIcon }}</span>
+          <span class="toast-message">{{ toastMessage }}</span>
+        </div>
+      </div>
     </div>
+
+
   </div>
+
 
 
   
 </template>
 
 <style scoped>
+
+/* TOAST NOTIFICATIONS */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 500;
+  z-index: 3000;
+  min-width: 300px;
+  transform: translateX(100%);
+  animation: slideIn 0.3s ease forwards;
+  backdrop-filter: blur(10px);
+}
+
+.toast.success {
+  background: linear-gradient(135deg, #52c41a, #73d13d);
+  box-shadow: 0 4px 20px rgba(82, 196, 26, 0.3);
+}
+
+.toast.error {
+  background: linear-gradient(135deg, #ff4d4f, #ff7875);
+  box-shadow: 0 4px 20px rgba(255, 77, 79, 0.3);
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toast-icon {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.toast-message {
+  font-size: 14px;
+}
+
+@keyframes slideIn {
+  to {
+    transform: translateX(0);
+  }
+}
+
 
 .delete-content {
   display: flex;

@@ -42,6 +42,13 @@ const filters = ref({
   category: null
 });
 
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+onMounted(() => {
+  userStore.fetchUser();
+})
+
 const pagination = ref({
   current: 1,
   pageSize: 10,
@@ -119,17 +126,42 @@ function confirmDelete(item) {
   showDeleteModal.value = true;
 }
 
-function performDelete() {
+async function performDelete() {
   if (!isMatched.value) return;
+  // gọi API delete
   if (deleteTarget.value) {
     console.log('Deleting:', deleteTarget.value.id);
     // TODO: gọi API xóa
+    try {
+      const payload = {
+        userId: userStore.rawUser.user.uuid,
+        uuid: deleteTarget.value.id
+      }
+      console.log('payload: ------------------');
+      
+      console.log(payload);
+      console.log('---------------');
+      
+      
+      await axiosClient.post('', payload, {
+        params: { c: 'WorkingInstructionController', m: 'delete' },
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      fetchInstructions(pagination.current, pagination.pageSize);
+      confirmationInput.value = '';
+      showToastNotification("Equipment deleted successfully!", "success");
+    } catch (e) {
+      console.error("Error deleting machine:", e);
+      showToastNotification("Failed to delete equipment. Please try again.", "error");
+    }
   }
   showDeleteModal.value = false;
   deleteTarget.value = null;
 }
 
 function cancelDelete() {
+  confirmationInput.value = '';
   showDeleteModal.value = false;
   deleteTarget.value = null;
 }
@@ -185,6 +217,22 @@ const breadcrumbItems = [
   { title: 'Dashboard', path: '/dashboard' },
   { title: 'Working Instructions' }
 ];
+
+// toast
+const showToast = ref(false);
+const toastMessage = ref("");
+const toastType = ref("success");
+const toastIcon = computed(() => toastType.value === "success" ? "✓" : "✗");
+
+const showToastNotification = (message, type = "success") => {
+  toastMessage.value = message;
+  toastType.value = type;
+  showToast.value = true;
+  
+  setTimeout(() => {
+    showToast.value = false;
+  }, 3000);
+};
 </script>
 
 <template>
@@ -206,229 +254,283 @@ const breadcrumbItems = [
             <ReloadOutlined />
             Refresh
           </Button>
-          <Button type="primary" @click="handleAddNew">
+          <!-- <Button type="primary" @click="handleAddNew">
             <PlusOutlined />
             Add Instruction
-          </Button>
+          </Button> -->
         </Space>
       </div>
     </div>
     <div class="equipment-management">
-    <!-- Main Content Card -->
-    <Card class="main-content-card">
-      <!-- Search and Filter Bar -->
-      <div class="toolbar">
-        <div class="search-section">
-          <Input.Search
-            v-model:value="searchQuery"
-            placeholder="Search by code, name, type, or date..."
-            size="large"
-            class="search-input"
-            allow-clear
-          />
+      <!-- Main Content Card -->
+      <Card class="main-content-card">
+        <!-- Search and Filter Bar -->
+        <div class="toolbar">
+          <div class="search-section">
+            <Input.Search
+              v-model:value="searchQuery"
+              placeholder="Search by code, name, type, or date..."
+              size="large"
+              class="search-input"
+              allow-clear
+            />
+          </div>
+          <div class="filter-section">
+            <Space>
+              <Dropdown v-model:open="filterVisible" placement="bottomRight" trigger="click">
+                <Button>
+                  <FilterOutlined />
+                  Filters
+                  <span v-if="filters.type" class="filter-badge">●</span>
+                  <span v-if="filters.category" class="filter-badge">●</span>
+                </Button>
+                <template #overlay>
+                  <div class="filter-dropdown">
+                    <div class="filter-group">
+                      <label>Type</label>
+                      <Select
+                        v-model:value="filters.type"
+                        placeholder="Select type"
+                        allow-clear
+                        style="width: 200px"
+                      >
+                        <Select.Option v-for="type in uniqueTypes" :key="type" :value="type">
+                          {{ type }}
+                        </Select.Option>
+                      </Select>
+                    </div>
+                    <div class="filter-group">
+                      <label>Category</label>
+                      <Select
+                        v-model:value="filters.category"
+                        placeholder="Select Category"
+                        allow-clear
+                        style="width: 200px"
+                      >
+                        <Select.Option v-for="cate in uniqueCategory" :key="cate" :value="cate">
+                          {{ cate }}
+                        </Select.Option>
+                      </Select>
+                    </div>
+                    <div class="filter-actions">
+                      <Button size="small" @click="clearFilters">Clear All</Button>
+                    </div>
+                  </div>
+                </template>
+              </Dropdown>
+            </Space>
+          </div>
         </div>
-        <div class="filter-section">
-          <Space>
-            <Dropdown v-model:open="filterVisible" placement="bottomRight" trigger="click">
-              <Button>
-                <FilterOutlined />
-                Filters
-                <span v-if="filters.type" class="filter-badge">●</span>
-                <span v-if="filters.category" class="filter-badge">●</span>
+
+        <!-- Results Info -->
+        <div class="results-info">
+          <span>Showing {{ filteredData.length }} of {{ pagination.total }} instructions</span>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container" :class="{ 'loading': loading }">
+          <div v-if="loading" class="loading-overlay">
+            <div class="loading-spinner">Loading...</div>
+          </div>
+          <div class="table-responsive">
+            <table class="modern-table">
+              <thead>
+                <tr>
+                  <th>Task Code</th>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th>Daily Inspection / Maintenance</th>
+                  <th>Frequency</th>
+                  <th>Creation Date</th>
+                  <th>View</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in filteredData" :key="item.uuid || item.id">
+                  <td>{{ item.code }}</td>
+                  <td>{{ item.name }}</td>
+                  <td>{{ item.category }}</td>
+                  <td>{{ item.type }}</td>
+                  <td>{{ item.frequency == 'Unit' ? item.unit_value + ' ' + item.unit_type : item.frequency }}</td>
+                  <td>{{ item.updated_at }}</td>
+                  <td>
+                    <Button type="link" @click="viewItem(item)">
+                      <EyeOutlined />
+                      View
+                    </Button>
+                  </td>
+                  <td>
+                    <div class="action-buttons-cell">
+                      <Tooltip title="Edit Working Instruction">
+                        <Button type="text" @click="handleEdit(item.uuid)" class="edit-btn">
+                          <EditOutlined />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip title="Delete Working Instruction">
+                        <Button type="text" danger @click="confirmDelete(item)" class="delete-btn">
+                          <DeleteOutlined />
+                        </Button>
+                      </Tooltip>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div v-if="!loading && filteredData.length === 0" class="empty-state">
+            <div class="empty-content">
+              <EyeOutlined class="empty-icon" />
+              <h3>No instructions found</h3>
+              <p>Try adjusting your search criteria or add new instruction</p>
+              <Button type="primary" @click="handleAddNew">
+                <PlusOutlined />
+                Add Instruction
               </Button>
-              <template #overlay>
-                <div class="filter-dropdown">
-                  <div class="filter-group">
-                    <label>Type</label>
-                    <Select
-                      v-model:value="filters.type"
-                      placeholder="Select type"
-                      allow-clear
-                      style="width: 200px"
-                    >
-                      <Select.Option v-for="type in uniqueTypes" :key="type" :value="type">
-                        {{ type }}
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div class="filter-group">
-                    <label>Category</label>
-                    <Select
-                      v-model:value="filters.category"
-                      placeholder="Select Category"
-                      allow-clear
-                      style="width: 200px"
-                    >
-                      <Select.Option v-for="cate in uniqueCategory" :key="cate" :value="cate">
-                        {{ cate }}
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div class="filter-actions">
-                    <Button size="small" @click="clearFilters">Clear All</Button>
-                  </div>
-                </div>
-              </template>
-            </Dropdown>
-          </Space>
-        </div>
-      </div>
-
-      <!-- Results Info -->
-      <div class="results-info">
-        <span>Showing {{ filteredData.length }} of {{ pagination.total }} instructions</span>
-      </div>
-
-      <!-- Table -->
-      <div class="table-container" :class="{ 'loading': loading }">
-        <div v-if="loading" class="loading-overlay">
-          <div class="loading-spinner">Loading...</div>
-        </div>
-        <div class="table-responsive">
-          <table class="modern-table">
-            <thead>
-              <tr>
-                <th>Task Code</th>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Daily Inspection / Maintenance</th>
-                <th>Frequency</th>
-                <th>Creation Date</th>
-                <th>View</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in filteredData" :key="item.uuid || item.id">
-                <td>{{ item.code }}</td>
-                <td>{{ item.name }}</td>
-                <td>{{ item.category }}</td>
-                <td>{{ item.type }}</td>
-                <td>{{ item.frequency == 'Unit' ? item.unit_value + ' ' + item.unit_type : item.frequency }}</td>
-                <td>{{ item.updated_at }}</td>
-                <td>
-                  <Button type="link" @click="viewItem(item)">
-                    <EyeOutlined />
-                    View
-                  </Button>
-                </td>
-                <td>
-                  <div class="action-buttons-cell">
-                    <Tooltip title="Edit Equipment">
-                      <Button type="text" @click="handleEdit(item.uuid)" class="edit-btn">
-                        <EditOutlined />
-                      </Button>
-                    </Tooltip>
-                    <Tooltip title="Delete Equipment">
-                      <Button type="text" danger @click="confirmDelete(item)" class="delete-btn">
-                        <DeleteOutlined />
-                      </Button>
-                    </Tooltip>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
 
-        <div v-if="!loading && filteredData.length === 0" class="empty-state">
-          <div class="empty-content">
-            <EyeOutlined class="empty-icon" />
-            <h3>No instructions found</h3>
-            <p>Try adjusting your search criteria or add new instruction</p>
-            <Button type="primary" @click="handleAddNew">
-              <PlusOutlined />
-              Add Instruction
+        <!-- Pagination -->
+        <div class="pagination-container">
+          <div class="pagination-info">
+            <span>
+              Showing {{ (pagination.current - 1) * pagination.pageSize + 1 }} to 
+              {{ Math.min(pagination.current * pagination.pageSize, pagination.total) }} 
+              of {{ pagination.total }} results
+            </span>
+          </div>
+          <div class="pagination-controls">
+            <Button :disabled="pagination.current === 1" @click="handlePageChange(pagination.current - 1)">
+              Previous
+            </Button>
+            <span class="page-numbers">
+              <span class="current-page">{{ pagination.current }}</span>
+              <span class="page-separator">of</span>
+              <span class="total-pages">{{ pagination.totalPages }}</span>
+            </span>
+            <Button :disabled="pagination.current === pagination.totalPages" @click="handlePageChange(pagination.current + 1)">
+              Next
             </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <!-- Pagination -->
-      <div class="pagination-container">
-        <div class="pagination-info">
-          <span>
-            Showing {{ (pagination.current - 1) * pagination.pageSize + 1 }} to 
-            {{ Math.min(pagination.current * pagination.pageSize, pagination.total) }} 
-            of {{ pagination.total }} results
-          </span>
+      <!-- Modal -->
+      <Modal 
+        v-model:open="isModalOpen" 
+        :title="code" 
+        @cancel="closeModal" 
+        :style="{ top: '3px'}"
+        width="800px" :footer="null">
+        <FormViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
+      </Modal>
+
+      <!-- Enhanced Delete Confirmation Modal -->
+
+      <Modal
+      v-model:open="showDeleteModal"
+      title="Confirm Working Instruction Deletion"
+      @ok="performDelete"
+      @cancel="cancelDelete"
+      ok-text="Yes, Delete"
+      cancel-text="Cancel"
+      ok-type="danger"
+      class="delete-modal"
+      :ok-button-props="{ disabled: !isMatched }"
+    >
+      <div class="delete-content">
+        <div class="warning-icon">
+          <ExclamationCircleOutlined />
         </div>
-        <div class="pagination-controls">
-          <Button :disabled="pagination.current === 1" @click="handlePageChange(pagination.current - 1)">
-            Previous
-          </Button>
-          <span class="page-numbers">
-            <span class="current-page">{{ pagination.current }}</span>
-            <span class="page-separator">of</span>
-            <span class="total-pages">{{ pagination.totalPages }}</span>
-          </span>
-          <Button :disabled="pagination.current === pagination.totalPages" @click="handlePageChange(pagination.current + 1)">
-            Next
-          </Button>
+        <div class="warning-text">
+          <p>Are you sure you want to delete this Working Instruction?</p>
+
+          <div class="equipment-info no-copy">
+              <strong>{{ deleteTarget?.type }}</strong>
+              <span class="equipment-details">
+                {{ deleteTarget?.code }} - {{ deleteTarget?.name }}
+              </span>
+          </div>
+
+          <p class="warning-note">This action cannot be undone.</p>
+
+          <div class="confirm-input no-copy">
+            <label>
+              Please type <strong>{{ deleteTarget?.code }}</strong> to confirm:
+            </label>
+            <input
+              v-model="confirmationInput"
+              type="text"
+              class="form-control"
+              placeholder="Enter machine ID"
+            />
+          </div>
         </div>
       </div>
-    </Card>
-
-    <!-- Modal -->
-    <Modal 
-      v-model:open="isModalOpen" 
-      :title="code" 
-      @cancel="closeModal" 
-      :style="{ top: '3px'}"
-      width="800px" :footer="null">
-      <FormViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
-    </Modal>
-
-    <!-- Enhanced Delete Confirmation Modal -->
-
-    <Modal
-    v-model:open="showDeleteModal"
-    title="Confirm Working Instruction Deletion"
-    @ok="performDelete"
-    @cancel="cancelDelete"
-    ok-text="Yes, Delete"
-    cancel-text="Cancel"
-    ok-type="danger"
-    class="delete-modal"
-    :ok-button-props="{ disabled: !isMatched }"
-  >
-    <div class="delete-content">
-      <div class="warning-icon">
-        <ExclamationCircleOutlined />
-      </div>
-      <div class="warning-text">
-        <p>Are you sure you want to delete this Working Instruction?</p>
-
-        <div class="equipment-info no-copy">
-            <strong>{{ deleteTarget?.type }}</strong>
-            <span class="equipment-details">
-              {{ deleteTarget?.code }} - {{ deleteTarget?.name }}
-            </span>
-        </div>
-
-        <p class="warning-note">This action cannot be undone.</p>
-
-        <div class="confirm-input no-copy">
-          <label>
-            Please type <strong>{{ deleteTarget?.code }}</strong> to confirm:
-          </label>
-          <input
-            v-model="confirmationInput"
-            type="text"
-            class="form-control"
-            placeholder="Enter machine ID"
-          />
+      </Modal>
+      <!-- Toast Notification -->
+      <div v-if="showToast" :class="['toast', toastType]">
+        <div class="toast-content">
+          <span class="toast-icon">{{ toastIcon }}</span>
+          <span class="toast-message">{{ toastMessage }}</span>
         </div>
       </div>
     </div>
-  </Modal>
-
-  </div>
   </div>
   
 </template>
 
 <style scoped>
+
+/* TOAST NOTIFICATIONS */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 500;
+  z-index: 3000;
+  min-width: 300px;
+  transform: translateX(100%);
+  animation: slideIn 0.3s ease forwards;
+  backdrop-filter: blur(10px);
+}
+
+.toast.success {
+  background: linear-gradient(135deg, #52c41a, #73d13d);
+  box-shadow: 0 4px 20px rgba(82, 196, 26, 0.3);
+}
+
+.toast.error {
+  background: linear-gradient(135deg, #ff4d4f, #ff7875);
+  box-shadow: 0 4px 20px rgba(255, 77, 79, 0.3);
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toast-icon {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.toast-message {
+  font-size: 14px;
+}
+
+@keyframes slideIn {
+  to {
+    transform: translateX(0);
+  }
+}
+
 
 .delete-content {
   display: flex;

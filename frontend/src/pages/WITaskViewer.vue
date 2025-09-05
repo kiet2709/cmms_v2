@@ -596,7 +596,6 @@ watch(
 )
 </script>
 
-
 <style scoped>
 .form-wrapper {
   max-width: 900px;
@@ -674,10 +673,6 @@ watch(
   text-align: right;
 }
 
-.step-items {
-  /*display: grid;*/
-  /* gap: 16px; */
-}
 
 .form-section {
   background: #fff;

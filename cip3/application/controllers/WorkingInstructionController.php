@@ -230,6 +230,45 @@ class WorkingInstructionController extends CI_Controller
                     ->set_output(json_encode($result));
     }
 
+    public function delete() {
+        // Lấy JSON từ request body
+        $data = json_decode($this->input->raw_input_stream, true);
 
+
+        // Kiểm tra dữ liệu hợp lệ
+        if (!isset($data['uuid']) || !isset($data['userId'])) {
+            return $this->output
+                        ->set_content_type('application/json')
+                        ->set_status_header(400)
+                        ->set_output(json_encode([
+                            'success' => false,
+                            'message' => 'Missing uuid or userId'
+                        ]));
+        }
+
+        // Gọi model xóa WI
+        $deleted = $this->WorkingInstruction_model->deletebyId(
+            $data['uuid'], 
+            $data['userId']
+        );
+
+        if ($deleted) {
+            return $this->output
+                        ->set_content_type('application/json')
+                        ->set_status_header(200)
+                        ->set_output(json_encode([
+                            'success' => true,
+                            'message' => 'Working instruction deleted successfully'
+                        ]));
+        } else {
+            return $this->output
+                        ->set_content_type('application/json')
+                        ->set_status_header(500)
+                        ->set_output(json_encode([
+                            'success' => false,
+                            'message' => 'Failed to delete working instruction'
+                        ]));
+        }
+    }
 
 }

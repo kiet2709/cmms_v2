@@ -217,7 +217,7 @@
         </div>
 
         <!-- Test Menu -->
-        <div 
+        <!-- <div 
           class="nav-item" 
           :class="{ active: selectedKey.startsWith('/dashboard/test') }"
           @mouseenter="showSubmenu = 'test'"
@@ -245,7 +245,7 @@
               </a>
             </div>
           </div>
-        </div>
+        </div> -->
       </div>
     </nav>
 

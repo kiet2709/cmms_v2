@@ -59,146 +59,168 @@
       </div>
 
       <!-- Middle Panel: Form Builder -->
-      <div class="form-builder">
+      <div class="form-builder" >
         <div class="panel-header">
           <h3 class="panel-title" v-translate>Form Builder</h3>
-          <div class="items-count">{{ formItems.length }} items</div>
+          <button class="btn-add" @click="addStep">Add Step</button>
+          <div class="items-count">{{ totalItems  }} items</div>
+          
         </div>
+        <div   style="overflow-y: scroll; max-height: 100vh;">
+          <div v-for="(step, stepIndex) in steps" :key="step.id" class="step-block">
+            <h4>Step {{ stepIndex + 1 }}</h4>
 
-        <div 
-          class="drop-zone"
-          :class="{ 'drag-over': isDragOver }"
-          @dragover.prevent="onDragOver"
-          @dragleave="onDragLeave"
-          @drop="onDrop"
-        >
-          <div v-if="formItems.length === 0" class="empty-state">
-            <div class="empty-icon">📝</div>
-            <h4 v-translate>Start Building Your Form</h4>
-            <p v-translate>Drag components from the toolbox to begin creating your form</p>
-          </div>
-
-          <div
-            v-for="(item, index) in formItems"
-            :key="item.id || index"   
-            class="form-item-card"
-            :class="{ 'selected': selectedItem === index }"
-            @click="selectItem(index)"
+            <div 
+            class="drop-zone"
+            :class="{ 'drag-over': step.isDragOver }"
+            @dragover.prevent="onDragOver(step)"
+            @dragleave="onDragLeave(step)"
+            @drop="onDrop(stepIndex)"
           >
+            <div v-if="step.formItems.length === 0" class="empty-state">
+              <div class="empty-icon">📝</div>
+              <h4 v-translate>Start Building Your Form</h4>
+              <p v-translate>Drag components from the toolbox to begin creating your form</p>
+            </div>
+
+            <div
+              v-for="(item, index) in  step.formItems"
+              :key="item.id || index"   
+              class="form-item-card"
+              :class="{ 'selected': selectedItem?.step === stepIndex && selectedItem?.index === index }"
+              @click="selectItem(stepIndex, index)"
+            >
             <div class="item-header">
               <div class="item-type">
                 <span class="type-icon">{{ getComponentIcon(item.type) }}</span>
                 <span class="type-label">{{ getComponentLabel(item.type) }}</span>
               </div>
               <div class="item-actions">
-                <button class="action-btn" @click.stop="duplicateItem(index)" title="Duplicate">
+                <button class="action-btn" @click.stop="duplicateItem(stepIndex, index)" title="Duplicate">
                   <span>📋</span>
                 </button>
-                <button class="action-btn danger" @click.stop="removeItem(index)" title="Remove">
+                <button class="action-btn danger" @click.stop="removeItem(stepIndex, index)" title="Remove">
                   <span>🗑️</span>
                 </button>
               </div>
             </div>
-
             <div class="item-content">
-              <!-- Label Component -->
-              <div v-if="item.type === 'label'" class="config-section">
-                <div class="input-group">
-                  <label>Heading Level</label>
-                  <select v-model="item.heading" class="form-select">
-                    <option v-for="n in 6" :key="n" :value="'h' + n">Heading {{ n }}</option>
-                  </select>
+                <!-- Label Component -->
+                <div v-if="item.type === 'label'" class="config-section">
+                  <div class="input-group">
+                    <label>Heading Level</label>
+                    <select v-model="item.heading" class="form-select">
+                      <option v-for="n in 6" :key="n" :value="'h' + n">Heading {{ n }}</option>
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label>Label Text</label>
+                    <input v-model="item.text" placeholder="Enter label text..." class="form-input" />
+                  </div>
+                  <div class="style-options">
+                    <label class="checkbox-label">
+                      <input type="checkbox" v-model="item.bold" />
+                      <span class="checkmark"></span>
+                      <strong>Bold</strong>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" v-model="item.italic" />
+                      <span class="checkmark"></span>
+                      <em>Italic</em>
+                    </label>
+                    <label class="checkbox-label">
+                      <input type="checkbox" v-model="item.underline" />
+                      <span class="checkmark"></span>
+                      <u>Underline</u>
+                    </label>
+                  </div>
                 </div>
-                <div class="input-group">
-                  <label>Label Text</label>
-                  <input v-model="item.text" placeholder="Enter label text..." class="form-input" />
-                </div>
-                <div class="style-options">
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="item.bold" />
-                    <span class="checkmark"></span>
-                    <strong>Bold</strong>
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="item.italic" />
-                    <span class="checkmark"></span>
-                    <em>Italic</em>
-                  </label>
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="item.underline" />
-                    <span class="checkmark"></span>
-                    <u>Underline</u>
-                  </label>
-                </div>
-              </div>
 
-              <!-- Yes/No Question -->
-              <div v-else-if="item.type === 'yesno'" class="config-section">
-                <div class="input-group">
-                  <label>Question</label>
-                  <input v-model="item.question" placeholder="Enter yes/no question..." class="form-input" />
+                <!-- Yes/No Question -->
+                <div v-else-if="item.type === 'yesno'" class="config-section">
+                  <div class="input-group">
+                    <label>Question</label>
+                    <input v-model="item.question" placeholder="Enter yes/no question..." class="form-input" />
+                  </div>
                 </div>
-              </div>
 
-              <!-- Multiple Choice -->
-              <div v-else-if="item.type === 'multiple'" class="config-section">
-                <div class="input-group">
-                  <label>Question</label>
-                  <input v-model="item.question" placeholder="Enter multiple choice question..." class="form-input" />
+                <!-- Multiple Choice -->
+                <div v-else-if="item.type === 'multiple'" class="config-section">
+                  <div class="input-group">
+                    <label>Question</label>
+                    <input v-model="item.question" placeholder="Enter multiple choice question..." class="form-input" />
+                  </div>
+                  <div class="input-group">
+                    <label>Options <span class="help-text">(comma separated)</span></label>
+                    <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
+                  </div>
                 </div>
-                <div class="input-group">
-                  <label>Options <span class="help-text">(comma separated)</span></label>
-                  <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
-                </div>
-              </div>
 
-              <!-- Single Choice -->
-              <div v-else-if="item.type === 'single'" class="config-section">
-                <div class="input-group">
-                  <label>Question</label>
-                  <input v-model="item.question" placeholder="Enter single choice question..." class="form-input" />
+                <!-- Single Choice -->
+                <div v-else-if="item.type === 'single'" class="config-section">
+                  <div class="input-group">
+                    <label>Question</label>
+                    <input v-model="item.question" placeholder="Enter single choice question..." class="form-input" />
+                  </div>
+                  <div class="input-group">
+                    <label>Options <span class="help-text">(comma separated)</span></label>
+                    <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
+                  </div>
                 </div>
-                <div class="input-group">
-                  <label>Options <span class="help-text">(comma separated)</span></label>
-                  <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
-                </div>
-              </div>
 
-              <!-- Static Image -->
-              <div v-else-if="item.type === 'staticImage'" class="config-section">
-                <div class="image-upload-area">
-                  <input 
-                    type="file" 
-                    :id="'file-' + index" 
-                    @change="onImageUpload($event, index)" 
-                    accept="image/*"
-                    class="file-input"
-                  />
-                  <label :for="'file-' + index" class="file-upload-btn">
-                    <span class="upload-icon">📤</span>
-                    Choose Image
-                  </label>
-                  <div v-if="item.imageUrl" class="image-preview">
-                    <img :src="item.imageUrl" class="preview-image" />
-                    <div class="image-overlay">
-                      <button @click="removeImage(index)" class="overlay-btn">
-                        <span>🗑️</span>
-                      </button>
+                <!-- Static Image -->
+                <div v-else-if="item.type === 'staticImage'" class="config-section">
+                  <div class="image-upload-area">
+                    <input 
+                      type="file"
+                      :id="'file-' + stepIndex + '-' + index"
+                      @change="onImageUpload($event, stepIndex, index)"
+                      accept="image/*"
+                      class="file-input"
+                    />
+                    <label :for="'file-' + stepIndex + '-' + index" class="file-upload-btn">
+                      <span class="upload-icon">📤</span>
+                      Choose Image
+                    </label>
+                    <!-- Preview nhiều ảnh -->
+                    <div v-if="item.imageUrls && item.imageUrls.length" class="image-preview-list">
+                    <div 
+                      v-for="(img, i) in item.imageUrls" 
+                      :key="i" 
+                      class="image-preview"
+                    >
+                      <img :src="img" class="preview-image" />
+                      <div class="image-overlay">
+                        <button @click="removeImage(stepIndex, index, i)" class="overlay-btn">
+                          <span>🗑️</span>
+                        </button>
+                      </div>
                     </div>
+                  </div>
+                  </div>
+                </div>
+
+                <!-- User Upload Image -->
+                <div v-else-if="item.type === 'userImage'" class="config-section">
+                  <div class="info-box">
+                    <span class="info-icon">ℹ️</span>
+                    <span>This will allow users to upload images when filling the form</span>
                   </div>
                 </div>
               </div>
 
-              <!-- User Upload Image -->
-              <div v-else-if="item.type === 'userImage'" class="config-section">
-                <div class="info-box">
-                  <span class="info-icon">ℹ️</span>
-                  <span>This will allow users to upload images when filling the form</span>
-                </div>
-              </div>
+          </div>
+          
+        
+
+
+          
+
+              
             </div>
           </div>
         </div>
+
       </div>
 
       <!-- Right Panel: Preview & Settings -->
@@ -327,17 +349,17 @@
           <div class="preview-header">
             <h4 class="section-title">Form Preview</h4>
             <div class="preview-info">
-              <span class="info-badge">{{ formItems.length }} items</span>
+              <span class="info-badge">{{ totalItems  }} items</span>
             </div>
           </div>
 
-          <div v-if="formItems.length === 0" class="preview-empty">
+          <div v-if="totalItems === 0" class="preview-empty">
             <div class="empty-icon">📄</div>
             <p>No form items to preview</p>
           </div>
 
           <div class="preview-form">
-            <div v-for="(item, index) in formItems" :key="index" class="preview-item">
+            <div v-for="(item, index) in flatItems" :key="item.id || index" class="preview-item">
               <!-- Render Label -->
               <component
                 v-if="item.type === 'label'"
@@ -418,7 +440,18 @@
 
               <!-- Render Static Image -->
               <div v-else-if="item.type === 'staticImage'" class="image-block">
-                <img v-if="item.imageUrl" :src="item.imageUrl" class="preview-image-large" />
+                 <!-- Có ảnh -->
+                <div v-if="item.imageUrls && item.imageUrls.length" class="image-preview-grid">
+                  <div 
+                    v-for="(img, i) in item.imageUrls" 
+                    :key="i" 
+                    class="preview-image-wrapper"
+                  >
+                    <img :src="img" class="preview-image-large" />
+                  </div>
+                </div>
+
+                <!-- Không có ảnh -->
                 <div v-else class="image-placeholder">
                   <span class="placeholder-icon">🖼️</span>
                   <p>No image uploaded</p>
@@ -502,9 +535,10 @@ const components = ref([
 
 // UI State
 const activeTab = ref('settings');
-const selectedItem = ref(-1);
-const isDragOver = ref(false);
+const selectedItem = ref(null);
 const saving = ref(false);
+const isDragOver = ref(false);
+
 const showSuccess = ref(false);
 const searchToolbox = ref('');
 
@@ -512,6 +546,7 @@ const searchToolbox = ref('');
 const categories = ref([]);
 const dragged = ref(null);
 const formItems = ref([]);
+
 const formMeta = ref({
   code: "",
   type: "",
@@ -554,17 +589,13 @@ const filteredComponents = computed(() => {
   );
 });
 
-const questionCount = computed(() => {
-  return formItems.value.filter(item => 
-    ['yesno', 'multiple', 'single'].includes(item.type)
-  ).length;
-});
+const questionCount = computed(() =>
+  flatItems.value.filter(i => ['yesno','multiple','single'].includes(i.type)).length
+);
 
-const imageCount = computed(() => {
-  return formItems.value.filter(item => 
-    ['staticImage', 'userImage'].includes(item.type)
-  ).length;
-});
+const imageCount = computed(() =>
+  flatItems.value.filter(i => ['staticImage','userImage'].includes(i.type)).length
+);
 
 // Sync generated code to meta
 watch(generatedCode, (val) => {
@@ -573,7 +604,9 @@ watch(generatedCode, (val) => {
 
 // Utility functions
 const uid = () => Math.random().toString(36).slice(2, 10);
-
+const steps = ref([
+  { id: uid(), formItems: [], isDragOver: false }
+]);
 const getComponentIcon = (type) => {
   const comp = components.value.find(c => c.type === type);
   return comp ? comp.icon : '📝';
@@ -583,68 +616,51 @@ const getComponentLabel = (type) => {
   const comp = components.value.find(c => c.type === type);
   return comp ? comp.label : type;
 };
-
+const totalItems = computed(() =>
+  steps.value.reduce((sum, s) => sum + s.formItems.length, 0)
+);
+const flatItems = computed(() =>
+  steps.value.flatMap(s => s.formItems)
+);
+const addStep = () => {
+  steps.value.push({ id: uid(), formItems: [], isDragOver: false });
+};
 // Form item management
-const selectItem = (index) => {
-  selectedItem.value = selectedItem.value === index ? -1 : index;
+const selectItem = (stepIndex, index) => {
+  if (selectedItem.value && selectedItem.value.step === stepIndex && selectedItem.value.index === index) {
+    selectedItem.value = null;
+  } else {
+    selectedItem.value = { step: stepIndex, index };
+  }
 };
 
-const duplicateItem = (index) => {
-  const item = JSON.parse(JSON.stringify(formItems.value[index]));
+const duplicateItem = (stepIndex, index) => {
+  const item = JSON.parse(JSON.stringify(steps.value[stepIndex].formItems[index]));
   item.id = uid();
-  formItems.value.splice(index + 1, 0, item);
+  steps.value[stepIndex].formItems.splice(index + 1, 0, item);
 };
-
-const removeItem = async (index) => {
-  const item = formItems.value[index];
-  if (item.type === "staticImage" && item.imageUrl) {
+const removeItem = async (stepIndex, index) => {
+  const item = steps.value[stepIndex].formItems[index];
+  if (item.type === "staticImage" && item.imageUrls) {
     try {
       await axiosClient.post('', {}, {
-        params: {
-          c: 'WorkingInstructionController',
-          m: 'delete_image',
-          path: item.imageUrl
-        },
+        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.imageUrls },
       });
     } catch (err) {
       console.error("Delete image failed:", err);
     }
   }
-  formItems.value.splice(index, 1);
-  selectedItem.value = -1;
+  steps.value[stepIndex].formItems.splice(index, 1);
+  selectedItem.value = null;
 };
 
-const removeImage = async (index) => {
-  const item = formItems.value[index];
-  if (item.imageUrl) {
-    try {
-      await axiosClient.post('', {}, {
-        params: {
-          c: 'WorkingInstructionController',
-          m: 'delete_image',
-          path: item.imageUrl
-        },
-      });
-    } catch (err) {
-      console.error("Delete image failed:", err);
-    }
-  }
-  item.imageUrl = '';
-};
+
 
 const clearForm = () => {
   if (confirm('Are you sure you want to clear the entire form? This action cannot be undone.')) {
-    formItems.value = [];
-    formMeta.value = {
-      code: "",
-      type: "",
-      description: "",
-      category: "",
-      frequency: "",
-      unitType: "",
-      unitValue: ""
-    };
-    selectedItem.value = -1;
+    steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
+    selectedItem.value = null;
+    formMeta.value = { code:"", type:"", description:"", category:"", frequency:"", unitType:"", unitValue:"" };
   }
 };
 
@@ -657,99 +673,102 @@ const onDragEnd = () => {
   dragged.value = null;
 };
 
-const onDragOver = () => {
-  isDragOver.value = true;
+const onDragOver = (step) => {
+  step.isDragOver = true;
+};
+const onDragLeave = (step) => {
+  step.isDragOver = false;
 };
 
-const onDragLeave = () => {
-  isDragOver.value = false;
-};
-
-const onDrop = () => {
-  isDragOver.value = false;
+const onDrop = (stepIndex) => {
+  const step = steps.value[stepIndex];
+  step.isDragOver = false;
   if (!dragged.value) return;
 
   const newItem = { id: uid() };
-  
   switch (dragged.value.type) {
-    case "label":
-      Object.assign(newItem, {
-        type: "label",
-        text: "",
-        heading: "h3",
-        bold: false,
-        italic: false,
-        underline: false,
-      });
-      break;
-    case "yesno":
-      Object.assign(newItem, { type: "yesno", question: "" });
-      break;
-    case "multiple":
-      Object.assign(newItem, { type: "multiple", question: "", options: "" });
-      break;
-    case "single":
-      Object.assign(newItem, { type: "single", question: "", options: "" });
-      break;
-    case "staticImage":
-      Object.assign(newItem, { type: "staticImage", imageUrl: "" });
-      break;
-    case "userImage":
-      Object.assign(newItem, { type: "userImage" });
-      break;
+    case "label": Object.assign(newItem, { type:"label", text:"", heading:"h3", bold:false, italic:false, underline:false }); break;
+    case "yesno": Object.assign(newItem, { type:"yesno", question:"" }); break;
+    case "multiple": Object.assign(newItem, { type:"multiple", question:"", options:"" }); break;
+    case "single": Object.assign(newItem, { type:"single", question:"", options:"" }); break;
+    case "staticImage": Object.assign(newItem, { type:"staticImage", imageUrls:"" }); break;
+    case "userImage": Object.assign(newItem, { type:"userImage" }); break;
   }
-
-  formItems.value.push(newItem);
-  selectedItem.value = formItems.value.length - 1;
+  step.formItems.push(newItem);
+  selectedItem.value = { step: stepIndex, index: step.formItems.length - 1 };
   dragged.value = null;
 };
 
-// Image upload handler
-const onImageUpload = async (event, index) => {
-  const file = event.target.files[0];
-  if (!file) return;
+// Image upload handler (nhiều ảnh)
+const onImageUpload = async (event, stepIndex, index) => {
+  const files = event.target.files;
+  if (!files || !files.length) return;
 
-  const form = new FormData();
-  form.append("file", file);
+  // nếu chưa có imageUrls thì tạo mảng rỗng
+  if (!steps.value[stepIndex].formItems[index].imageUrls) {
+    steps.value[stepIndex].formItems[index].imageUrls = [];
+  }
 
-  try {
-    const res = await axiosClient.post('', form, {
-      params: {
-        c: 'WorkingInstructionController',
-        m: 'upload'
-      },
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    
-    const url = res.data.url;
-    formItems.value[index].imageUrl = url;
-    console.log("Uploaded URL:", url);
-  } catch (err) {
-    console.error("Upload failed:", err);
+  for (const file of files) {
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await axiosClient.post('', form, {
+        params: { c: 'WorkingInstructionController', m: 'upload' },
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = res.data.url;
+
+      // push vào mảng imageUrls
+      steps.value[stepIndex].formItems[index].imageUrls.push(url);
+    } catch (err) {
+      console.error("Upload failed:", err);
+    }
   }
 };
 
+// Xóa 1 ảnh trong mảng
+const removeImage = async (stepIndex, index, imgIndex) => {
+  const item = steps.value[stepIndex].formItems[index];
+  const url = item.imageUrls[imgIndex];
+
+  if (url) {
+    try {
+      await axiosClient.post('', {}, {
+        params: { c: 'WorkingInstructionController', m: 'delete_image', path: url },
+      });
+    } catch (err) {
+      console.error("Delete image failed:", err);
+    }
+  }
+
+  // Xóa khỏi mảng
+  item.imageUrls.splice(imgIndex, 1);
+};
 // Save form
 const saveForm = async () => {
   try {
     saving.value = true;
+    // const payload = {
+    //   meta: { ...formMeta.value, category_code: formMeta.value.category },
+    //   content: JSON.parse(JSON.stringify(steps.value)), // gửi nhiều step
+    // };
     const payload = {
-      meta: {
-        ...formMeta.value,
-        category_code: formMeta.value.category,
-      },
-      content: JSON.parse(JSON.stringify(formItems.value)),
-    };
-
+      meta: { ...formMeta.value, category_code: formMeta.value.category },
+      steps: steps.value.map((s, i) => ({
+        stepIndex: i + 1,
+        items: s.formItems
+      }))
+    }
     console.log(payload);
     
-
     await axiosClient.post('', payload, {
       params: { c: 'WorkingInstructionController', m: 'save' },
       headers: { 'Content-Type': 'application/json' },
     });
+    steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
+    selectedItem.value = null;
     formItems.value = [];
     formMeta.value = {
       code: "",
@@ -863,6 +882,36 @@ onMounted(() => {
   display: flex;
   gap: 12px;
 }
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  background: #3a8cff;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.btn-add:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn-add:active {
+  transform: scale(0.97);
+}
+
+.btn-add::before {
+  content: "+";
+  font-size: 16px;
+  font-weight: bold;
+}
 
 /* Buttons */
 .btn {
@@ -915,7 +964,6 @@ onMounted(() => {
   display: flex;
   gap: 24px;
   padding: 24px;
-  min-height: calc(100vh - 80px);
 }
 
 /* Panels */
@@ -1250,6 +1298,10 @@ onMounted(() => {
 .checkbox-label input[type="checkbox"] {
   position: absolute;
   opacity: 0;
+    width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
 }
 
 .checkmark {
@@ -1316,20 +1368,42 @@ onMounted(() => {
 
 .image-preview {
   position: relative;
-  display: inline-block;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  aspect-ratio: 1 / 1; /* giữ tỉ lệ vuông đẹp */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.2s ease;
 }
 
+.image-preview-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); /* responsive grid */
+  gap: 12px;
+  margin-top: 12px;
+}
 .preview-image {
-  max-width: 200px;
-  max-height: 150px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .image-overlay {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+.image-preview:hover .image-overlay {
+  opacity: 1;
 }
 
 .overlay-btn {
@@ -1587,12 +1661,27 @@ onMounted(() => {
   display: flex;
   justify-content: center;
 }
+.image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* cột tự động */
+  gap: 9px;
+  margin-top: 12px;
+}
 
+.preview-image-wrapper {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1; /* ô vuông */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
 .preview-image-large {
-  max-width: 100%;
-  max-height: 200px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* ảnh cắt gọn vừa khung */
+  display: block;
 }
 
 .image-placeholder {
@@ -1823,5 +1912,3 @@ html {
 }
 
 </style>
-
-addWI
