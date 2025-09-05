@@ -345,12 +345,15 @@
     </div>
 
     <!-- Modal Overlay -->
-    <div v-if="isModalOpen" class="modal-overlay">
-      <div class="modal-content">
-        <button class="modal-close" @click="closeModal">×</button>
-        <FormViewer v-if="isModalOpen" :id="currentId" />
-      </div>
-    </div>
+    <!-- Modal -->
+    <Modal 
+      v-model:open="isModalOpen" 
+      :title="code" 
+      @cancel="closeModal" 
+      :style="{ top: '3px'}"
+      width="800px" :footer="null">
+      <FormViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
+    </Modal>
 
     <!-- Toast Notification -->
     <div v-if="showToast" :class="['toast', toastType]">
@@ -364,6 +367,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { 
+  Modal, 
+} from 'ant-design-vue';
 import { EyeOutlined } from "@ant-design/icons-vue";
 import FormViewer from "./FormViewer.vue";
 import axiosClient from "../utils/axiosClient";
@@ -373,7 +379,7 @@ import dayjs from 'dayjs'
 const route = useRoute()
 const router = useRouter()
 const uuid = route.params.uuid;
-
+const code = ref('');
 // left
 const modelId = ref("");
 const creator = ref("");
@@ -505,6 +511,7 @@ const showToastNotification = (message, type = "success") => {
 
 const viewItem = (item) => {
   currentId.value = item.value;
+  code.value = item.label
   isModalOpen.value = true;
 };
 

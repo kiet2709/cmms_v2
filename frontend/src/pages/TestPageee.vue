@@ -62,7 +62,7 @@
       <div class="form-builder" >
         <div class="panel-header">
           <h3 class="panel-title" v-translate>Form Builder</h3>
-          <button class="btn-add" @click="addStep">➕ Add Step</button>
+          <button class="btn-add" @click="addStep">Add Step</button>
           <div class="items-count">{{ totalItems  }} items</div>
           
         </div>
@@ -881,6 +881,36 @@ onMounted(() => {
 .header-right {
   display: flex;
   gap: 12px;
+}
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  background: #3a8cff;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.btn-add:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn-add:active {
+  transform: scale(0.97);
+}
+
+.btn-add::before {
+  content: "+";
+  font-size: 16px;
+  font-weight: bold;
 }
 
 /* Buttons */

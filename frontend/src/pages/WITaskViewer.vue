@@ -702,13 +702,13 @@ watch(
   color: #1f2937;
 }
 
-.radio-group,
+.radio-group
 .checkbox-group {
   justify-content: center;
   display: flex;              /* xếp ngang */
   flex-wrap: wrap;            /* xuống dòng nếu quá dài */
   gap: 150px;                  /* khoảng cách giữa các option */
-  /* margin-top: 8px; */
+  margin-top: 8px;
 }
 
 .radio-option,
@@ -723,6 +723,7 @@ watch(
   background: #fafafa;
   cursor: pointer;
   transition: all 0.2s ease;
+   margin-top: 8px;
 }
 
 .radio-option.selected,
