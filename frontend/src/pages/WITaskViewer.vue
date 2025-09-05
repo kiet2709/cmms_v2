@@ -596,6 +596,7 @@ watch(
 )
 </script>
 
+
 <style scoped>
 .form-wrapper {
   max-width: 900px;
@@ -674,7 +675,7 @@ watch(
 }
 
 .step-items {
-  /* display: grid; */
+  /*display: grid;*/
   /* gap: 16px; */
 }
 
