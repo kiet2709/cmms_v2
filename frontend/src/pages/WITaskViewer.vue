@@ -269,17 +269,25 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from "vue"
+import { ref, watch, computed, onMounted } from "vue"
 import { Modal } from "ant-design-vue"
 import axiosClient from "../utils/axiosClient"
+import { useUserStore } from '@/stores/user'
 
-// Props
+const userStore = useUserStore()
+onMounted(() => {
+  userStore.fetchUser();
+})
+
+// Props & Emits
 const props = defineProps({
   id: { type: [String, Number], required: true }
 })
+const emit = defineEmits(['submitted'])
 
 // State
 const steps = ref([])                 // [{ stepIndex, formItems: [...] }]
+const formItems = ref([])             // flat copy of items for easy access (kept in sync)
 const currentStep = ref(0)
 const loading = ref(false)
 const WICode = ref('')
@@ -287,10 +295,12 @@ const selectedAnswers = ref({})       // key = item.id -> value
 const uploadedFiles = ref({})         // key = item.id -> dataURL
 const showImageModal = ref(false)
 const modalImageUrl = ref('')
+const tick = ref(0)                   // small reactive tick to force updates if needed
 
-// Helpers
+// Answer types
 const ANSWER_TYPES = ['yesno', 'multiple', 'single', 'userImage']
 
+// Computeds
 const currentStepObj = computed(() => steps.value[currentStep.value])
 
 const flatItems = computed(() =>
@@ -307,9 +317,9 @@ const completedItems = computed(() => {
     if (!ANSWER_TYPES.includes(it.type)) return
     const val = selectedAnswers.value[it.id]
     if (it.type === 'yesno' && (val === 'Yes' || val === 'No')) done++
-    if (it.type === 'single' && !!val) done++
-    if (it.type === 'multiple' && Array.isArray(val) && val.length > 0) done++
-    if (it.type === 'userImage' && uploadedFiles.value[it.id]) done++
+    else if (it.type === 'single' && !!val) done++
+    else if (it.type === 'multiple' && Array.isArray(val) && val.length > 0) done++
+    else if (it.type === 'userImage' && uploadedFiles.value[it.id]) done++
   })
   return done
 })
@@ -322,13 +332,29 @@ const progressPercentage = computed(() => {
 
 const isFormValid = computed(() => completedItems.value === totalItems.value)
 
-const getOptions = (item) =>
-  (item?.options || '')
+// Helpers
+const getOptions = (item) => {
+  if (!item) return []
+  if (Array.isArray(item.options)) return item.options
+  return String(item.options || '')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean)
+}
 
-// Fetch
+const ensureItemIds = (stepsArr) => {
+  stepsArr.forEach((s, sIdx) => {
+    s.formItems = Array.isArray(s.formItems) ? s.formItems : []
+    s.formItems.forEach((it, idx) => {
+      if (!it.id && it.id !== 0) {
+        // generate stable id
+        it.id = `auto_${sIdx}_${idx}`
+      }
+    })
+  })
+}
+
+// Fetch form from API and normalize schema -> steps
 const fetchForm = async (id) => {
   try {
     loading.value = true
@@ -341,12 +367,12 @@ const fetchForm = async (id) => {
 
     if (!ok) {
       steps.value = []
+      formItems.value = []
+      initializeAnswers()
       return
     }
 
     const row = res.data.data[0]
-    console.log(row);
-    
     WICode.value = row?.code || ''
 
     let parsed
@@ -357,65 +383,89 @@ const fetchForm = async (id) => {
       parsed = []
     }
 
-    // Chuẩn hóa: items -> formItems
-    const normalized = Array.isArray(parsed)
-      ? parsed.map((s, idx) => ({
-          stepIndex: Number(s?.stepIndex) || idx + 1,
-          formItems: Array.isArray(s?.items) ? s.items : []
+    // Normalize into steps: support a few possible shapes
+    let normalized = []
+    if (Array.isArray(parsed)) {
+      if (parsed.length === 0) normalized = []
+      else if (parsed[0]?.items) {
+        normalized = parsed.map((s, idx) => ({
+          stepIndex: Number(s.stepIndex) || idx + 1,
+          formItems: Array.isArray(s.items) ? s.items : []
         }))
-      : []
+      } else if (parsed[0]?.formItems) {
+        normalized = parsed.map((s, idx) => ({
+          stepIndex: Number(s.stepIndex) || idx + 1,
+          formItems: Array.isArray(s.formItems) ? s.formItems : []
+        }))
+      } else if (parsed[0]?.type) {
+        // parsed is an array of items (single-step)
+        normalized = [{ stepIndex: 1, formItems: parsed }]
+      } else {
+        normalized = []
+      }
+    } else {
+      // unexpected shape -> empty
+      normalized = []
+    }
+
+    // Ensure every item has an id
+    ensureItemIds(normalized)
 
     steps.value = normalized
+    formItems.value = flatItems.value.slice()
     currentStep.value = 0
     initializeAnswers()
   } catch (err) {
     console.error("Error fetching form:", err)
     steps.value = []
+    formItems.value = []
+    initializeAnswers()
   } finally {
     loading.value = false
   }
 }
 
-// Init answers
+// Initialize / reset answers using item.id as key
 const initializeAnswers = () => {
   selectedAnswers.value = {}
   uploadedFiles.value = {}
 
-  formItems.value.forEach((item, index) => {
+  formItems.value = flatItems.value.map(it => ({ ...it }))
+
+  flatItems.value.forEach(item => {
+    if (!item || !item.id) return
     if (item.type === 'multiple') {
-      // nếu có answer thì gán, không thì mảng rỗng
-      selectedAnswers.value['multiple' + index] = item.answer || []
-    }
-    if (item.type === 'yesno') {
-      selectedAnswers.value['yn' + index] = item.answer || null
-    }
-    if (item.type === 'single') {
-      selectedAnswers.value['single' + index] = item.answer || null
-    }
-    if (item.type === 'userImage') {
-      uploadedFiles.value[index] = item.answer || null
+      // accept existing answers (array) or empty array
+      selectedAnswers.value[item.id] = Array.isArray(item.answer) ? item.answer : (item.answer ? [item.answer] : [])
+    } else if (item.type === 'yesno') {
+      selectedAnswers.value[item.id] = item.answer ?? null
+    } else if (item.type === 'single') {
+      selectedAnswers.value[item.id] = item.answer ?? null
+    } else if (item.type === 'userImage') {
+      uploadedFiles.value[item.id] = item.answer ?? null
+    } else {
+      // non-answer types ignored
     }
   })
+
+  // trigger reactivity if needed
+  tick.value++
 }
+
 const resetAnswers = () => {
   selectedAnswers.value = {}
   uploadedFiles.value = {}
-  formItems.value.forEach((item, index) => {
-      if (item.type === 'multiple') {
-        selectedAnswers.value['multiple' + index] = []
-      }
-    // preset cho multiple
-    steps.value.forEach(step => {
-      step.formItems.forEach(item => {
-        if (item.type === 'multiple') {
-          selectedAnswers.value[item.id] = []
-        }
-      })
-    })
+  flatItems.value.forEach(item => {
+    if (!item || !item.id) return
+    if (item.type === 'multiple') selectedAnswers.value[item.id] = []
+    if (item.type === 'yesno') selectedAnswers.value[item.id] = null
+    if (item.type === 'single') selectedAnswers.value[item.id] = null
+    if (item.type === 'userImage') uploadedFiles.value[item.id] = null
   })
+  tick.value++
 }
 
-// UI class
+// UI helpers
 const getItemClasses = (item) => ({
   'label-section': item.type === 'label',
   'question-section': ['yesno', 'multiple', 'single'].includes(item.type),
@@ -429,14 +479,16 @@ const handleFileUpload = (event, itemId) => {
   const reader = new FileReader()
   reader.onload = (e) => {
     uploadedFiles.value[itemId] = e.target.result
-    updateProgress()
+    tick.value++
   }
   reader.readAsDataURL(file)
 }
 
 const removeFile = (itemId) => {
-  delete uploadedFiles.value[itemId]
-  updateProgress()
+  if (uploadedFiles.value[itemId]) {
+    delete uploadedFiles.value[itemId]
+    tick.value++
+  }
 }
 
 const openImageModal = (src) => {
@@ -449,7 +501,8 @@ const closeImageModal = () => {
 }
 
 const updateProgress = () => {
-  // trigger computed reactivity if needed
+  // small tick to ensure computed updates if template bindings are not triggering
+  tick.value++
 }
 
 const resetForm = () => {
@@ -458,46 +511,62 @@ const resetForm = () => {
   }
 }
 
-const submitForm = () => {
-  if (isFormValid.value) {
-    // clone schema gốc
-    const updatedSchema = JSON.parse(JSON.stringify(formItems.value))
+// Save function
+const save = async (formData) => {
+  try {
+    const res = await axiosClient.post('', formData, {
+      params: { c: 'DailyTaskController', m: 'doDailyTask' },
+      headers: { 'Content-Type': 'application/json' },
+    });
+    alert("Submit successfully!");
+    return { ok: true, res }
+  } catch (err) {
+    console.error("Save failed:", err);
+    alert("Save failed! Please try again.");
+    return { ok: false, err }
+  }
+}
 
-    // gắn câu trả lời vào schema mới
-    updatedSchema.forEach((item, index) => {
-      if (item.type === 'yesno') {
-        item.answer = selectedAnswers.value['yn' + index] || null
+// Submit form: gán answer vào từng item theo item.id và gửi steps (items)
+const submitForm = async () => {
+  if (!isFormValid.value) {
+    alert('Vui lòng hoàn thành tất cả câu trả lời trước khi gửi.')
+    return
+  }
+
+  // Build updated steps payload (mỗi step có items: [...] với answer)
+  const updatedSteps = steps.value.map(step => ({
+    stepIndex: step.stepIndex,
+    items: step.formItems.map(item => {
+      const copy = { ...item }
+      if (ANSWER_TYPES.includes(item.type)) {
+        if (item.type === 'userImage') {
+          copy.answer = uploadedFiles.value[item.id] ?? null
+        } else {
+          copy.answer = selectedAnswers.value[item.id] ?? (item.type === 'multiple' ? [] : null)
+        }
       }
-      if (item.type === 'multiple') {
-        item.answer = selectedAnswers.value['multiple' + index] || []
-      }
-      if (item.type === 'single') {
-        item.answer = selectedAnswers.value['single' + index] || null
-      }
-      if (item.type === 'userImage') {
-        item.answer = uploadedFiles.value[index] || null
-      }
+      return copy
     })
+  }))
 
-    // gói thông tin
-    const formData = {
-      uuid: props.id,
-      wiCode: WICode.value,
-      schema: updatedSchema,
-      inspectorId: userStore.rawUser.user.uuid,
-    }
+  const formData = {
+    uuid: String(props.id),
+    wiCode: WICode.value,
+    schema: updatedSteps,
+    inspectorId: userStore.rawUser?.user?.uuid ?? userStore.user?.uuid ?? null,
+  }
 
-    console.log("📌 Schema sau khi user submit:")
-    console.log(JSON.stringify(formData, null, 2))
-    console.log('--------');
-    console.log(WICode);
-    save(formData);
-    
+  console.log("📌 Payload gửi lên:", JSON.stringify(formData, null, 2))
+
+  const result = await save(formData)
+  if (result.ok) {
+    // chỉ emit khi save thành công
     emit('submitted')
+  }
+}
 
-  };
-    
-// Nav
+// Navigation
 const nextStep = () => {
   if (currentStep.value < steps.value.length - 1) {
     Modal.confirm({
@@ -515,75 +584,18 @@ const prevStep = () => {
   if (currentStep.value > 0) currentStep.value--
 }
 
-const emit = defineEmits(['submitted'])
-
-const save = async (formData) => {
-    try {
-      await axiosClient.post('', formData, {
-        params: { c: 'DailyTaskController', m: 'doDailyTask' },
-        headers: { 'Content-Type': 'application/json' },
-      });
-      alert("Submit successfully!");
-    } catch (err) {
-      console.error("Save failed:", err);
-      alert("Save failed! Please try again.");
-    } 
-}
-
-
-import { useUserStore } from '@/stores/user'
-import { onMounted } from 'vue'
-const userStore = useUserStore()
-
-onMounted(() => {
-  userStore.fetchUser()
-})
-
-
 // Watch for prop changes
-// Submit
-/*
-const submitForm = () => {
-  // đóng gói lại theo đúng format: steps -> [{ stepIndex, items: [...] }]
-  const updatedSteps = steps.value.map(step => ({
-    stepIndex: step.stepIndex,
-    items: step.formItems.map(item => {
-      const copy = { ...item }
-      if (item.type === 'yesno' || item.type === 'single') {
-        copy.answer = selectedAnswers.value[item.id] ?? null
-      } else if (item.type === 'multiple') {
-        copy.answer = selectedAnswers.value[item.id] ?? []
-      } else if (item.type === 'userImage') {
-        copy.answer = uploadedFiles.value[item.id] ?? null
-      }
-      return copy
-    })
-  }))
-
-  const formData = {
-    uuid: String(props.id),
-    wiCode: WICode.value,
-    schema: updatedSteps
-  }
-
-  console.log("📌 SUBMIT DATA")
-  console.log(JSON.stringify(formData, null, 2))
-  alert("Form submitted successfully (check console)!")
-}
-*/
-
-// Watch id
-  watch(
-    () => props.id,
-    (newId) => {
-      if (newId !== undefined && newId !== null && newId !== '') {
-        fetchForm(newId)
-      }
-    },
-    { immediate: true }
-  )
-}
+watch(
+  () => props.id,
+  (newId) => {
+    if (newId !== undefined && newId !== null && newId !== '') {
+      fetchForm(newId)
+    }
+  },
+  { immediate: true }
+)
 </script>
+
 
 <style scoped>
 .form-wrapper {
@@ -663,7 +675,7 @@ const submitForm = () => {
 }
 
 .step-items {
-  display: grid;
+  /*display: grid;*/
   /* gap: 16px; */
 }
 
