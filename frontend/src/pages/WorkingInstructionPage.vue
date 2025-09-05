@@ -375,10 +375,7 @@ const breadcrumbItems = [
       :title="code" 
       @cancel="closeModal" 
       :style="{ top: '3px'}"
-      width="800px">
-      <template #footer>
-        <Button @click="closeModal">Closeee</Button>
-      </template>
+      width="800px" :footer="null">
       <FormViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
     </Modal>
 

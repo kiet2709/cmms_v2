@@ -337,12 +337,21 @@
     </div>
 
     <!-- Modal Overlay -->
-    <div v-if="isModalOpen" class="modal-overlay">
+    <!-- <div v-if="isModalOpen" class="modal-overlay">
       <div class="modal-content">
         <button class="modal-close" @click="closeModal">×</button>
         <FormViewer v-if="isModalOpen" :id="currentId" />
       </div>
-    </div>
+    </div> -->
+    <!-- Modal -->
+    <Modal 
+      v-model:open="isModalOpen" 
+      :title="code" 
+      @cancel="closeModal" 
+      :style="{ top: '3px'}"
+      width="800px" :footer="null">
+      <FormViewer v-if="isModalOpen" :key="currentId" :id="currentId" />
+    </Modal>
 
     <!-- Toast Notifications -->
     <div v-if="showToast" :class="['toast', toastType]">
@@ -359,6 +368,9 @@ import { ref, computed, onMounted } from "vue";
 import { EyeOutlined } from "@ant-design/icons-vue";
 import FormViewer from "./FormViewer.vue";
 import axiosClient from "../utils/axiosClient";
+import { 
+  Modal,
+} from 'ant-design-vue';
 
 // left
 const modelId = ref("");
@@ -371,6 +383,7 @@ const version = ref("");
 const category = ref("");
 const categories = ref([]);
 const cavity = ref("");
+const code = ref('');
 
 // right - selections
 const selectedInspection = ref([]);
@@ -401,6 +414,7 @@ const toastMessage = ref('');
 
 const viewItem = (item) => {
   currentId.value = item.value;
+  code.value = item.label
   isModalOpen.value = true;
 };
 const closeModal = () => {

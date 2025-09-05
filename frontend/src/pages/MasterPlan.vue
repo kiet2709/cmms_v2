@@ -141,11 +141,8 @@
       title="Instruction Details" 
       @cancel="handleModalCancel" 
       width="800px"
-      :style="{ top: '3px' }"
+      :style="{ top: '3px' }" :footer="null"
     >
-      <template #footer>
-        <Button @click="handleModalCancel">Close</Button>
-      </template>
       <FormViewer v-if="isModalVisible" :key="selectedWiId" :id="selectedWiId" />
     </Modal>
   </div>
