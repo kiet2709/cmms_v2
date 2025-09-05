@@ -612,7 +612,7 @@ const fetchWiByCategoryID = async (id) => {
       m3Options.value = [];
       data.forEach((item) => {     
         let frequency = item.frequency == 'Unit' ? item.unit_value + ' ' + item.unit_type : item.frequency;
-        const option = { value: item.id, label: item.code, description: item.name, frequency: frequency };
+        const option = { value: item.uuid, label: item.code, description: item.name, frequency: frequency };
         switch (item.type) {
           case "Daily Inspection":
             inspectionOptions.value.push(option);

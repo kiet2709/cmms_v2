@@ -19,6 +19,8 @@ class WorkingInstruction_model extends CI_Model
             ct.name as category');
         $this->db->from($this->table);
         $this->db->join('categories ct', 'working_instructions.category_id = ct.uuid');
+        $this->db->where('working_instructions.deleted_at IS NULL');
+        $this->db->where('working_instructions.deleted_by IS NULL');
         $this->db->limit($limit, $offset);
         $query = $this->db->get();
         return $query->result_array();
@@ -115,6 +117,8 @@ class WorkingInstruction_model extends CI_Model
         $this->db->join('equipment_working_instructions ewi', 'wi.uuid = ewi.working_instruction_id');
         $this->db->join('equipments e', 'e.uuid = ewi.equipment_id');
         $this->db->where('e.uuid', $machineId);
+        $this->db->where('ewi.deleted_at IS NULL');
+        $this->db->where('ewi.deleted_by IS NULL');
         $query = $this->db->get();
         $records = $query->result();
         return $records;
@@ -128,6 +132,30 @@ class WorkingInstruction_model extends CI_Model
         $query = $this->db->get();
         $records = $query->result();
         return $records;
+    }
+
+    public function deletebyId($uuid, $userId) {
+        $today = date('Y-m-d H:i:s');
+
+        $this->db->trans_start();
+
+        // Soft delete trong bảng working_instructions
+        $this->db->where('uuid', $uuid);
+        $this->db->update('working_instructions', [
+            'deleted_at' => $today,
+            'deleted_by' => $userId
+        ]);
+
+        // Gỡ mapping trong bảng equipment_working_instructions
+        $this->db->where('working_instruction_id', $uuid);
+        $this->db->update('equipment_working_instructions', [
+            'deleted_at' => $today,
+            'deleted_by' => $userId
+        ]);
+
+        $this->db->trans_complete();
+
+        return $this->db->trans_status();
     }
 
 }

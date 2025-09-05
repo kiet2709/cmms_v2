@@ -190,4 +190,37 @@ class EquipmentController extends CI_Controller
         );
     }
 
+    public function delete() {
+        $data = json_decode($this->input->raw_input_stream, true);
+        
+        // Kiểm tra dữ liệu hợp lệ
+        if (!isset($data['uuid']) || !isset($data['userId'])) {
+            return $this->output
+                        ->set_content_type('application/json')
+                        ->set_status_header(400)
+                        ->set_output(json_encode([
+                            'success' => false,
+                            'message' => 'Missing uuid or userId'
+                        ]));
+        }
+
+        $deleted = $this->Equipment_model->deletebyId($data['uuid'], $data['userId']);
+
+        if ($deleted) {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => true,
+                    'message' => 'Equipment deleted successfully'
+                ]));
+        } else {
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'status' => false,
+                    'message' => 'Failed to delete equipment or UUID not found'
+                ]));
+        }
+    }
+
 }

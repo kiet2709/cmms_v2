@@ -9,6 +9,8 @@ class Equipment_model extends CI_Model {
         $this->db->select('equipments.uuid, machine_id, family, model, cavity, manufacturer, manufacturing_date, history_count, unit, categories.name as category');
         $this->db->from($this->table);
          $this->db->join('categories', 'categories.uuid = equipments.category_id', 'left');
+        $this->db->where('equipments.deleted_at IS NULL');
+        $this->db->where('equipments.deleted_by IS NULL');
         $this->db->limit($limit, $offset);
         $query = $this->db->get();
         return $query->result_array();
@@ -25,6 +27,8 @@ class Equipment_model extends CI_Model {
         $this->db->from($this->table);
          $this->db->join('categories', 'categories.uuid = equipments.category_id', 'left');
         $this->db->where('equipments.uuid', $equipment_id);
+        $this->db->where('equipments.deleted_at IS NULL');
+        $this->db->where('equipments.deleted_by IS NULL');
         $query = $this->db->get();
         return $query->result_array();
     }
@@ -158,5 +162,27 @@ class Equipment_model extends CI_Model {
 
         // Thực hiện DELETE
         return $this->db->delete('daily_tasks');
+    }
+
+    public function deletebyId($uuid, $userId) {
+        $today = date('Y-m-d H:i:s');
+
+        $this->db->trans_start();
+        
+        $this->db->where('uuid', $uuid);
+        $this->db->update('equipments', [
+            'deleted_at' => $today,
+            'deleted_by' => $userId
+        ]);
+
+        $this->db->where('equipment_id', $uuid);
+        $this->db->update('daily_tasks', [
+            'deleted_at' => $today,
+            'deleted_by' => $userId
+        ]);
+
+        $this->db->trans_complete();
+
+        return $this->db->trans_status();
     }
 }

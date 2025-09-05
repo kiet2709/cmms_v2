@@ -673,10 +673,6 @@ watch(
   text-align: right;
 }
 
-.step-items {
-  /* display: grid; */
-  /* gap: 16px; */
-}
 
 .form-section {
   background: #fff;
