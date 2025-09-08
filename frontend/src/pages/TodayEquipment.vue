@@ -38,7 +38,7 @@ const filters = ref({
   status: null
 });
 
-// call API DailyTaskController
+// Call API DailyTaskController
 async function fetchTodayEquipments() {
   loading.value = true;
   try {
@@ -66,7 +66,7 @@ function confirmDelete(item) {
 function performDelete() {
   if (deleteTarget.value) {
     console.log('Deleting:', deleteTarget.value.equipment_id);
-    // TODO: call delete API nếu cần
+    // TODO: call delete API if needed
   }
   showDeleteModal.value = false;
   deleteTarget.value = null;
@@ -85,7 +85,7 @@ function handleAddNew() {
   router.push({ name: 'CreateEquipment' });
 }
 
-// state modal view task
+// State for modal view task
 const showViewTaskModal = ref(false);
 const selectedEquipment = ref(null);
 
@@ -102,7 +102,6 @@ function closeViewTaskModal() {
 
 const numberOfElement = ref(0);
 
-
 async function fetchDailyTasks(equipmentId) {
   try {
     const res = await axiosClient.get('', {
@@ -111,13 +110,12 @@ async function fetchDailyTasks(equipmentId) {
     
     numberOfElement.value = res.data?.data.length;
     console.log(numberOfElement.value);
-    
   } finally {
-    
+    // No loading state change needed
   }
 }
 
-// filter tại chỗ
+// Filter computed property
 const filteredData = computed(() => {
   let filtered = data.value;
   if (searchQuery.value) {
@@ -144,6 +142,11 @@ const uniqueFamilies = computed(() => [...new Set(data.value.map(i => i.family).
 const uniqueCategories = computed(() => [...new Set(data.value.map(i => i.category_name).filter(Boolean))]);
 const uniqueStatuses = computed(() => [...new Set(data.value.map(i => i.status).filter(Boolean))]);
 
+// Check if any filter is applied
+const isFilterApplied = computed(() => {
+  return filters.value.family || filters.value.category || filters.value.status;
+});
+
 function clearFilters() {
   filters.value = { family: null, category: null, status: null };
   filterVisible.value = false;
@@ -159,7 +162,7 @@ function getStatusColor(status) {
   return colors[status] || colors.default;
 }
 
-// modal delete
+// Modal delete
 const showDeleteModal = ref(false);
 const deleteTarget = ref(null);
 
@@ -193,14 +196,6 @@ const breadcrumbItems = [
               <ReloadOutlined />
               Refresh
             </Button>
-            <!-- <Button @click="handleExport" icon="download">
-              <DownloadOutlined />
-              Export
-            </Button> -->
-            <!-- <Button type="primary" @click="handleAddNew">
-              <PlusOutlined />
-              Add Equipment
-            </Button> -->
           </Space>
         </div>
       </div>
@@ -210,7 +205,77 @@ const breadcrumbItems = [
     <!-- Main Content Card -->
     <Card class="main-content-card">
       <!-- Search and Filter Bar -->
-      <!-- giữ nguyên toolbar + filter -->
+      <div class="toolbar">
+        <div class="search-section">
+          <Input.Search
+            v-model:value="searchQuery"
+            placeholder="Search by machine, family, model..."
+            size="large"
+            class="search-input"
+            allow-clear
+          />
+        </div>
+        <div class="filter-section">
+          <Space>
+            <Dropdown v-model:open="filterVisible" placement="bottomRight" trigger="click">
+              <Button class="filter-button">
+                <FilterOutlined />
+                Filters
+                <span v-if="isFilterApplied" class="filter-badge">●</span>
+              </Button>
+              <template #overlay>
+                <div class="filter-dropdown">
+                  <div class="filter-group">
+                    <label>Family</label>
+                    <Select
+                      v-model:value="filters.family"
+                      placeholder="Select family"
+                      allow-clear
+                      style="width: 200px"
+                      @change="filterVisible = true"
+                    >
+                      <Select.Option v-for="fam in uniqueFamilies" :key="fam" :value="fam">
+                        {{ fam }}
+                      </Select.Option>
+                    </Select>
+                  </div>
+                  <div class="filter-group">
+                    <label>Category</label>
+                    <Select
+                      v-model:value="filters.category"
+                      placeholder="Select category"
+                      allow-clear
+                      style="width: 200px"
+                      @change="filterVisible = true"
+                    >
+                      <Select.Option v-for="cat in uniqueCategories" :key="cat" :value="cat">
+                        {{ cat }}
+                      </Select.Option>
+                    </Select>
+                  </div>
+                  <div class="filter-group">
+                    <label>Status</label>
+                    <Select
+                      v-model:value="filters.status"
+                      placeholder="Select status"
+                      allow-clear
+                      style="width: 200px"
+                      @change="filterVisible = true"
+                    >
+                      <Select.Option v-for="st in uniqueStatuses" :key="st" :value="st">
+                        {{ st }}
+                      </Select.Option>
+                    </Select>
+                  </div>
+                  <div class="filter-actions">
+                    <Button size="small" @click="clearFilters">Clear All</Button>
+                  </div>
+                </div>
+              </template>
+            </Dropdown>
+          </Space>
+        </div>
+      </div>
 
       <!-- Results Info -->
       <div class="results-info">
@@ -255,16 +320,6 @@ const breadcrumbItems = [
                         <EyeOutlined />
                       </Button>
                     </Tooltip>
-                    <!-- <Tooltip title="Edit Equipment">
-                      <Button type="text" @click="handleEdit(item.equipment_id)" class="edit-btn">
-                        <EditOutlined />
-                      </Button>
-                    </Tooltip>
-                    <Tooltip title="Delete Equipment Task">
-                      <Button type="text" danger @click="confirmDelete(item)" class="delete-btn">
-                        <DeleteOutlined />
-                      </Button>
-                    </Tooltip> -->
                   </div>
                 </td>
               </tr>
@@ -279,31 +334,37 @@ const breadcrumbItems = [
       v-model:open="showViewTaskModal"
       title="Daily Inspection"
       width="97%"
-  :style="{ 
-    top: '3px',
-    maxHeight: 'calc(100vh - 20px)',
-    paddingBottom: '0'
-  }"
-  :body-style="{
-    height: 'auto',
-    maxHeight: 'calc(100vh - 120px)',
-    overflowY: numberOfElement <= 4 ? 'hidden' : 'auto',
-  }"
+      :style="{ 
+        top: '3px',
+        maxHeight: 'calc(100vh - 20px)',
+        paddingBottom: '0'
+      }"
+      :body-style="{
+        height: 'auto',
+        maxHeight: 'calc(100vh - 120px)',
+        overflowY: numberOfElement <= 4 ? 'hidden' : 'auto',
+      }"
       :footer="null"
       @cancel="closeViewTaskModal"
     >
-      <!-- <div style="height: 80vh;"> -->
       <DailyInspectionPage
         v-if="selectedEquipment"
         :uuid="selectedEquipment.equipment_id"
         :machine-id="selectedEquipment.machine_id"
         @tasks-updated="handleRefresh"
       />
-      <!-- </div> -->
     </Modal>
 
     <!-- Delete Confirmation -->
-    <Modal v-model:open="showDeleteModal" title="Confirm Delete" @ok="performDelete" @cancel="cancelDelete" ok-text="Yes, Delete" cancel-text="Cancel" ok-type="danger">
+    <Modal
+      v-model:open="showDeleteModal"
+      title="Confirm Delete"
+      @ok="performDelete"
+      @cancel="cancelDelete"
+      ok-text="Yes, Delete"
+      cancel-text="Cancel"
+      ok-type="danger"
+    >
       <div class="delete-content">
         <div class="warning-icon"><ExclamationCircleOutlined /></div>
         <div class="warning-text">
@@ -319,16 +380,16 @@ const breadcrumbItems = [
   </div>
 </template>
 
-
 <style scoped>
 .app-container {
   background: rgb(245,245,245);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
+
 .app-header {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  padding: 15px 30px;
+  padding: 20px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -351,64 +412,27 @@ const breadcrumbItems = [
   gap: 12px;
   margin: 0;
 }
-.User-management {
-  padding: 10px;
-  background: #f5f5f5;
-  min-height: 100vh;
-}
+
 .breadcrumb {
-  margin-top: 5px;
   font-size: 14px;
   color: #6c757d;
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
+.separator {
+  color: #dee2e6;
+}
+
 .current {
   color: #667eea;
   font-weight: 500;
 }
+
 .equipment-management {
   padding: 24px;
   background: #f5f5f5;
-  min-height: 100vh;
-}
-
-
-.page-header {
-  background: white;
-  border-radius: 12px;
-  padding: 32px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.title-section h1 {
-  margin: 0 0 8px 0;
-  font-size: 32px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.subtitle {
-  color: #666;
-  font-size: 16px;
-  margin: 0;
-}
-
-.stats-row {
-  margin-bottom: 24px;
-}
-
-.stats-row .ant-card {
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .main-content-card {
@@ -436,6 +460,12 @@ const breadcrumbItems = [
 
 .filter-section {
   flex-shrink: 0;
+}
+
+.filter-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .filter-badge {
@@ -481,25 +511,6 @@ const breadcrumbItems = [
   border: 1px solid #f0f0f0;
 }
 
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-}
-
-.loading-spinner {
-  padding: 20px;
-  font-size: 16px;
-  color: #666;
-}
-
 .table-responsive {
   overflow-x: auto;
 }
@@ -525,160 +536,19 @@ const breadcrumbItems = [
   white-space: nowrap;
 }
 
-.modern-table th.sortable {
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.2s;
-}
-
-.modern-table th.sortable:hover {
-  background: #f0f0f0;
-}
-
-.th-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sort-indicator {
-  margin-left: 8px;
-  font-size: 12px;
-  opacity: 0.6;
-}
-
-.sort-asc, .sort-desc {
-  color: #1890ff;
-  opacity: 1;
-}
-
 .modern-table td {
   padding: 16px 12px;
   border-bottom: 1px solid #f5f5f5;
   vertical-align: middle;
 }
 
-.table-row {
-  transition: background-color 0.2s;
-}
-
 .table-row:hover {
   background: #fafafa;
-}
-
-.machine-id {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.history-count {
-  font-weight: 500;
-}
-
-.view-plan-btn {
-  color: #1890ff;
 }
 
 .action-buttons-cell {
   display: flex;
   gap: 8px;
-}
-
-.edit-btn:hover {
-  color: #1890ff;
-  background: #f6ffed;
-}
-
-.delete-btn:hover {
-  color: #ff4d4f;
-  background: #fff2f0;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #999;
-}
-
-.empty-content {
-  max-width: 300px;
-  margin: 0 auto;
-}
-
-.empty-icon {
-  font-size: 64px;
-  color: #d9d9d9;
-  margin-bottom: 24px;
-}
-
-.empty-content h3 {
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.empty-content p {
-  margin-bottom: 24px;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.pagination-info {
-  color: #666;
-  font-size: 14px;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-numbers {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.current-page {
-  font-weight: 600;
-  color: #1890ff;
-}
-
-.page-separator {
-  color: #999;
-}
-
-.pagination-btn {
-  border-radius: 6px;
-}
-
-/* Modal Styles */
-.master-plan-modal .ant-modal-header {
-  border-radius: 12px 12px 0 0;
-}
-
-.master-plan-content {
-  padding: 20px 0;
-}
-
-.todo-note {
-  color: #666;
-  font-style: italic;
-  padding: 16px;
-  background: #f9f9f9;
-  border-radius: 6px;
-  margin-top: 16px;
-}
-
-.delete-modal .ant-modal-header {
-  border-radius: 12px 12px 0 0;
 }
 
 .delete-content {
@@ -728,35 +598,15 @@ const breadcrumbItems = [
   .equipment-management {
     padding: 16px;
   }
-  
-  .header-content {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-  
+
   .toolbar {
     flex-direction: column;
     align-items: stretch;
   }
-  
-  .pagination-container {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-  }
-  
-  .stats-row {
-    margin-bottom: 16px;
-  }
-  
-  .stats-row .ant-col {
-    margin-bottom: 16px;
-  }
-  
-  .action-buttons-cell {
-    flex-direction: column;
-    align-items: center;
+
+  .filter-button {
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -766,29 +616,5 @@ const breadcrumbItems = [
     padding: 8px 6px;
     font-size: 12px;
   }
-  
-  .page-header {
-    padding: 20px;
-  }
-  
-  .title-section h1 {
-    font-size: 24px;
-  }
 }
-
-
-/* CSS cho tất cả th có class sortable hoặc tất cả th nếu muốn */
-/* th.sortable, th {
-  text-align: center !important;       
-
-.th-content {
-  display: flex !important;
-  justify-content: center !important;  
-  align-items: center !important;     
-  gap: 4px !important;                 
-}
-
-.sort-indicator {
-  display: inline-flex !important;
-} */
 </style>

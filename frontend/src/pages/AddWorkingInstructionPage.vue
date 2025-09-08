@@ -1,3 +1,4 @@
+
 <template>
   <div class="app-container">
     <!-- Header -->
@@ -15,7 +16,7 @@
           <span class="btn-icon">🗑️</span>
           Clear Form
         </button>
-        <button class="btn btn-primary" @click="saveForm" :disabled="saving">
+        <button class="btn btn-primary" @click="validateAndSave" :disabled="saving">
           <span v-if="!saving" class="btn-icon">💾</span>
           <div v-if="saving" class="spinner"></div>
           {{ saving ? 'Saving...' : 'Save WI' }}
@@ -62,165 +63,202 @@
       <div class="form-builder" >
         <div class="panel-header">
           <h3 class="panel-title" v-translate>Form Builder</h3>
-          <button class="btn-add" @click="addStep">Add Step</button>
-          <div class="items-count">{{ totalItems  }} items</div>
-          
+          <div class="step-actions">
+            <button class="btn-add" @click="addStep">Add Step</button>
+            <button class="btn-add" @click="showInsertStepModal = true">Insert Step</button>
+          </div>
+          <div class="items-count">{{ totalItems }} items</div>
         </div>
-        <div   style="overflow-y: scroll; max-height: 100vh;">
+        
+        <div style="overflow-y: scroll; max-height: 100vh;">
           <div v-for="(step, stepIndex) in steps" :key="step.id" class="step-block">
-            <h4>Step {{ stepIndex + 1 }}</h4>
+            <div class="step-header">
+              <h4>Step {{ stepIndex + 1 }}</h4>
+              <button 
+                v-if="steps.length > 1"
+                class="delete-step-btn" 
+                @click="deleteStep(stepIndex)"
+                :title="`Delete Step ${stepIndex + 1}`"
+              >
+                <span class="delete-icon">🗑️</span>
+              </button>
+            </div>
 
             <div 
-            class="drop-zone"
-            :class="{ 'drag-over': step.isDragOver }"
-            @dragover.prevent="onDragOver(step)"
-            @dragleave="onDragLeave(step)"
-            @drop="onDrop(stepIndex)"
-          >
-            <div v-if="step.formItems.length === 0" class="empty-state">
-              <div class="empty-icon">📝</div>
-              <h4 v-translate>Start Building Your Form</h4>
-              <p v-translate>Drag components from the toolbox to begin creating your form</p>
-            </div>
-
-            <div
-              v-for="(item, index) in  step.formItems"
-              :key="item.id || index"   
-              class="form-item-card"
-              :class="{ 'selected': selectedItem?.step === stepIndex && selectedItem?.index === index }"
-              @click="selectItem(stepIndex, index)"
+              class="drop-zone"
+              :class="{ 'drag-over': step.isDragOver }"
+              @dragover.prevent="onDragOver(step)"
+              @dragleave="onDragLeave(step)"
+              @drop="onDrop(stepIndex)"
             >
-            <div class="item-header">
-              <div class="item-type">
-                <span class="type-icon">{{ getComponentIcon(item.type) }}</span>
-                <span class="type-label">{{ getComponentLabel(item.type) }}</span>
+              <div v-if="step.formItems.length === 0" class="empty-state">
+                <div class="empty-icon">📝</div>
+                <h4 v-translate>Start Building Your Form</h4>
+                <p v-translate>Drag components from the toolbox to begin creating your form</p>
               </div>
-              <div class="item-actions">
-                <button class="action-btn" @click.stop="duplicateItem(stepIndex, index)" title="Duplicate">
-                  <span>📋</span>
-                </button>
-                <button class="action-btn danger" @click.stop="removeItem(stepIndex, index)" title="Remove">
-                  <span>🗑️</span>
-                </button>
-              </div>
-            </div>
-            <div class="item-content">
-                <!-- Label Component -->
-                <div v-if="item.type === 'label'" class="config-section">
-                  <div class="input-group">
-                    <label>Heading Level</label>
-                    <select v-model="item.heading" class="form-select">
-                      <option v-for="n in 6" :key="n" :value="'h' + n">Heading {{ n }}</option>
-                    </select>
+
+              <div
+                v-for="(item, index) in step.formItems"
+                :key="item.id || index"   
+                class="form-item-card"
+                :class="{ 'selected': selectedItem?.step === stepIndex && selectedItem?.index === index }"
+                @click="selectItem(stepIndex, index)"
+              >
+                <div class="item-header">
+                  <div class="item-type">
+                    <span class="type-icon">{{ getComponentIcon(item.type) }}</span>
+                    <span class="type-label">{{ getComponentLabel(item.type) }}</span>
                   </div>
-                  <div class="input-group">
-                    <label>Label Text</label>
-                    <input v-model="item.text" placeholder="Enter label text..." class="form-input" />
-                  </div>
-                  <div class="style-options">
-                    <label class="checkbox-label">
-                      <input type="checkbox" v-model="item.bold" />
-                      <span class="checkmark"></span>
-                      <strong>Bold</strong>
-                    </label>
-                    <label class="checkbox-label">
-                      <input type="checkbox" v-model="item.italic" />
-                      <span class="checkmark"></span>
-                      <em>Italic</em>
-                    </label>
-                    <label class="checkbox-label">
-                      <input type="checkbox" v-model="item.underline" />
-                      <span class="checkmark"></span>
-                      <u>Underline</u>
-                    </label>
+                  <div class="item-actions">
+                    <button class="action-btn" @click.stop="duplicateItem(stepIndex, index)" title="Duplicate">
+                      <span>📋</span>
+                    </button>
+                    <button class="action-btn danger" @click.stop="removeItem(stepIndex, index)" title="Remove">
+                      <span>🗑️</span>
+                    </button>
                   </div>
                 </div>
+                
+                <div class="item-content">
+                  <!-- Label Component -->
+                  <div v-if="item.type === 'label'" class="config-section">
+                    <div class="input-group">
+                      <label>Heading Level</label>
+                      <select v-model="item.heading" class="form-select">
+                        <option v-for="n in 6" :key="n" :value="'h' + n">Heading {{ n }}</option>
+                      </select>
+                    </div>
+                    <div class="input-group">
+                      <label>Label Text</label>
+                      <input v-model="item.text" placeholder="Enter label text..." class="form-input" />
+                    </div>
+                    <div class="style-options">
+                      <label class="checkbox-label">
+                        <input type="checkbox" v-model="item.bold" />
+                        <span class="checkmark"></span>
+                        <strong>Bold</strong>
+                      </label>
+                      <label class="checkbox-label">
+                        <input type="checkbox" v-model="item.italic" />
+                        <span class="checkmark"></span>
+                        <em>Italic</em>
+                      </label>
+                      <label class="checkbox-label">
+                        <input type="checkbox" v-model="item.underline" />
+                        <span class="checkmark"></span>
+                        <u>Underline</u>
+                      </label>
+                    </div>
+                  </div>
 
-                <!-- Yes/No Question -->
-                <div v-else-if="item.type === 'yesno'" class="config-section">
-                  <div class="input-group">
-                    <label>Question</label>
-                    <input v-model="item.question" placeholder="Enter yes/no question..." class="form-input" />
+                  <!-- Yes/No Question -->
+                  <div v-else-if="item.type === 'yesno'" class="config-section">
+                    <div class="input-group">
+                      <label>Question</label>
+                      <input v-model="item.question" placeholder="Enter yes/no question..." class="form-input" />
+                    </div>
                   </div>
-                </div>
 
-                <!-- Multiple Choice -->
-                <div v-else-if="item.type === 'multiple'" class="config-section">
-                  <div class="input-group">
-                    <label>Question</label>
-                    <input v-model="item.question" placeholder="Enter multiple choice question..." class="form-input" />
+                  <!-- Multiple Choice -->
+                  <div v-else-if="item.type === 'multiple'" class="config-section">
+                    <div class="input-group">
+                      <label>Question</label>
+                      <input v-model="item.question" placeholder="Enter multiple choice question..." class="form-input" />
+                    </div>
+                    <div class="input-group">
+                      <label>Options <span class="help-text">(comma separated)</span></label>
+                      <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
+                    </div>
                   </div>
-                  <div class="input-group">
-                    <label>Options <span class="help-text">(comma separated)</span></label>
-                    <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
-                  </div>
-                </div>
 
-                <!-- Single Choice -->
-                <div v-else-if="item.type === 'single'" class="config-section">
-                  <div class="input-group">
-                    <label>Question</label>
-                    <input v-model="item.question" placeholder="Enter single choice question..." class="form-input" />
+                  <!-- Single Choice -->
+                  <div v-else-if="item.type === 'single'" class="config-section">
+                    <div class="input-group">
+                      <label>Question</label>
+                      <input v-model="item.question" placeholder="Enter single choice question..." class="form-input" />
+                    </div>
+                    <div class="input-group">
+                      <label>Options <span class="help-text">(comma separated)</span></label>
+                      <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
+                    </div>
                   </div>
-                  <div class="input-group">
-                    <label>Options <span class="help-text">(comma separated)</span></label>
-                    <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
-                  </div>
-                </div>
 
-                <!-- Static Image -->
-                <div v-else-if="item.type === 'staticImage'" class="config-section">
-                  <div class="image-upload-area">
-                    <input 
-                      type="file"
-                      :id="'file-' + stepIndex + '-' + index"
-                      @change="onImageUpload($event, stepIndex, index)"
-                      accept="image/*"
-                      class="file-input"
-                    />
-                    <label :for="'file-' + stepIndex + '-' + index" class="file-upload-btn">
-                      <span class="upload-icon">📤</span>
-                      Choose Image
-                    </label>
-                    <!-- Preview nhiều ảnh -->
-                    <div v-if="item.imageUrls && item.imageUrls.length" class="image-preview-list">
-                    <div 
-                      v-for="(img, i) in item.imageUrls" 
-                      :key="i" 
-                      class="image-preview"
-                    >
-                      <img :src="img" class="preview-image" />
-                      <div class="image-overlay">
-                        <button @click="removeImage(stepIndex, index, i)" class="overlay-btn">
-                          <span>🗑️</span>
-                        </button>
+                  <!-- Static Image -->
+                  <div v-else-if="item.type === 'staticImage'" class="config-section">
+                    <div class="image-upload-area">
+                      <input 
+                        type="file"
+                        :id="'file-' + stepIndex + '-' + index"
+                        @change="onImageUpload($event, stepIndex, index)"
+                        accept="image/*"
+                        class="file-input"
+                      />
+                      <label :for="'file-' + stepIndex + '-' + index" class="file-upload-btn">
+                        <span class="upload-icon">📤</span>
+                        Choose Image
+                      </label>
+                      <!-- Preview nhiều ảnh -->
+                      <div v-if="item.imageUrls && item.imageUrls.length" class="image-preview-list">
+                        <div 
+                          v-for="(img, i) in item.imageUrls" 
+                          :key="i" 
+                          class="image-preview"
+                        >
+                          <img :src="img" class="preview-image" />
+                          <div class="image-overlay">
+                            <button @click="removeImage(stepIndex, index, i)" class="overlay-btn">
+                              <span>🗑️</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  </div>
-                </div>
 
-                <!-- User Upload Image -->
-                <div v-else-if="item.type === 'userImage'" class="config-section">
-                  <div class="info-box">
-                    <span class="info-icon">ℹ️</span>
-                    <span>This will allow users to upload images when filling the form</span>
+                  <!-- Static Video -->
+                  <div v-else-if="item.type === 'staticVideo'" class="config-section">
+                    <div class="video-upload-area">
+                      <input 
+                        type="file"
+                        :id="'file-' + stepIndex + '-' + index"
+                        @change="onVideoUpload($event, stepIndex, index)"
+                        accept="video/*"
+                        class="file-input"
+                      />
+                      <label :for="'file-' + stepIndex + '-' + index" class="file-upload-btn">
+                        <span class="upload-icon">📤</span>
+                        Choose Video
+                      </label>
+                      <!-- Preview nhiều video -->
+                      <div v-if="item.videoUrls && item.videoUrls.length" class="video-preview-list">
+                        <div 
+                          v-for="(vid, i) in item.videoUrls" 
+                          :key="i" 
+                          class="video-preview"
+                        >
+                          <video :src="vid" width="100" controls class="preview-video"></video>
+                          <div class="video-overlay">
+                            <button @click="removeVideo(stepIndex, index, i)" class="overlay-btn">
+                              <span>🗑️</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- User Upload Image -->
+                  <div v-else-if="item.type === 'userImage'" class="config-section">
+                    <div class="info-box">
+                      <span class="info-icon">ℹ️</span>
+                      <span>This will allow users to upload images when filling the form</span>
+                    </div>
                   </div>
                 </div>
               </div>
-
-          </div>
-          
-        
-
-
-          
-
-              
             </div>
           </div>
         </div>
-
       </div>
 
       <!-- Right Panel: Preview & Settings -->
@@ -264,8 +302,8 @@
                 <option disabled value="">-- Select Category --</option>
                 <option 
                   v-for="cat in categories" 
-                  :key="cat.code" 
-                  :value="cat.code"
+                  :key="cat.uuid || cat.id || cat.code" 
+                  :value="cat.uuid || cat.id || cat.code"
                 >
                   {{ cat.name }}
                 </option>
@@ -291,7 +329,6 @@
                 rows="3"
               ></textarea>
             </div>
-  
 
             <div class="meta-field">
               <label>Frequency</label>
@@ -322,14 +359,13 @@
                 placeholder="Enter Unit Type..."
               />
             </div>
-
           </div>
 
           <div class="settings-section">
             <h4 class="section-title">Form Statistics</h4>
             <div class="stats-grid">
               <div class="stat-card">
-                <div class="stat-value">{{ formItems.length }}</div>
+                <div class="stat-value">{{ totalItems }}</div>
                 <div class="stat-label">Total Items</div>
               </div>
               <div class="stat-card">
@@ -337,8 +373,8 @@
                 <div class="stat-label">Questions</div>
               </div>
               <div class="stat-card">
-                <div class="stat-value">{{ imageCount }}</div>
-                <div class="stat-label">Images</div>
+                <div class="stat-value">{{ mediaCount }}</div>
+                <div class="stat-label">Media</div>
               </div>
             </div>
           </div>
@@ -349,7 +385,7 @@
           <div class="preview-header">
             <h4 class="section-title">Form Preview</h4>
             <div class="preview-info">
-              <span class="info-badge">{{ totalItems  }} items</span>
+              <span class="info-badge">{{ totalItems }} items</span>
             </div>
           </div>
 
@@ -413,6 +449,7 @@
                   </div>
                 </div>
               </div>
+              
               <!-- Render Single Choice -->
               <div v-else-if="item.type === 'single'" class="question-block">
                 <p class="question-text">{{ item.question || 'Single choice question not set' }}</p>
@@ -440,7 +477,7 @@
 
               <!-- Render Static Image -->
               <div v-else-if="item.type === 'staticImage'" class="image-block">
-                 <!-- Có ảnh -->
+                <!-- Có ảnh -->
                 <div v-if="item.imageUrls && item.imageUrls.length" class="image-preview-grid">
                   <div 
                     v-for="(img, i) in item.imageUrls" 
@@ -458,6 +495,26 @@
                 </div>
               </div>
 
+              <!-- Render Static Video -->
+              <div v-else-if="item.type === 'staticVideo'" class="video-block">
+                <!-- Có video -->
+                <div v-if="item.videoUrls && item.videoUrls.length" class="video-preview-grid">
+                  <div 
+                    v-for="(vid, i) in item.videoUrls" 
+                    :key="i" 
+                    class="preview-video-wrapper"
+                  >
+                    <video :src="vid" controls class="preview-video-large"></video>
+                  </div>
+                </div>
+
+                <!-- Không có video -->
+                <div v-else class="video-placeholder">
+                  <span class="placeholder-icon">🎥</span>
+                  <p>No video uploaded</p>
+                </div>
+              </div>
+
               <!-- Render User Image Upload -->
               <div v-else-if="item.type === 'userImage'" class="upload-block">
                 <label class="upload-label">Upload Image</label>
@@ -466,6 +523,65 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+        <!-- Insert Step Modal -->
+    <div v-if="showInsertStepModal" class="modal-overlay" @click="showInsertStepModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">Insert New Step</h3>
+          <button class="modal-close" @click="showInsertStepModal = false">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>Select where to insert the new step:</p>
+          <select v-model="insertStepPosition" class="form-select">
+            <option value="end">At the end</option>
+            <option 
+              v-for="n in steps.length" 
+              :key="n" 
+              :value="n"
+            >
+              After Step {{ n }}
+            </option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" @click="showInsertStepModal = false">
+            Cancel
+          </button>
+          <button class="btn btn-primary" @click="insertStep">
+            Insert Step
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Validation Modal -->
+    <div v-if="showValidationModal" class="modal-overlay" @click="closeValidationModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">⚠️ Validation Warning</h3>
+          <button class="modal-close" @click="closeValidationModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-message">
+            Please check your form again. The following steps are empty and need to be filled:
+          </p>
+          <ul class="empty-steps-list">
+            <li v-for="stepNum in emptySteps" :key="stepNum" class="empty-step-item">
+              Step {{ stepNum }}
+            </li>
+          </ul>
+          <p class="modal-note">
+            All steps must contain at least one component before saving the form.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" @click="closeValidationModal">
+            Review Form
+          </button>
         </div>
       </div>
     </div>
@@ -490,6 +606,15 @@
 import { ref, computed, watch, onMounted } from "vue";
 import axiosClient from "../utils/axiosClient";
 import { useTranslation } from '@/utils/translation.js'
+import { useRoute, useRouter } from "vue-router";
+
+const router = useRouter();
+const route = useRoute();
+
+const uuid = ref('');
+uuid.value = route.query.uuid;
+
+console.log(uuid.value);
 
 const { translateReactive } = useTranslation()
 
@@ -526,6 +651,12 @@ const components = ref([
     description: "Display an image in the form"
   },
   { 
+    type: "staticVideo", 
+    label: "Static Video", 
+    icon: "🎥",
+    description: "Display a video in the form"
+  },
+  { 
     type: "userImage", 
     label: "User Upload", 
     icon: "📤",
@@ -538,9 +669,12 @@ const activeTab = ref('settings');
 const selectedItem = ref(null);
 const saving = ref(false);
 const isDragOver = ref(false);
-
 const showSuccess = ref(false);
 const searchToolbox = ref('');
+const showValidationModal = ref(false);
+const emptySteps = ref([]);
+const showInsertStepModal = ref(false);
+const insertStepPosition = ref('end');
 
 // Data
 const categories = ref([]);
@@ -574,7 +708,14 @@ const typeMap = {
 // Computed properties
 const generatedCode = computed(() => {
   const typeCode = typeMap[formMeta.value.type] || "";
-  const categoryCode = formMeta.value.category || "";
+  // tìm object category tương ứng (match uuid hoặc code)
+  const cat = categories.value.find(c =>
+    c.uuid === formMeta.value.category ||
+    c.id === formMeta.value.category ||
+    c.code === formMeta.value.category
+  );
+
+  const categoryCode = cat ? (cat.code || cat.uuid || cat.id) : (formMeta.value.category || "");
   if (typeCode && categoryCode) {
     return `${typeCode}-${categoryCode}-XXXXXX`;
   }
@@ -593,8 +734,8 @@ const questionCount = computed(() =>
   flatItems.value.filter(i => ['yesno','multiple','single'].includes(i.type)).length
 );
 
-const imageCount = computed(() =>
-  flatItems.value.filter(i => ['staticImage','userImage'].includes(i.type)).length
+const mediaCount = computed(() =>
+  flatItems.value.filter(i => ['staticImage','userImage','staticVideo'].includes(i.type)).length
 );
 
 // Sync generated code to meta
@@ -607,6 +748,131 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const steps = ref([
   { id: uid(), formItems: [], isDragOver: false }
 ]);
+
+const loadStepsFromApi = (apiData) => {
+  // Nếu backend trả về string JSON thì parse
+  let stepsArray = apiData;
+  if (typeof apiData === "string") {
+    try {
+      stepsArray = JSON.parse(apiData);
+    } catch (e) {
+      console.error("Schema parse error:", e);
+      stepsArray = [];
+    }
+  }
+
+  steps.value = stepsArray.map(step => ({
+    id: uid(),
+    isDragOver: false,
+    formItems: step.items.map(item => {
+      switch (item.type) {
+        case "label":
+          return {
+            id: item.id,
+            type: "label",
+            text: item.text || "",
+            heading: item.heading || "h3",
+            bold: !!item.bold,
+            italic: !!item.italic,
+            underline: !!item.underline,
+          };
+        case "yesno":
+          return {
+            id: item.id,
+            type: "yesno",
+            question: item.question || "",
+          };
+        case "multiple":
+          return {
+            id: item.id,
+            type: "multiple",
+            question: item.question || "",
+            options: item.options || "",
+          };
+        case "single":
+          return {
+            id: item.id,
+            type: "single",
+            question: item.question || "",
+            options: item.options || "",
+          };
+        case "staticImage":
+          return {
+            id: item.id,
+            type: "staticImage",
+            imageUrls: item.imageUrls || [],
+          };
+        case "staticVideo":
+          return {
+            id: item.id,
+            type: "staticVideo",
+            videoUrls: item.videoUrls || [],
+          };
+        case "userImage":
+          return {
+            id: item.id,
+            type: "userImage",
+          };
+        default:
+          return { id: item.id, type: item.type };
+      }
+    })
+  }));
+};
+const pendingCategoryFromWI = ref(null);
+async function getWI()
+{
+  try {
+    const res = await axiosClient.get("", {
+      params: { 
+        c: "WorkingInstructionController", 
+        m: "getWIById", 
+        id: uuid.value },
+    });
+     const wi = res.data.data[0];
+    console.log('-------');
+    console.log(wi);
+    console.log('-------');
+
+    // Load schema -> steps
+    loadStepsFromApi(wi.schema);
+
+    // Map meta
+    formMeta.value.type       = wi.type || "";
+    formMeta.value.description= wi.name || wi.description || ""; // backend chưa có description thì lấy name thay thế
+    formMeta.value.frequency  = wi.frequency || "";
+    formMeta.value.unitType   = wi.unit_type || "";
+    formMeta.value.unitValue  = wi.unit_value || "";
+
+    if (wi.category_id) {
+      // nếu categories đã load, tìm match; nếu chưa thì lưu pending để map sau
+      const matched = categories.value.find(c =>
+        c.uuid === wi.category_id || c.id === wi.category_id || c.code === wi.category_id
+      );
+      if (matched) {
+        // lưu value giống template :value (chúng ta dùng uuid/id/code fallback)
+        formMeta.value.category = matched.uuid || matched.id || matched.code;
+      } else {
+        // lưu tạm, map sau khi categories load
+        pendingCategoryFromWI.value = wi.category_id;
+        // cũng đặt tạm để select không vỡ (nếu muốn)
+        formMeta.value.category = wi.category_id;
+      }
+    }
+
+  } catch (err) {
+    console.error("Load steps failed:", err);
+  }
+}
+function mapPendingCategory() {
+  if (!pendingCategoryFromWI.value) return;
+  const p = pendingCategoryFromWI.value;
+  const matched = categories.value.find(c => c.uuid === p || c.id === p || c.code === p);
+  if (matched) {
+    formMeta.value.category = matched.uuid || matched.id || matched.code;
+    pendingCategoryFromWI.value = null;
+  }
+}
 const getComponentIcon = (type) => {
   const comp = components.value.find(c => c.type === type);
   return comp ? comp.icon : '📝';
@@ -616,15 +882,56 @@ const getComponentLabel = (type) => {
   const comp = components.value.find(c => c.type === type);
   return comp ? comp.label : type;
 };
+
 const totalItems = computed(() =>
   steps.value.reduce((sum, s) => sum + s.formItems.length, 0)
 );
+
 const flatItems = computed(() =>
   steps.value.flatMap(s => s.formItems)
 );
+
 const addStep = () => {
   steps.value.push({ id: uid(), formItems: [], isDragOver: false });
 };
+
+const insertStep = () => {
+  const newStep = { id: uid(), formItems: [], isDragOver: false };
+  if (insertStepPosition.value === 'end') {
+    steps.value.push(newStep);
+  } else {
+    const position = parseInt(insertStepPosition.value);
+    steps.value.splice(position, 0, newStep);
+    // Adjust selected item if necessary
+    if (selectedItem.value && selectedItem.value.step >= position) {
+      selectedItem.value.step++;
+    }
+  }
+  showInsertStepModal.value = false;
+  insertStepPosition.value = 'end';
+};
+
+// Delete step function
+const deleteStep = (stepIndex) => {
+  if (steps.value.length <= 1) {
+    alert('Cannot delete the last remaining step. At least one step is required.');
+    return;
+  }
+  
+  if (confirm(`Are you sure you want to delete Step ${stepIndex + 1}? This action cannot be undone.`)) {
+    // Clear selected item if it belongs to the step being deleted
+    if (selectedItem.value && selectedItem.value.step === stepIndex) {
+      selectedItem.value = null;
+    }
+    // Adjust selected item index if it's after the deleted step
+    else if (selectedItem.value && selectedItem.value.step > stepIndex) {
+      selectedItem.value.step--;
+    }
+    
+    steps.value.splice(stepIndex, 1);
+  }
+};
+
 // Form item management
 const selectItem = (stepIndex, index) => {
   if (selectedItem.value && selectedItem.value.step === stepIndex && selectedItem.value.index === index) {
@@ -639,6 +946,7 @@ const duplicateItem = (stepIndex, index) => {
   item.id = uid();
   steps.value[stepIndex].formItems.splice(index + 1, 0, item);
 };
+
 const removeItem = async (stepIndex, index) => {
   const item = steps.value[stepIndex].formItems[index];
   if (item.type === "staticImage" && item.imageUrls) {
@@ -649,12 +957,18 @@ const removeItem = async (stepIndex, index) => {
     } catch (err) {
       console.error("Delete image failed:", err);
     }
+  } else if (item.type === "staticVideo" && item.videoUrls) {
+    try {
+      await axiosClient.post('', {}, {
+        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.videoUrls },
+      });
+    } catch (err) {
+      console.error("Delete video failed:", err);
+    }
   }
   steps.value[stepIndex].formItems.splice(index, 1);
   selectedItem.value = null;
 };
-
-
 
 const clearForm = () => {
   if (confirm('Are you sure you want to clear the entire form? This action cannot be undone.')) {
@@ -662,6 +976,32 @@ const clearForm = () => {
     selectedItem.value = null;
     formMeta.value = { code:"", type:"", description:"", category:"", frequency:"", unitType:"", unitValue:"" };
   }
+};
+
+// Validation functions
+const validateSteps = () => {
+  const empty = [];
+  steps.value.forEach((step, index) => {
+    if (step.formItems.length === 0) {
+      empty.push(index + 1);
+    }
+  });
+  return empty;
+};
+
+const validateAndSave = () => {
+  const emptyStepsList = validateSteps();
+  if (emptyStepsList.length > 0) {
+    emptySteps.value = emptyStepsList;
+    showValidationModal.value = true;
+    return;
+  }
+  saveForm();
+};
+
+const closeValidationModal = () => {
+  showValidationModal.value = false;
+  emptySteps.value = [];
 };
 
 // Drag and drop handlers
@@ -691,7 +1031,8 @@ const onDrop = (stepIndex) => {
     case "yesno": Object.assign(newItem, { type:"yesno", question:"" }); break;
     case "multiple": Object.assign(newItem, { type:"multiple", question:"", options:"" }); break;
     case "single": Object.assign(newItem, { type:"single", question:"", options:"" }); break;
-    case "staticImage": Object.assign(newItem, { type:"staticImage", imageUrls:"" }); break;
+    case "staticImage": Object.assign(newItem, { type:"staticImage", imageUrls:[] }); break;
+    case "staticVideo": Object.assign(newItem, { type:"staticVideo", videoUrls:[] }); break;
     case "userImage": Object.assign(newItem, { type:"userImage" }); break;
   }
   step.formItems.push(newItem);
@@ -728,6 +1069,35 @@ const onImageUpload = async (event, stepIndex, index) => {
   }
 };
 
+// Video upload handler (nhiều video)
+const onVideoUpload = async (event, stepIndex, index) => {
+  const files = event.target.files;
+  if (!files || !files.length) return;
+
+  // nếu chưa có videoUrls thì tạo mảng rỗng
+  if (!steps.value[stepIndex].formItems[index].videoUrls) {
+    steps.value[stepIndex].formItems[index].videoUrls = [];
+  }
+
+  for (const file of files) {
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const res = await axiosClient.post('', form, {
+        params: { c: 'WorkingInstructionController', m: 'upload' },
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = res.data.url;
+
+      // push vào mảng videoUrls
+      steps.value[stepIndex].formItems[index].videoUrls.push(url);
+    } catch (err) {
+      console.error("Upload failed:", err);
+    }
+  }
+};
+
 // Xóa 1 ảnh trong mảng
 const removeImage = async (stepIndex, index, imgIndex) => {
   const item = steps.value[stepIndex].formItems[index];
@@ -746,6 +1116,25 @@ const removeImage = async (stepIndex, index, imgIndex) => {
   // Xóa khỏi mảng
   item.imageUrls.splice(imgIndex, 1);
 };
+
+// Xóa 1 video trong mảng
+const removeVideo = async (stepIndex, index, vidIndex) => {
+  const item = steps.value[stepIndex].formItems[index];
+  const url = item.videoUrls[vidIndex];
+
+  if (url) {
+    try {
+      await axiosClient.post('', {}, {
+        params: { c: 'WorkingInstructionController', m: 'delete_image', path: url },
+      });
+    } catch (err) {
+      console.error("Delete video failed:", err);
+    }
+  }
+
+  // Xóa khỏi mảng
+  item.videoUrls.splice(vidIndex, 1);
+};
 // Save form
 const saveForm = async () => {
   try {
@@ -755,7 +1144,7 @@ const saveForm = async () => {
     //   content: JSON.parse(JSON.stringify(steps.value)), // gửi nhiều step
     // };
     const payload = {
-      meta: { ...formMeta.value, category_code: formMeta.value.category },
+      meta: { ...formMeta.value, category_code: formMeta.value.category, uuid: uuid.value },
       steps: steps.value.map((s, i) => ({
         stepIndex: i + 1,
         items: s.formItems
@@ -795,30 +1184,373 @@ const saveForm = async () => {
 
 // Load categories
 const getCategories = async () => {
+
+
   try {
-    const res = await axiosClient.get('', {
+    const res = await axiosClient.get("", {
       params: {
         c: 'CategoryController',
         m: 'getAllCategories',
         limit: 1000
       }
     });
-    categories.value = res.data.data;
-    console.log("Categories:", categories.value);
+    const raw = res.data.data || [];
+    categories.value = raw.map(c => ({
+      uuid: c.uuid || c.id || c.category_id || '',
+      id: c.id || c.uuid || '',
+      code: c.code || c.short_code || c.code_value || '',
+      name: c.name || c.title || 'Unknown'
+    }));
+    // sau khi có categories, cố gắng map pending category nếu có
+    mapPendingCategory();
   } catch (err) {
-    console.error("Load categories failed:", err);
+    console.error('Load categories failed', err);
   }
 };
 
 onMounted(() => {
   getCategories();
+  if (uuid.value) {
+    console.log('có vô cái if này');
+    
+    getWI();
+  }
+  
 });
 </script>
+
 
 <style scoped>
 * {
   box-sizing: border-box;
 }
+
+/* Video Upload Area */
+.video-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-upload-area .file-input {
+  display: none;
+}
+
+.video-upload-area .file-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  background-color: #1890ff;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.video-upload-area .file-upload-btn:hover {
+  background-color: #40a9ff;
+}
+
+.video-upload-area .upload-icon {
+  font-size: 16px;
+}
+
+/* Video Preview List */
+.video-preview-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.video-preview {
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e0e0e0;
+}
+
+.preview-video {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 100px;
+  object-fit: cover;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.video-preview:hover .video-overlay {
+  opacity: 1;
+}
+
+.video-overlay .overlay-btn {
+  background: #ff4d4f;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.video-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.preview-video-wrapper {
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preview-video-large {
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: cover;
+}
+
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.video-placeholder .placeholder-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.video-placeholder p {
+  margin: 0;
+  color: #666;
+}
+
+/* Step Actions Container */
+.step-actions {
+  display: flex;
+  gap: 50px;
+}
+
+
+.btn-add:hover {
+  background-color: #45a049;
+  transform: translateY(-1px);
+}
+
+/* Modal Footer */
+.modal-footer {
+  padding: 16px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Button Styling in Modal */
+
+.btn-primary:hover {
+  background: #45a049;
+  transform: translateY(-1px);
+}
+
+/* Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.65); /* overlay mờ */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999; /* nổi trên tất cả */
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Modal Container */
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  width: 480px;
+  max-width: 95%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: slideUp 0.25s ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #dc2626; /* đỏ cảnh báo */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: 0.2s;
+}
+.modal-close:hover {
+  color: #111827;
+}
+
+/* Body */
+.modal-body {
+  padding: 20px;
+  font-size: 15px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.modal-message {
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.empty-steps-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+.empty-step-item {
+  padding: 6px 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  border: 1px solid #fecaca;
+}
+
+.modal-note {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 6px;
+}
+
+/* Footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.modal-footer .btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.modal-footer .btn-outline {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+.modal-footer .btn-outline:hover {
+  background: #f3f4f6;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0.9;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.step-header {
+  display: flex;
+  align-items: center;           /* căn giữa theo chiều dọc */
+  padding: 8px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 8px 8px 0 0;
+}
+
+/* Tiêu đề step */
+.step-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Nút xóa step */
+.delete-step-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #9ca3af;  /* xám nhạt */
+  transition: color 0.2s, transform 0.2s;
+}
+
+.delete-step-btn:hover {
+  color: #dc2626;  /* đỏ khi hover */
+  transform: scale(1.1);
+}
+
+.delete-icon {
+  pointer-events: none; /* để click trúng button, không trúng icon */
+}
+
 
 .app-container {
   min-height: 100vh;

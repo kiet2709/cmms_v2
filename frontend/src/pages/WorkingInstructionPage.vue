@@ -233,6 +233,11 @@ const showToastNotification = (message, type = "success") => {
     showToast.value = false;
   }, 3000);
 };
+
+const handleEdit = (item) => {
+  console.dir(item.id);
+  router.push({ path: "/dashboard/working-instructions/add", query: { uuid: item.id } });
+}
 </script>
 
 <template>
@@ -287,10 +292,10 @@ const showToastNotification = (message, type = "success") => {
                 <template #overlay>
                   <div class="filter-dropdown">
                     <div class="filter-group">
-                      <label>Type</label>
+                      <label>Daily Inspection / Maintenanace</label>
                       <Select
                         v-model:value="filters.type"
-                        placeholder="Select type"
+                        placeholder="Select DI / ML"
                         allow-clear
                         style="width: 200px"
                       >
@@ -363,7 +368,7 @@ const showToastNotification = (message, type = "success") => {
                   <td>
                     <div class="action-buttons-cell">
                       <Tooltip title="Edit Working Instruction">
-                        <Button type="text" @click="handleEdit(item.uuid)" class="edit-btn">
+                        <Button type="text" @click="handleEdit(item)" class="edit-btn">
                           <EditOutlined />
                         </Button>
                       </Tooltip>

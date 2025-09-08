@@ -20,22 +20,6 @@
 
     <!-- Form Content -->
     <div v-else class="form-content">
-      <!-- Header -->
-      <!-- <div class="header">
-        <div class="header-left">
-          <h2 class="title">{{ WICode || 'Working Instruction' }}</h2>
-          <div class="subtitle">Step {{ currentStep + 1 }} / {{ steps.length }}</div>
-        </div>
-        <div class="progress">
-          <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
-          </div>
-          <div class="progress-text">
-            {{ completedItems }} / {{ totalItems }} completed ({{ progressPercentage }}%)
-          </div>
-        </div>
-      </div> -->
-
       <!-- Step Items -->
       <div v-if="currentStepObj && currentStepObj.formItems && currentStepObj.formItems.length > 0" class="step-items">
         <div
@@ -139,66 +123,120 @@
 
           <!-- STATIC IMAGE -->
           <div v-else-if="item.type === 'staticImage'" class="image-container">
-          <!-- Nếu có nhiều ảnh -->
-          <template v-if="Array.isArray(item.imageUrls) && item.imageUrls.length > 0">
-            
-            <!-- 1 ảnh -->
-            <div v-if="item.imageUrls.length === 1" class="image-single">
+            <!-- Nếu có nhiều ảnh -->
+            <template v-if="Array.isArray(item.imageUrls) && item.imageUrls.length > 0">
+              <!-- 1 ảnh -->
+              <div v-if="item.imageUrls.length === 1" class="image-single">
+                <img 
+                  :src="item.imageUrls[0]" 
+                  alt="Static Image" 
+                  class="static-image" 
+                  @click="openImageModal(item.imageUrls[0])" 
+                />
+              </div>
+
+              <!-- 2 ảnh -->
+              <div v-else-if="item.imageUrls.length === 2" class="image-double">
+                <div 
+                  v-for="(src, i) in item.imageUrls" 
+                  :key="i" 
+                  class="image-wrapper-large"
+                  @click="openImageModal(src)"
+                >
+                  <img :src="src" alt="Static Image" class="static-image" />
+                </div>
+              </div>
+
+              <!-- 3 ảnh -->
+              <div v-else-if="item.imageUrls.length === 3" class="image-triple">
+                <div 
+                  v-for="(src, i) in item.imageUrls" 
+                  :key="i" 
+                  class="image-wrapper-large"
+                  @click="openImageModal(src)"
+                >
+                  <img :src="src" alt="Static Image" class="static-image" />
+                </div>
+              </div>
+
+              <!-- 4 ảnh trở lên -->
+              <div v-else class="image-gallery">
+                <div 
+                  v-for="(src, i) in item.imageUrls" 
+                  :key="i" 
+                  class="image-wrapper"
+                  @click="openImageModal(src)"
+                >
+                  <img :src="src" alt="Static Image" class="static-image" />
+                </div>
+              </div>
+            </template>
+
+            <!-- Nếu chỉ có 1 ảnh cũ -->
+            <div v-else-if="item.imageUrl" class="image-single">
               <img 
-                :src="item.imageUrls[0]" 
+                :src="item.imageUrl" 
                 alt="Static Image" 
                 class="static-image" 
-                @click="openImageModal(item.imageUrls[0])" 
+                @click="openImageModal(item.imageUrl)" 
               />
             </div>
-
-            <!-- 2 ảnh -->
-            <div v-else-if="item.imageUrls.length === 2" class="image-double">
-              <div 
-                v-for="(src, i) in item.imageUrls" 
-                :key="i" 
-                class="image-wrapper-large"
-                @click="openImageModal(src)"
-              >
-                <img :src="src" alt="Static Image" class="static-image" />
-              </div>
-            </div>
-
-            <!-- 3 ảnh -->
-            <div v-else-if="item.imageUrls.length === 3" class="image-triple">
-              <div 
-                v-for="(src, i) in item.imageUrls" 
-                :key="i" 
-                class="image-wrapper-large"
-                @click="openImageModal(src)"
-              >
-                <img :src="src" alt="Static Image" class="static-image" />
-              </div>
-            </div>
-
-            <!-- 4 ảnh trở lên -->
-            <div v-else class="image-gallery">
-              <div 
-                v-for="(src, i) in item.imageUrls" 
-                :key="i" 
-                class="image-wrapper"
-                @click="openImageModal(src)"
-              >
-                <img :src="src" alt="Static Image" class="static-image" />
-              </div>
-            </div>
-          </template>
-
-          <!-- Nếu chỉ có 1 ảnh cũ -->
-          <div v-else-if="item.imageUrl" class="image-single">
-            <img 
-              :src="item.imageUrl" 
-              alt="Static Image" 
-              class="static-image" 
-              @click="openImageModal(item.imageUrl)" 
-            />
           </div>
-        </div>
+
+          <!-- STATIC VIDEO -->
+          <div v-else-if="item.type === 'staticVideo'" class="video-container">
+            <!-- Nếu có nhiều video -->
+            <template v-if="Array.isArray(item.videoUrls) && item.videoUrls.length > 0">
+              <!-- 1 video -->
+              <div v-if="item.videoUrls.length === 1" class="video-single">
+                <video 
+                  :src="item.videoUrls[0]" 
+                   :poster="defaultPoster"
+                    controls
+                    preload="none"
+                  class="static-video"
+                  @play="ensureSrc($event, item.videoUrls[0])"
+                  @click="togglePlay"
+                ></video>
+              </div>
+
+              <!-- 2 video -->
+              <!-- <div v-else-if="item.videoUrls.length === 2" class="video-double">
+                <div 
+                  v-for="(src, i) in item.videoUrls" 
+                  :key="i" 
+                  class="video-wrapper-large"
+                  @click="openVideoModal(src)"
+                >
+                  <video :src="src" controls class="static-video"></video>
+                </div>
+              </div> -->
+
+              <!-- 3 video -->
+              <!-- <div v-else-if="item.videoUrls.length === 3" class="video-triple">
+                <div 
+                  v-for="(src, i) in item.videoUrls" 
+                  :key="i" 
+                  class="video-wrapper-large"
+                  @click="openVideoModal(src)"
+                >
+                  <video :src="src" controls class="static-video"></video>
+                </div>
+              </div> -->
+
+              <!-- 4 video trở lên -->
+              <!-- <div v-else class="video-gallery">
+                <div 
+                  v-for="(src, i) in item.videoUrls" 
+                  :key="i" 
+                  class="video-wrapper"
+                  @click="openVideoModal(src)"
+                >
+                  <video :src="src" controls class="static-video"></video>
+                </div>
+              </div> -->
+            </template>
+          </div>
 
           <!-- USER IMAGE -->
           <div v-else-if="item.type === 'userImage'" class="upload-container">
@@ -224,21 +262,17 @@
         <p>This step does not contain any form fields.</p>
       </div>
 
-      <!-- Navigation -->
-      <!-- <div class="navigation">
-        
-      </div> -->
-
-      <!-- Image Modal -->
-      <div v-if="showImageModal" class="modal" @click="closeImageModal">
+      <!-- Image/Video Modal -->
+      <div v-if="showImageModal || showVideoModal" class="modal" @click="closeMediaModal">
         <div class="modal-inner" @click.stop>
-          <button class="modal-close" @click="closeImageModal">✕</button>
-          <img :src="modalImageUrl" alt="Preview"/>
+          <button class="modal-close" @click="closeMediaModal">✕</button>
+          <img v-if="showImageModal" :src="modalMediaUrl" alt="Preview"/>
+
         </div>
       </div>
     </div>
     <div class="form-footer">
-      <button  :style="{ visibility: currentStep === 0 ? 'hidden' : 'visible' }" class="btn btn-secondary" @click="prevStep" >
+      <button :style="{ visibility: currentStep === 0 ? 'hidden' : 'visible' }" class="btn btn-secondary" @click="prevStep">
         Previous
       </button>
 
@@ -266,7 +300,27 @@ import { Modal } from "ant-design-vue"
 import axiosClient from "../utils/axiosClient"
 import { useUserStore } from '@/stores/user'
 import { onMounted } from 'vue'
+
 const userStore = useUserStore()
+
+const defaultPoster = import.meta.env.VITE_DEFAULT_POSTER;
+function ensureSrc(event, src) {
+  const video = event.target
+  if (!video.src) {
+    video.src = src
+    video.load()
+    video.play()
+  }
+}
+
+function togglePlay(event) {
+  const video = event.target
+  if (video.paused) {
+    video.play()
+  } else {
+    video.pause()
+  }
+}
 
 onMounted(() => {
   userStore.fetchUser()
@@ -285,7 +339,8 @@ const WICode = ref('')
 const selectedAnswers = ref({})       // key = item.id -> value
 const uploadedFiles = ref({})         // key = item.id -> dataURL
 const showImageModal = ref(false)
-const modalImageUrl = ref('')
+const showVideoModal = ref(false)
+const modalMediaUrl = ref('')
 const formItems = ref([])
 
 // Helpers
@@ -339,7 +394,7 @@ const fetchForm = async (id) => {
     }
 
     const row = res.data.data[0]
-    console.log(row);
+    console.log(row)
     
     WICode.value = row?.code || ''
 
@@ -375,19 +430,18 @@ const initializeAnswers = () => {
   selectedAnswers.value = {}
   uploadedFiles.value = {}
 
-  formItems.value.forEach((item, index) => {
+  flatItems.value.forEach((item, index) => {
     if (item.type === 'multiple') {
-      // nếu có answer thì gán, không thì mảng rỗng
-      selectedAnswers.value['multiple' + index] = item.answer || []
+      selectedAnswers.value[item.id] = item.answer || []
     }
     if (item.type === 'yesno') {
-      selectedAnswers.value['yn' + index] = item.answer || null
+      selectedAnswers.value[item.id] = item.answer || null
     }
     if (item.type === 'single') {
-      selectedAnswers.value['single' + index] = item.answer || null
+      selectedAnswers.value[item.id] = item.answer || null
     }
     if (item.type === 'userImage') {
-      uploadedFiles.value[index] = item.answer || null
+      uploadedFiles.value[item.id] = item.answer || null
     }
   })
 }
@@ -397,6 +451,7 @@ const getItemClasses = (item) => ({
   'label-section': item.type === 'label',
   'question-section': ['yesno', 'multiple', 'single'].includes(item.type),
   'image-section': item.type === 'staticImage',
+  'video-section': item.type === 'staticVideo',
   'upload-section': item.type === 'userImage'
 })
 
@@ -417,12 +472,19 @@ const removeFile = (itemId) => {
 }
 
 const openImageModal = (src) => {
-  modalImageUrl.value = src
+  modalMediaUrl.value = src
   showImageModal.value = true
 }
-const closeImageModal = () => {
+
+const openVideoModal = (src) => {
+  modalMediaUrl.value = src
+  showVideoModal.value = true
+}
+
+const closeMediaModal = () => {
   showImageModal.value = false
-  modalImageUrl.value = ''
+  showVideoModal.value = false
+  modalMediaUrl.value = ''
 }
 
 const updateProgress = () => {
@@ -438,17 +500,16 @@ const prevStep = () => {
 const emit = defineEmits(['submitted'])
 
 // Watch id
-  watch(
-    () => props.id,
-    (newId) => {
-      if (newId !== undefined && newId !== null && newId !== '') {
-        fetchForm(newId)
-      }
-    },
-    { immediate: true }
-  )
+watch(
+  () => props.id,
+  (newId) => {
+    if (newId !== undefined && newId !== null && newId !== '') {
+      fetchForm(newId)
+    }
+  },
+  { immediate: true }
+)
 </script>
-
 <style scoped>
 .form-wrapper {
   max-width: 900px;
@@ -692,6 +753,57 @@ const emit = defineEmits(['submitted'])
   transform: scale(1.03);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
+
+.video-section {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+}
+
+.video-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-single {
+  display: flex;
+  justify-content: center;
+}
+
+.video-double {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.video-triple {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.video-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+}
+
+.video-wrapper, .video-wrapper-large {
+  position: relative;
+  cursor: pointer;
+}
+
+.static-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.video-wrapper-large .static-video {
+  max-height: 500px;
+}
+
 
 .static-image {
   width: 100%;

@@ -99,6 +99,12 @@ class WorkingInstructionController extends CI_Controller
         ])->row_array();
 
         if (!$category) {
+            $category = $this->db->get_where('categories', [
+                'uuid' => $meta['category_code']
+            ])->row_array();
+        }
+
+        if (!$category) {
             return $this->respond(400, ['error' => 'Invalid category code']);
         }
 
@@ -112,49 +118,94 @@ class WorkingInstructionController extends CI_Controller
 
         $category_id = $category['uuid'];
 
+        // return $this->respond(400, ['error' => $meta]);
 
 
-        // Đếm số WI đã có trong DB
-        $count = $this->db->count_all('working_instructions');
 
         // Sinh suffix với padding 6 chữ số
-        $suffix = str_pad($count + 1, 6, '0', STR_PAD_LEFT);
+        if (!empty($meta['uuid'])) {
+            // Lấy WI theo uuid
+            $wi = $this->db->get_where('working_instructions',[
+                'uuid' => $meta['uuid']
+            ])->row_array();
 
-        // Sinh code đầy đủ: TYPE-CATEGORY-XXXXXX
-        $final_code = $meta['code'];
-        // thay XXXXXX trong code bằng suffix
-        $final_code = preg_replace('/XXXXXX$/', $suffix, $final_code);        
+            // return $this->respond(400, ['error' => $meta['uuid']]);
 
+            if ($wi && !empty($wi['code'])) {
+                // Tách số đuôi (6 số cuối)
+                if (preg_match('/(\d{6})$/', $wi['code'], $matches)) {
+                    $suffix = $matches[1]; // ví dụ: 000002
+                } else {
+                    // fallback nếu không match
+                    $suffix = str_pad(1, 6, '0', STR_PAD_LEFT);
+                }
+
+                // Ghép prefix mới từ meta với số cũ
+                $final_code = preg_replace('/XXXXXX$/', $suffix, $meta['code']);
+            } else {
+                throw new Exception("WI not found with uuid: " . $meta['uuid']);
+            }
+
+            $this->db->trans_start();
+            $this->db->where('uuid', $meta['uuid']);
+            $this->db->update('working_instructions', [
+                'uuid' => $this->uuidv4(),
+                'code'        => $final_code,
+                'type'        => $meta['type'],
+                'name'        => $meta['description'],
+                'frequency'     => $meta['frequency'],
+                'unit_value'     => $meta['unitValue'],
+                'unit_type'     => $meta['unitType'],
+                'category_id' => $category_id,
+                'schema' => $content,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+            $this->db->trans_complete();
+
+            $this->respond(200, [
+                'code'        => $final_code,
+                'type'        => $meta['type'],
+                'name'        => $meta['description'],
+                'category_id' => $category_id,
+                'schema'      => $content,
+            ]);
+
+
+        } else {
+                // Đếm số WI đã có trong DB
+            $count = $this->db->count_all('working_instructions');
+            // Logic cũ: tạo số mới
+            $suffix = str_pad($count + 1, 6, '0', STR_PAD_LEFT);
+            $final_code = preg_replace('/XXXXXX$/', $suffix, $meta['code']);
+        
+        
+            $this->db->insert('working_instructions', [
+                'uuid' => $this->uuidv4(),
+                'code'        => $final_code,
+                'type'        => $meta['type'],
+                'name'        => $meta['description'],
+                'frequency'     => $meta['frequency'],
+                'unit_value'     => $meta['unitValue'],
+                'unit_type'     => $meta['unitType'],
+                'category_id' => $category_id,
+                'schema' => $content,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $this->respond(200, [
+                'code'        => $final_code,
+                'type'        => $meta['type'],
+                'name'        => $meta['description'],
+                'category_id' => $category_id,
+                'schema'      => $content,
+            ]);
+        
+        }        
 
         //TODO: for audit
         // $uuid = get_jwt_sub();
-
-
-        $this->db->insert('working_instructions', [
-            'uuid' => $this->uuidv4(),
-            'code'        => $final_code,
-            'type'        => $meta['type'],
-            'name'        => $meta['description'],
-            'frequency'     => $meta['frequency'],
-            'unit_value'     => $meta['unitValue'],
-            'unit_type'     => $meta['unitType'],
-            'category_id' => $category_id,
-            'schema' => $content,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        $this->respond(200, [
-            'code'        => $final_code,
-            'type'        => $meta['type'],
-            'name'        => $meta['description'],
-            'category_id' => $category_id,
-            'schema'      => $content,
-        ]);
-
-        // return $this->output
-        //     ->set_content_type('application/json')
-        //     ->set_output(json_encode(['status' => 'ok']));
     }
 
     public function getAllWi()

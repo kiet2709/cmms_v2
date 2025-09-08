@@ -18,7 +18,10 @@ class Equipment_model extends CI_Model {
 
     public function counts()
     {
-        return $this->db->count_all($this->table);
+        $this->db->from($this->table);
+		$this->db->where('deleted_at IS NULL');
+		$this->db->where('deleted_by IS NULL');
+		return $this->db->count_all_results();
     }
 
     public function getById($equipment_id)
