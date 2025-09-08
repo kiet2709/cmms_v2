@@ -149,10 +149,20 @@ const passwordRules = [
 const usernameIcon = h(UserOutlined, { style: { color: '#8c8c8c' } })
 const passwordIcon = h(LockOutlined, { style: { color: '#8c8c8c' } })
 
+// Convert full-width characters to half-width
+const toHalfWidth = (str) => {
+  return str.replace(/[\uff01-\uff5e]/g, (ch) =>
+    String.fromCharCode(ch.charCodeAt(0) - 0xfee0)
+  ).replace(/\u3000/g, ' ') // full-width space → normal space
+}
+
+
 // Handle form submission
 const handleSubmit = async (values) => {
   errorMessage.value = ''
   loading.value = true
+
+
 
   try {
     const res = await axiosClient.post('', values, {

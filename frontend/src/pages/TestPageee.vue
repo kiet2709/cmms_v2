@@ -1,1914 +1,1320 @@
 <template>
-  <div class="app-container">
+  <div class="dashboard-container">
     <!-- Header -->
-    <div class="app-header">
-      <div class="header-left">
-        <h1 class="app-title" v-translate>Form Builder Studio</h1>
-        <div class="breadcrumb">
-          <span class="link-span" @click="$router.push('/dashboard/working-instructions')">Instructions</span>
-          <span class="separator">›</span>
-          <span class="current">Form Builder</span>
+    <div class="header">
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="main-title">
+            <span class="gradient-text">CMMS Dashboard</span>
+          </h1>
+          <p class="subtitle">Computerized Maintenance Management System</p>
         </div>
-      </div>
-      <div class="header-right">
-        <button class="btn btn-outline" @click="clearForm">
-          <span class="btn-icon">🗑️</span>
-          Clear Form
-        </button>
-        <button class="btn btn-primary" @click="saveForm" :disabled="saving">
-          <span v-if="!saving" class="btn-icon">💾</span>
-          <div v-if="saving" class="spinner"></div>
-          {{ saving ? 'Saving...' : 'Save WI' }}
-        </button>
+        <div class="header-right">
+          <div class="time-display">
+            <p class="time-label">Current Time</p>
+            <p class="time-value">{{ currentTime }}</p>
+          </div>
+          <select v-model="selectedTimeRange" class="time-range-selector">
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="year">This Year</option>
+          </select>
+        </div>
       </div>
     </div>
 
+    <!-- Main Content -->
     <div class="main-content">
-      <!-- Left Panel: Toolbox -->
-      <div class="left-panel">
-        <div class="panel-header">
-          <h3 class="panel-title" v-translate>Component Toolbox</h3>
-          <div class="component-count">{{ components.length }} items</div>
-        </div>
-        
-        <div class="search-section">
-          <div class="search-container">
-            <input 
-              v-model="searchToolbox" 
-              placeholder="Search components..." 
-              class="search-input"
-            />
-            <span class="search-icon">🔍</span>
+      <!-- Key Metrics Cards -->
+      <div class="metrics-grid">
+        <div class="stat-card stat-card-green">
+          <div class="stat-card-content">
+            <div class="stat-info">
+              <p class="stat-label">Today's Tasks</p>
+              <p class="stat-value">{{ todayStats.totalTasks }}</p>
+              <p class="stat-subtitle">{{ todayStats.completedTasks }} completed</p>
+            </div>
+            <div class="stat-icon stat-icon-green">
+              <i class="icon-check-circle">✓</i>
+            </div>
+          </div>
+          <div class="stat-trend">
+            <!-- <span class="trend-up">↗ 12% vs yesterday</span> -->
           </div>
         </div>
 
-        <div class="components-grid">
-          <div
-            class="component-card"
-            v-for="comp in filteredComponents"
-            :key="comp.type"
-            draggable="true"
-            @dragstart="onDragStart(comp)"
-            @dragend="onDragEnd"
-          >
-            <div class="component-icon">{{ comp.icon }}</div>
-            <div class="component-label">{{ translateReactive(comp.label).value }}</div>
-            <div class="component-desc">{{ translateReactive(comp.description).value }}</div>
+        <div class="stat-card stat-card-orange">
+          <div class="stat-card-content">
+            <div class="stat-info">
+              <p class="stat-label">Pending Maintenance</p>
+              <p class="stat-value">{{ todayStats.pendingMaintenance }}</p>
+              <p class="stat-subtitle">Due today</p>
+            </div>
+            <div class="stat-icon stat-icon-orange">
+              <i class="icon-clock">🕐</i>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card-red">
+          <div class="stat-card-content">
+            <div class="stat-info">
+              <p class="stat-label">Urgent Alerts</p>
+              <p class="stat-value">{{ todayStats.urgentAlerts }}</p>
+              <p class="stat-subtitle">Require attention</p>
+            </div>
+            <div class="stat-icon stat-icon-red">
+              <i class="icon-alert">⚠️</i>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card-blue">
+          <div class="stat-card-content">
+            <div class="stat-info">
+              <p class="stat-label">Total Machines</p>
+              <p class="stat-value">{{ todayStats.totalMachines }}</p>
+              <p class="stat-subtitle">{{ todayStats.workingMachines }} working</p>
+            </div>
+            <div class="stat-icon stat-icon-blue">
+              <i class="icon-settings">⚙️</i>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Middle Panel: Form Builder -->
-      <div class="form-builder" >
-        <div class="panel-header">
-          <h3 class="panel-title" v-translate>Form Builder</h3>
-          <button class="btn-add" @click="addStep">Add Step</button>
-          <div class="items-count">{{ totalItems  }} items</div>
-          
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <h3 class="section-title">Quick Actions</h3>
+        <div class="action-buttons">
+          <button class="action-btn action-btn-blue" @click="viewSchedule">
+            <i class="btn-icon">📅</i>
+            View Schedule
+          </button>
+          <button class="action-btn action-btn-green" @click="addTask">
+            <i class="btn-icon">➕</i>
+            Add New Task
+          </button>
+          <button class="action-btn action-btn-purple" @click="viewReports">
+            <i class="btn-icon">📊</i>
+            View Reports
+          </button>
+          <button class="action-btn action-btn-orange" @click="manageAlerts">
+            <i class="btn-icon">🔔</i>
+            Manage Alerts
+          </button>
         </div>
-        <div   style="overflow-y: scroll; max-height: 100vh;">
-          <div v-for="(step, stepIndex) in steps" :key="step.id" class="step-block">
-            <h4>Step {{ stepIndex + 1 }}</h4>
+      </div>
 
-            <div 
-            class="drop-zone"
-            :class="{ 'drag-over': step.isDragOver }"
-            @dragover.prevent="onDragOver(step)"
-            @dragleave="onDragLeave(step)"
-            @drop="onDrop(stepIndex)"
-          >
-            <div v-if="step.formItems.length === 0" class="empty-state">
-              <div class="empty-icon">📝</div>
-              <h4 v-translate>Start Building Your Form</h4>
-              <p v-translate>Drag components from the toolbox to begin creating your form</p>
-            </div>
-
-            <div
-              v-for="(item, index) in  step.formItems"
-              :key="item.id || index"   
-              class="form-item-card"
-              :class="{ 'selected': selectedItem?.step === stepIndex && selectedItem?.index === index }"
-              @click="selectItem(stepIndex, index)"
-            >
-            <div class="item-header">
-              <div class="item-type">
-                <span class="type-icon">{{ getComponentIcon(item.type) }}</span>
-                <span class="type-label">{{ getComponentLabel(item.type) }}</span>
-              </div>
-              <div class="item-actions">
-                <button class="action-btn" @click.stop="duplicateItem(stepIndex, index)" title="Duplicate">
-                  <span>📋</span>
-                </button>
-                <button class="action-btn danger" @click.stop="removeItem(stepIndex, index)" title="Remove">
-                  <span>🗑️</span>
-                </button>
+      <!-- Charts Section -->
+      <div class="charts-section">
+        <div class="chart-row">
+          <!-- Weekly Maintenance Chart -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <h3 class="chart-title">Weekly Maintenance Overview</h3>
+              <div class="chart-legend">
+                <span class="legend-item legend-completed">Completed</span>
+                <span class="legend-item legend-scheduled">Scheduled</span>
+                <span class="legend-item legend-urgent">Urgent</span>
               </div>
             </div>
-            <div class="item-content">
-                <!-- Label Component -->
-                <div v-if="item.type === 'label'" class="config-section">
-                  <div class="input-group">
-                    <label>Heading Level</label>
-                    <select v-model="item.heading" class="form-select">
-                      <option v-for="n in 6" :key="n" :value="'h' + n">Heading {{ n }}</option>
-                    </select>
-                  </div>
-                  <div class="input-group">
-                    <label>Label Text</label>
-                    <input v-model="item.text" placeholder="Enter label text..." class="form-input" />
-                  </div>
-                  <div class="style-options">
-                    <label class="checkbox-label">
-                      <input type="checkbox" v-model="item.bold" />
-                      <span class="checkmark"></span>
-                      <strong>Bold</strong>
-                    </label>
-                    <label class="checkbox-label">
-                      <input type="checkbox" v-model="item.italic" />
-                      <span class="checkmark"></span>
-                      <em>Italic</em>
-                    </label>
-                    <label class="checkbox-label">
-                      <input type="checkbox" v-model="item.underline" />
-                      <span class="checkmark"></span>
-                      <u>Underline</u>
-                    </label>
-                  </div>
-                </div>
-
-                <!-- Yes/No Question -->
-                <div v-else-if="item.type === 'yesno'" class="config-section">
-                  <div class="input-group">
-                    <label>Question</label>
-                    <input v-model="item.question" placeholder="Enter yes/no question..." class="form-input" />
-                  </div>
-                </div>
-
-                <!-- Multiple Choice -->
-                <div v-else-if="item.type === 'multiple'" class="config-section">
-                  <div class="input-group">
-                    <label>Question</label>
-                    <input v-model="item.question" placeholder="Enter multiple choice question..." class="form-input" />
-                  </div>
-                  <div class="input-group">
-                    <label>Options <span class="help-text">(comma separated)</span></label>
-                    <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
-                  </div>
-                </div>
-
-                <!-- Single Choice -->
-                <div v-else-if="item.type === 'single'" class="config-section">
-                  <div class="input-group">
-                    <label>Question</label>
-                    <input v-model="item.question" placeholder="Enter single choice question..." class="form-input" />
-                  </div>
-                  <div class="input-group">
-                    <label>Options <span class="help-text">(comma separated)</span></label>
-                    <textarea v-model="item.options" placeholder="Option 1, Option 2, Option 3..." class="form-textarea"></textarea>
-                  </div>
-                </div>
-
-                <!-- Static Image -->
-                <div v-else-if="item.type === 'staticImage'" class="config-section">
-                  <div class="image-upload-area">
-                    <input 
-                      type="file"
-                      :id="'file-' + stepIndex + '-' + index"
-                      @change="onImageUpload($event, stepIndex, index)"
-                      accept="image/*"
-                      class="file-input"
-                    />
-                    <label :for="'file-' + stepIndex + '-' + index" class="file-upload-btn">
-                      <span class="upload-icon">📤</span>
-                      Choose Image
-                    </label>
-                    <!-- Preview nhiều ảnh -->
-                    <div v-if="item.imageUrls && item.imageUrls.length" class="image-preview-list">
-                    <div 
-                      v-for="(img, i) in item.imageUrls" 
-                      :key="i" 
-                      class="image-preview"
-                    >
-                      <img :src="img" class="preview-image" />
-                      <div class="image-overlay">
-                        <button @click="removeImage(stepIndex, index, i)" class="overlay-btn">
-                          <span>🗑️</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  </div>
-                </div>
-
-                <!-- User Upload Image -->
-                <div v-else-if="item.type === 'userImage'" class="config-section">
-                  <div class="info-box">
-                    <span class="info-icon">ℹ️</span>
-                    <span>This will allow users to upload images when filling the form</span>
-                  </div>
-                </div>
-              </div>
-
+            <div class="chart-content">
+              <svg viewBox="0 0 700 300" class="bar-chart">
+                <g v-for="(day, index) in maintenanceData" :key="index">
+                  <!-- Completed bars -->
+                  <rect 
+                    :x="60 + index * 90" 
+                    :y="250 - day.completed * 8" 
+                    width="20" 
+                    :height="day.completed * 8"
+                    fill="#10B981"
+                    class="chart-bar"
+                  />
+                  <!-- Scheduled bars -->
+                  <rect 
+                    :x="85 + index * 90" 
+                    :y="250 - day.scheduled * 8" 
+                    width="20" 
+                    :height="day.scheduled * 8"
+                    fill="#3B82F6"
+                    class="chart-bar"
+                  />
+                  <!-- Urgent bars -->
+                  <rect 
+                    :x="110 + index * 90" 
+                    :y="250 - day.urgent * 8" 
+                    width="20" 
+                    :height="day.urgent * 8"
+                    fill="#EF4444"
+                    class="chart-bar"
+                  />
+                  <!-- Day labels -->
+                  <text :x="85 + index * 90" y="270" text-anchor="middle" class="chart-label">
+                    {{ day.name }}
+                  </text>
+                </g>
+              </svg>
+            </div>
           </div>
-          
-        
 
+          <!-- Machine Status Pie Chart -->
+          <div class="chart-container">
+            <div class="chart-header">
+              <h3 class="chart-title">Machine Status Distribution</h3>
+            </div>
+            <div class="chart-content pie-chart-content">
+              <div class="pie-chart-wrapper">
+                <svg viewBox="0 0 200 200" class="pie-chart">
+                  <circle cx="100" cy="100" r="80" fill="none" stroke="#10B981" stroke-width="20" 
+                    stroke-dasharray="425.13 425.13" stroke-dashoffset="106.28" transform="rotate(-90 100 100)" />
+                  <circle cx="100" cy="100" r="80" fill="none" stroke="#F59E0B" stroke-width="20" 
+                    stroke-dasharray="42.51 425.13" stroke-dashoffset="63.77" transform="rotate(-90 100 100)" />
+                  <circle cx="100" cy="100" r="80" fill="none" stroke="#EF4444" stroke-width="20" 
+                    stroke-dasharray="26.57 425.13" stroke-dashoffset="21.26" transform="rotate(-90 100 100)" />
+                  <circle cx="100" cy="100" r="80" fill="none" stroke="#6B7280" stroke-width="20" 
+                    stroke-dasharray="10.63 425.13" stroke-dashoffset="0" transform="rotate(-90 100 100)" />
+                </svg>
+                <div class="pie-center">
+                  <span class="pie-total">{{ todayStats.totalMachines }}</span>
+                  <span class="pie-label">Total</span>
+                </div>
+              </div>
+              <div class="pie-legend">
+                <div class="pie-legend-item">
+                  <span class="pie-color pie-color-green"></span>
+                  <span>Running (85%)</span>
+                </div>
+                <div class="pie-legend-item">
+                  <span class="pie-color pie-color-orange"></span>
+                  <span>Maintenance (8%)</span>
+                </div>
+                <div class="pie-legend-item">
+                  <span class="pie-color pie-color-red"></span>
+                  <span>Offline (5%)</span>
+                </div>
+                <div class="pie-legend-item">
+                  <span class="pie-color pie-color-gray"></span>
+                  <span>Standby (2%)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          
-
+        <!-- Monthly Trend Chart -->
+        <div class="chart-container chart-full-width">
+          <div class="chart-header">
+            <h3 class="chart-title">Monthly Performance Trend</h3>
+          </div>
+          <div class="chart-content">
+            <svg viewBox="0 0 800 300" class="line-chart">
+              <!-- Grid lines -->
+              <defs>
+                <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                  <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#E5E7EB" stroke-width="0.5"/>
+                </pattern>
+              </defs>
+              <rect width="800" height="300" fill="url(#grid)" opacity="0.5"/>
               
-            </div>
+              <!-- Task line -->
+              <path d="M 80,180 L 180,200 L 280,160 L 380,140 L 480,150 L 580,120" 
+                fill="none" stroke="#3B82F6" stroke-width="3" class="trend-line"/>
+              
+              <!-- Maintenance line -->
+              <path d="M 80,220 L 180,240 L 280,210 L 380,190 L 480,200 L 580,170" 
+                fill="none" stroke="#10B981" stroke-width="3" class="trend-line"/>
+              
+              <!-- Data points -->
+              <g v-for="(point, index) in monthlyTrend" :key="index">
+                <circle :cx="80 + index * 100" :cy="180 - (point.tasks - 400) * 0.5" r="4" fill="#3B82F6" class="data-point"/>
+                <circle :cx="80 + index * 100" :cy="220 - (point.maintenance - 70) * 2" r="4" fill="#10B981" class="data-point"/>
+                <text :x="80 + index * 100" y="280" text-anchor="middle" class="chart-label">{{ point.month }}</text>
+              </g>
+              
+              <!-- Legend -->
+              <g transform="translate(620, 40)">
+                <line x1="0" y1="0" x2="20" y2="0" stroke="#3B82F6" stroke-width="3"/>
+                <text x="25" y="5" class="legend-text">Tasks</text>
+                <line x1="0" y1="20" x2="20" y2="20" stroke="#10B981" stroke-width="3"/>
+                <text x="25" y="25" class="legend-text">Maintenance</text>
+              </g>
+            </svg>
           </div>
         </div>
-
       </div>
 
-      <!-- Right Panel: Preview & Settings -->
-      <div class="preview-panel">
-        <div class="panel-tabs">
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeTab === 'settings' }"
-            @click="activeTab = 'settings'"
-          >
-            Settings
-          </button>
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeTab === 'preview' }"
-            @click="activeTab = 'preview'"
-          >
-            Preview
-          </button>
-        </div>
-
-        <!-- Settings Tab -->
-        <div v-if="activeTab === 'settings'" class="settings-content">
-          <div class="settings-section">
-            <h4 class="section-title">Form Configuration</h4>
-            
-            <div class="meta-field">
-              <label>Daily Inspection / Maintenance</label>
-              <select v-model="formMeta.type" class="form-select">
-                <option disabled value="">-- Select DI/ML --</option>
-                <option>Daily Inspection</option>
-                <option>Maintenance Level 1</option>
-                <option>Maintenance Level 2</option>
-                <option>Maintenance Level 3</option>
-              </select>
-            </div>
-
-            <div class="meta-field">
-              <label>Category</label>
-              <select v-model="formMeta.category" class="form-select">
-                <option disabled value="">-- Select Category --</option>
-                <option 
-                  v-for="cat in categories" 
-                  :key="cat.code" 
-                  :value="cat.code"
-                >
-                  {{ cat.name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="meta-field">
-              <label>Generated Code</label>
-              <input 
-                :value="generatedCode" 
-                readonly 
-                class="form-input readonly"
-                placeholder="Auto-generated based on type and category"
-              />
-            </div>
-
-            <div class="meta-field">
-              <label>Description</label>
-              <textarea 
-                v-model="formMeta.description" 
-                placeholder="Enter form description..." 
-                class="form-textarea"
-                rows="3"
-              ></textarea>
-            </div>
-  
-
-            <div class="meta-field">
-              <label>Frequency</label>
-              <select v-model="formMeta.frequency" class="form-select">
-                <option disabled value="">-- Select Frequency --</option>
-                <option v-for="frequency in frequencies" 
-                  :key="frequency" 
-                  :value="frequency">
-                  {{ frequency }}
-                </option>
-              </select>
-            </div>
-
-            <div v-if="formMeta.frequency == 'Unit'" class="meta-field">
-              <label>Unit Value</label>
-              <input 
-                v-model="formMeta.unitValue"
-                class="form-input"
-                placeholder="Enter Unit Value..."
-              />
-            </div>
-
-            <div v-if="formMeta.frequency == 'Unit'" class="meta-field">
-              <label>Unit Type</label>
-              <input 
-                v-model="formMeta.unitType"
-                class="form-input"
-                placeholder="Enter Unit Type..."
-              />
-            </div>
-
+      <!-- Tasks and Alerts Section -->
+      <div class="bottom-section">
+        <!-- Urgent Tasks -->
+        <div class="tasks-panel">
+          <div class="panel-header">
+            <h3 class="panel-title">Today's Priority Tasks</h3>
+            <button class="view-all-btn">View All</button>
           </div>
-
-          <div class="settings-section">
-            <h4 class="section-title">Form Statistics</h4>
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-value">{{ formItems.length }}</div>
-                <div class="stat-label">Total Items</div>
+          <div class="tasks-list">
+            <div v-for="task in urgentTasks" :key="task.id" class="task-item" :class="getPriorityClass(task.priority)">
+              <div class="task-info">
+                <div class="task-machine">{{ task.machine }}</div>
+                <div class="task-description">{{ task.task }}</div>
+                <div class="task-time">Due: {{ task.dueTime }}</div>
               </div>
-              <div class="stat-card">
-                <div class="stat-value">{{ questionCount }}</div>
-                <div class="stat-label">Questions</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">{{ imageCount }}</div>
-                <div class="stat-label">Images</div>
+              <div class="task-priority" :class="getPriorityClass(task.priority)">
+                {{ task.priority }}
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Preview Tab -->
-        <div v-if="activeTab === 'preview'" class="preview-content">
-          <div class="preview-header">
-            <h4 class="section-title">Form Preview</h4>
-            <div class="preview-info">
-              <span class="info-badge">{{ totalItems  }} items</span>
-            </div>
+        <!-- Recent Alerts -->
+        <div class="alerts-panel">
+          <div class="panel-header">
+            <h3 class="panel-title">Recent Alerts</h3>
+            <button class="clear-all-btn">Clear All</button>
           </div>
-
-          <div v-if="totalItems === 0" class="preview-empty">
-            <div class="empty-icon">📄</div>
-            <p>No form items to preview</p>
-          </div>
-
-          <div class="preview-form">
-            <div v-for="(item, index) in flatItems" :key="item.id || index" class="preview-item">
-              <!-- Render Label -->
-              <component
-                v-if="item.type === 'label'"
-                :is="item.heading"
-                :style="{
-                  fontWeight: item.bold ? 'bold' : 'normal',
-                  fontStyle: item.italic ? 'italic' : 'normal',
-                  textDecoration: item.underline ? 'underline' : 'none'
-                }"
-                class="preview-heading"
-              >
-                {{ item.text || 'Untitled Label' }}
-              </component>
-
-              <!-- Render Yes/No -->
-              <div v-else-if="item.type === 'yesno'" class="question-block">
-                <p class="question-text">{{ item.question || 'Yes/No question not set' }}</p>
-                <div class="options-group">
-                  <label class="radio-label">
-                    <input type="radio" :name="'yn' + index" value="Yes" />
-                    <span class="radio-custom"></span>
-                    Yes
-                  </label>
-                  <label class="radio-label">
-                    <input type="radio" :name="'yn' + index" value="No" />
-                    <span class="radio-custom"></span>
-                    No
-                  </label>
-                </div>
+          <div class="alerts-list">
+            <div v-for="alert in recentAlerts" :key="alert.id" class="alert-item" :class="getAlertClass(alert.type)">
+              <div class="alert-icon" :class="getAlertClass(alert.type)">
+                {{ getAlertIcon(alert.type) }}
               </div>
-
-              <!-- Render Multiple Choice -->
-              <div v-else-if="item.type === 'multiple'" class="question-block">
-                <p class="question-text">{{ item.question || 'Multiple choice question not set' }}</p>
-                <div class="options-group">
-                  <template v-if="item.options && item.options.trim()">
-                    <div 
-                      v-for="(opt, i) in item.options.split(',')" 
-                      :key="i"
-                    >
-                      <label class="checkbox-label">
-                        <input type="checkbox" />
-                        <span class="checkmark"></span>
-                        {{ opt.trim() }}
-                      </label>
-                    </div>
-                  </template>
-
-                  <div v-else class="no-options">
-                    <em>No options defined</em>
-                  </div>
-                </div>
-              </div>
-              <!-- Render Single Choice -->
-              <div v-else-if="item.type === 'single'" class="question-block">
-                <p class="question-text">{{ item.question || 'Single choice question not set' }}</p>
-                <div class="options-group">
-                  <!-- Nếu có options -->
-                  <template v-if="item.options && item.options.trim()">
-                    <div 
-                      v-for="(opt, i) in item.options.split(',')" 
-                      :key="i"
-                    >
-                      <label class="radio-label">
-                        <input type="radio" :name="'single' + index" />
-                        <span class="radio-custom"></span>
-                        {{ opt.trim() }}
-                      </label>
-                    </div>
-                  </template>
-
-                  <!-- Nếu không có options -->
-                  <div v-else class="no-options">
-                    <em>No options defined</em>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Render Static Image -->
-              <div v-else-if="item.type === 'staticImage'" class="image-block">
-                 <!-- Có ảnh -->
-                <div v-if="item.imageUrls && item.imageUrls.length" class="image-preview-grid">
-                  <div 
-                    v-for="(img, i) in item.imageUrls" 
-                    :key="i" 
-                    class="preview-image-wrapper"
-                  >
-                    <img :src="img" class="preview-image-large" />
-                  </div>
-                </div>
-
-                <!-- Không có ảnh -->
-                <div v-else class="image-placeholder">
-                  <span class="placeholder-icon">🖼️</span>
-                  <p>No image uploaded</p>
-                </div>
-              </div>
-
-              <!-- Render User Image Upload -->
-              <div v-else-if="item.type === 'userImage'" class="upload-block">
-                <label class="upload-label">Upload Image</label>
-                <input type="file" class="file-input-preview" accept="image/*" disabled />
-                <small class="help-text">Users will be able to upload images here</small>
+              <div class="alert-content">
+                <div class="alert-message">{{ alert.message }}</div>
+                <div class="alert-time">{{ alert.time }}</div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Success Toast -->
-    <div v-if="showSuccess" class="toast success">
-      <span class="toast-icon">✅</span>
-      <span>Form saved successfully!</span>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div v-if="saving" class="loading-overlay">
-      <div class="loading-content">
-        <div class="spinner large"></div>
-        <p>Saving your form...</p>
+      <!-- Statistics Summary -->
+      <div class="statistics-section">
+        <h3 class="section-title">Statistics Summary</h3>
+        <div class="stats-grid">
+          <div class="stats-item">
+            <div class="stats-number">{{ todayStats.workInstructions }}</div>
+            <div class="stats-label">Work Instructions</div>
+            <div class="stats-change stats-positive">+{{ todayStats.newInstructionsToday }} today</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-number">{{ getCompletionRate() }}%</div>
+            <div class="stats-label">Completion Rate</div>
+            <div class="stats-change stats-positive">+5% vs last week</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-number">{{ getAverageTime() }}</div>
+            <div class="stats-label">Avg Response Time</div>
+            <div class="stats-change stats-negative">-15min vs last month</div>
+          </div>
+          <div class="stats-item">
+            <div class="stats-number">{{ getUptime() }}%</div>
+            <div class="stats-label">System Uptime</div>
+            <div class="stats-change stats-positive">+2% vs last quarter</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch, onMounted } from "vue";
-import axiosClient from "../utils/axiosClient";
-import { useTranslation } from '@/utils/translation.js'
-
-const { translateReactive } = useTranslation()
-
-// Enhanced components with icons and descriptions
-const components = ref([
-  { 
-    type: "label", 
-    label: "Label", 
-    icon: "🏷️",
-    description: "Add headings and text labels"
+<script>
+export default {
+  name: 'CMMSDashboard',
+  data() {
+    return {
+      currentTime: '',
+      selectedTimeRange: 'today',
+      todayStats: {
+        totalTasks: 45,
+        completedTasks: 32,
+        pendingMaintenance: 8,
+        urgentAlerts: 5,
+        totalMachines: 156,
+        workingMachines: 142,
+        workInstructions: 234,
+        newInstructionsToday: 12
+      },
+      maintenanceData: [
+        { name: 'Mon', completed: 12, scheduled: 15, urgent: 2 },
+        { name: 'Tue', completed: 19, scheduled: 18, urgent: 1 },
+        { name: 'Wed', completed: 15, scheduled: 20, urgent: 3 },
+        { name: 'Thu', completed: 22, scheduled: 16, urgent: 0 },
+        { name: 'Fri', completed: 18, scheduled: 22, urgent: 4 },
+        { name: 'Sat', completed: 8, scheduled: 10, urgent: 1 },
+        { name: 'Sun', completed: 5, scheduled: 6, urgent: 0 }
+      ],
+      monthlyTrend: [
+        { month: 'Jan', tasks: 420, maintenance: 89 },
+        { month: 'Feb', tasks: 380, maintenance: 76 },
+        { month: 'Mar', tasks: 460, maintenance: 95 },
+        { month: 'Apr', tasks: 510, maintenance: 108 },
+        { month: 'May', tasks: 485, maintenance: 102 },
+        { month: 'Jun', tasks: 520, maintenance: 115 }
+      ],
+      urgentTasks: [
+        { id: 1, machine: 'CNC-001', task: 'Belt Replacement', dueTime: '10:30 AM', priority: 'High' },
+        { id: 2, machine: 'PRESS-005', task: 'Hydraulic Check', dueTime: '2:00 PM', priority: 'High' },
+        { id: 3, machine: 'CONV-012', task: 'Motor Inspection', dueTime: '4:15 PM', priority: 'Medium' },
+        { id: 4, machine: 'DRILL-003', task: 'Calibration', dueTime: '5:30 PM', priority: 'High' },
+        { id: 5, machine: 'WELD-008', task: 'Gas Leak Check', dueTime: 'Overdue', priority: 'Critical' }
+      ],
+      recentAlerts: [
+        { id: 1, type: 'error', message: 'Temperature sensor failure on Line 3', time: '5 min ago' },
+        { id: 2, type: 'warning', message: 'Scheduled maintenance due for Press-002', time: '15 min ago' },
+        { id: 3, type: 'info', message: 'Maintenance completed on CNC-007', time: '1 hour ago' },
+        { id: 4, type: 'error', message: 'Conveyor belt jam detected', time: '2 hours ago' }
+      ]
+    }
   },
-  { 
-    type: "yesno", 
-    label: "Yes/No Question", 
-    icon: "❓",
-    description: "Simple yes or no question"
+  mounted() {
+    this.updateTime();
+    this.timeInterval = setInterval(this.updateTime, 1000);
   },
-  { 
-    type: "multiple", 
-    label: "Multiple Choice", 
-    icon: "☑️",
-    description: "Multiple selection options"
+  beforeDestroy() {
+    if (this.timeInterval) {
+      clearInterval(this.timeInterval);
+    }
   },
-  { 
-    type: "single", 
-    label: "Single Choice", 
-    icon: "🔘",
-    description: "Single selection from options"
-  },
-  { 
-    type: "staticImage", 
-    label: "Static Image", 
-    icon: "🖼️",
-    description: "Display an image in the form"
-  },
-  { 
-    type: "userImage", 
-    label: "User Upload", 
-    icon: "📤",
-    description: "Allow users to upload images"
-  },
-]);
-
-// UI State
-const activeTab = ref('settings');
-const selectedItem = ref(null);
-const saving = ref(false);
-const isDragOver = ref(false);
-
-const showSuccess = ref(false);
-const searchToolbox = ref('');
-
-// Data
-const categories = ref([]);
-const dragged = ref(null);
-const formItems = ref([]);
-
-const formMeta = ref({
-  code: "",
-  type: "",
-  description: "",
-  category: "",
-  frequency: "",
-  unitType: "",
-  unitValue: ""
-});
-
-const frequencies = [
-  'Daily',
-  'Shift',
-  'Unit'
-]
-
-// Type and category mappings
-const typeMap = {
-  "Daily Inspection": "DI",
-  "Maintenance Level 1": "ML01",
-  "Maintenance Level 2": "ML02",
-  "Maintenance Level 3": "ML03",
-};
-
-// Computed properties
-const generatedCode = computed(() => {
-  const typeCode = typeMap[formMeta.value.type] || "";
-  const categoryCode = formMeta.value.category || "";
-  if (typeCode && categoryCode) {
-    return `${typeCode}-${categoryCode}-XXXXXX`;
-  }
-  return "";
-});
-
-const filteredComponents = computed(() => {
-  if (!searchToolbox.value) return components.value;
-  return components.value.filter(comp => 
-    comp.label.toLowerCase().includes(searchToolbox.value.toLowerCase()) ||
-    comp.description.toLowerCase().includes(searchToolbox.value.toLowerCase())
-  );
-});
-
-const questionCount = computed(() =>
-  flatItems.value.filter(i => ['yesno','multiple','single'].includes(i.type)).length
-);
-
-const imageCount = computed(() =>
-  flatItems.value.filter(i => ['staticImage','userImage'].includes(i.type)).length
-);
-
-// Sync generated code to meta
-watch(generatedCode, (val) => {
-  formMeta.value.code = val;
-});
-
-// Utility functions
-const uid = () => Math.random().toString(36).slice(2, 10);
-const steps = ref([
-  { id: uid(), formItems: [], isDragOver: false }
-]);
-const getComponentIcon = (type) => {
-  const comp = components.value.find(c => c.type === type);
-  return comp ? comp.icon : '📝';
-};
-
-const getComponentLabel = (type) => {
-  const comp = components.value.find(c => c.type === type);
-  return comp ? comp.label : type;
-};
-const totalItems = computed(() =>
-  steps.value.reduce((sum, s) => sum + s.formItems.length, 0)
-);
-const flatItems = computed(() =>
-  steps.value.flatMap(s => s.formItems)
-);
-const addStep = () => {
-  steps.value.push({ id: uid(), formItems: [], isDragOver: false });
-};
-// Form item management
-const selectItem = (stepIndex, index) => {
-  if (selectedItem.value && selectedItem.value.step === stepIndex && selectedItem.value.index === index) {
-    selectedItem.value = null;
-  } else {
-    selectedItem.value = { step: stepIndex, index };
-  }
-};
-
-const duplicateItem = (stepIndex, index) => {
-  const item = JSON.parse(JSON.stringify(steps.value[stepIndex].formItems[index]));
-  item.id = uid();
-  steps.value[stepIndex].formItems.splice(index + 1, 0, item);
-};
-const removeItem = async (stepIndex, index) => {
-  const item = steps.value[stepIndex].formItems[index];
-  if (item.type === "staticImage" && item.imageUrls) {
-    try {
-      await axiosClient.post('', {}, {
-        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.imageUrls },
+  methods: {
+    updateTime() {
+      const now = new Date();
+      this.currentTime = now.toLocaleTimeString('en-US', { 
+        hour12: true, 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
       });
-    } catch (err) {
-      console.error("Delete image failed:", err);
+    },
+    getPriorityClass(priority) {
+      const classes = {
+        'Critical': 'priority-critical',
+        'High': 'priority-high',
+        'Medium': 'priority-medium',
+        'Low': 'priority-low'
+      };
+      return classes[priority] || 'priority-medium';
+    },
+    getAlertClass(type) {
+      const classes = {
+        'error': 'alert-error',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+      };
+      return classes[type] || 'alert-info';
+    },
+    getAlertIcon(type) {
+      const icons = {
+        'error': '🔴',
+        'warning': '🟡',
+        'info': '🔵'
+      };
+      return icons[type] || '🔵';
+    },
+    getCompletionRate() {
+      return Math.round((this.todayStats.completedTasks / this.todayStats.totalTasks) * 100);
+    },
+    getAverageTime() {
+      return '2.5h';
+    },
+    getUptime() {
+      return 99.2;
+    },
+    viewSchedule() {
+      console.log('View Schedule clicked');
+    },
+    addTask() {
+      console.log('Add Task clicked');
+    },
+    viewReports() {
+      console.log('View Reports clicked');
+    },
+    manageAlerts() {
+      console.log('Manage Alerts clicked');
     }
   }
-  steps.value[stepIndex].formItems.splice(index, 1);
-  selectedItem.value = null;
-};
-
-
-
-const clearForm = () => {
-  if (confirm('Are you sure you want to clear the entire form? This action cannot be undone.')) {
-    steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
-    selectedItem.value = null;
-    formMeta.value = { code:"", type:"", description:"", category:"", frequency:"", unitType:"", unitValue:"" };
-  }
-};
-
-// Drag and drop handlers
-const onDragStart = (comp) => {
-  dragged.value = comp;
-};
-
-const onDragEnd = () => {
-  dragged.value = null;
-};
-
-const onDragOver = (step) => {
-  step.isDragOver = true;
-};
-const onDragLeave = (step) => {
-  step.isDragOver = false;
-};
-
-const onDrop = (stepIndex) => {
-  const step = steps.value[stepIndex];
-  step.isDragOver = false;
-  if (!dragged.value) return;
-
-  const newItem = { id: uid() };
-  switch (dragged.value.type) {
-    case "label": Object.assign(newItem, { type:"label", text:"", heading:"h3", bold:false, italic:false, underline:false }); break;
-    case "yesno": Object.assign(newItem, { type:"yesno", question:"" }); break;
-    case "multiple": Object.assign(newItem, { type:"multiple", question:"", options:"" }); break;
-    case "single": Object.assign(newItem, { type:"single", question:"", options:"" }); break;
-    case "staticImage": Object.assign(newItem, { type:"staticImage", imageUrls:"" }); break;
-    case "userImage": Object.assign(newItem, { type:"userImage" }); break;
-  }
-  step.formItems.push(newItem);
-  selectedItem.value = { step: stepIndex, index: step.formItems.length - 1 };
-  dragged.value = null;
-};
-
-// Image upload handler (nhiều ảnh)
-const onImageUpload = async (event, stepIndex, index) => {
-  const files = event.target.files;
-  if (!files || !files.length) return;
-
-  // nếu chưa có imageUrls thì tạo mảng rỗng
-  if (!steps.value[stepIndex].formItems[index].imageUrls) {
-    steps.value[stepIndex].formItems[index].imageUrls = [];
-  }
-
-  for (const file of files) {
-    const form = new FormData();
-    form.append("file", file);
-
-    try {
-      const res = await axiosClient.post('', form, {
-        params: { c: 'WorkingInstructionController', m: 'upload' },
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const url = res.data.url;
-
-      // push vào mảng imageUrls
-      steps.value[stepIndex].formItems[index].imageUrls.push(url);
-    } catch (err) {
-      console.error("Upload failed:", err);
-    }
-  }
-};
-
-// Xóa 1 ảnh trong mảng
-const removeImage = async (stepIndex, index, imgIndex) => {
-  const item = steps.value[stepIndex].formItems[index];
-  const url = item.imageUrls[imgIndex];
-
-  if (url) {
-    try {
-      await axiosClient.post('', {}, {
-        params: { c: 'WorkingInstructionController', m: 'delete_image', path: url },
-      });
-    } catch (err) {
-      console.error("Delete image failed:", err);
-    }
-  }
-
-  // Xóa khỏi mảng
-  item.imageUrls.splice(imgIndex, 1);
-};
-// Save form
-const saveForm = async () => {
-  try {
-    saving.value = true;
-    // const payload = {
-    //   meta: { ...formMeta.value, category_code: formMeta.value.category },
-    //   content: JSON.parse(JSON.stringify(steps.value)), // gửi nhiều step
-    // };
-    const payload = {
-      meta: { ...formMeta.value, category_code: formMeta.value.category },
-      steps: steps.value.map((s, i) => ({
-        stepIndex: i + 1,
-        items: s.formItems
-      }))
-    }
-    console.log(payload);
-    
-    await axiosClient.post('', payload, {
-      params: { c: 'WorkingInstructionController', m: 'save' },
-      headers: { 'Content-Type': 'application/json' },
-    });
-    steps.value = [{ id: uid(), formItems: [], isDragOver: false }];
-    selectedItem.value = null;
-    formItems.value = [];
-    formMeta.value = {
-      code: "",
-      type: "",
-      description: "",
-      category: "",
-      frequency: "",
-      unitType: "",
-      unitValue: ""
-    };
-    selectedItem.value = -1;
-
-    showSuccess.value = true;
-    setTimeout(() => {
-      showSuccess.value = false;
-    }, 3000);
-  } catch (err) {
-    console.error("Save failed:", err);
-    alert("Save failed! Please try again.");
-  } finally {
-    saving.value = false;
-  }
-};
-
-// Load categories
-const getCategories = async () => {
-  try {
-    const res = await axiosClient.get('', {
-      params: {
-        c: 'CategoryController',
-        m: 'getAllCategories',
-        limit: 1000
-      }
-    });
-    categories.value = res.data.data;
-    console.log("Categories:", categories.value);
-  } catch (err) {
-    console.error("Load categories failed:", err);
-  }
-};
-
-onMounted(() => {
-  getCategories();
-});
+}
 </script>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
-
-.app-container {
+/* Global Styles */
+.dashboard-container {
   min-height: 100vh;
-  background: rgb(245,245,245);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: rgb(245, 245, 245);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Header */
-.app-header {
+/* Header Styles */
+.header {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  padding: 20px 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  padding: 20px 30px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.header-left .main-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0;
+  margin-bottom: 5px;
 }
 
-.app-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.gradient-text {
+  background: black;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 1rem;
   margin: 0;
 }
 
-.title-icon {
-  font-size: 32px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-}
-
-.breadcrumb {
-  font-size: 14px;
-  color: #6c757d;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.separator {
-  color: #dee2e6;
-}
-
-.current {
-  color: #667eea;
-  font-weight: 500;
-}
-.link-span {
-  cursor: pointer;
-}
 .header-right {
   display: flex;
-  gap: 12px;
-}
-.btn-add {
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: none;
+  gap: 20px;
+}
+
+.time-display {
+  text-align: right;
+}
+
+.time-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 5px 0;
+}
+
+.time-value {
+  font-size: 1.25rem;
   font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  background: #3a8cff;
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
+  color: #374151;
+  margin: 0;
 }
 
-.btn-add:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+.time-range-selector {
+  padding: 10px 15px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.3s ease;
 }
 
-.btn-add:active {
-  transform: scale(0.97);
-}
-
-.btn-add::before {
-  content: "+";
-  font-size: 16px;
-  font-weight: bold;
-}
-
-/* Buttons */
-.btn {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #3a8cff;
-  color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.btn-outline {
-  background: rgba(255, 255, 255, 0.2);
-  color: #495057;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.btn-outline:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
-}
-
-.btn-icon {
-  font-size: 16px;
+.time-range-selector:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 /* Main Content */
 .main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px 5px 10px 5px;
+  space-y: 30px;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border-left: 5px solid;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  opacity: 0.05;
+  border-radius: 50%;
+  transform: translate(30px, -30px);
+}
+
+.stat-card-green {
+  border-left-color: #10b981;
+}
+
+.stat-card-green::before {
+  background: #10b981;
+}
+
+.stat-card-orange {
+  border-left-color: #f59e0b;
+}
+
+.stat-card-orange::before {
+  background: #f59e0b;
+}
+
+.stat-card-red {
+  border-left-color: #ef4444;
+}
+
+.stat-card-red::before {
+  background: #ef4444;
+}
+
+.stat-card-blue {
+  border-left-color: #3b82f6;
+}
+
+.stat-card-blue::before {
+  background: #3b82f6;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card-content {
   display: flex;
-  gap: 24px;
-  padding: 24px;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
-/* Panels */
-.left-panel,
-.form-builder,
-.preview-panel {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.left-panel {
-  width: 300px;
-  flex-shrink: 0;
-}
-
-.form-builder {
+.stat-info {
   flex: 1;
-  min-width: 0;
 }
 
-.preview-panel {
-  width: 350px;
-  flex-shrink: 0;
+.stat-label {
+  font-size: 0.875rem;
+  color: black;
+  font-weight: 500;
+  margin: 0 0 8px 0;
 }
 
-/* Panel Headers */
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 5px 0;
+  line-height: 1;
+}
+
+.stat-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-left: 15px;
+}
+
+.stat-icon-green {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.stat-icon-orange {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.stat-icon-red {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.stat-icon-blue {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.stat-trend {
+  margin-top: 15px;
+}
+
+.trend-up {
+  color: #10b981;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Quick Actions */
+.quick-actions {
+  margin-bottom: 40px;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: black;
+  margin-bottom: 20px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 25px;
+  border: none;
+  border-radius: 15px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn-blue {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.action-btn-green {
+  background: linear-gradient(135deg, #10b981, #047857);
+}
+
+.action-btn-purple {
+  background: linear-gradient(135deg, #8b5cf6, #5b21b6);
+}
+
+.action-btn-orange {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.btn-icon {
+  margin-right: 8px;
+  font-size: 1.2rem;
+}
+
+/* Charts Section */
+.charts-section {
+  margin-bottom: 40px;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.chart-container {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.chart-full-width {
+  grid-column: 1 / -1;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 20px;
+}
+
+.legend-item {
+  font-size: 0.875rem;
+  font-weight: 500;
+  position: relative;
+  padding-left: 20px;
+}
+
+.legend-completed::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: #ef4444;
+  border-radius: 2px;
+}
+
+.chart-content {
+  height: 300px;
+}
+
+.bar-chart, .line-chart, .pie-chart {
+  width: 100%;
+  height: 100%;
+}
+
+.chart-bar {
+  transition: all 0.3s ease;
+}
+
+.chart-bar:hover {
+  opacity: 0.8;
+}
+
+.chart-label {
+  font-size: 12px;
+  fill: #6b7280;
+  font-weight: 500;
+}
+
+.trend-line {
+  transition: all 0.3s ease;
+}
+
+.data-point {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.data-point:hover {
+  r: 6;
+}
+
+.legend-text {
+  font-size: 12px;
+  fill: #374151;
+  font-weight: 500;
+}
+
+/* Pie Chart Specific */
+.pie-chart-content {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  height: 250px;
+}
+
+.pie-chart-wrapper {
+  position: relative;
+  width: 200px;
+  height: 200px;
+}
+
+.pie-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.pie-total {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.pie-label {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.pie-legend {
+  flex: 1;
+}
+
+.pie-legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.pie-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  margin-right: 12px;
+}
+
+.pie-color-green {
+  background: #10b981;
+}
+
+.pie-color-orange {
+  background: #f59e0b;
+}
+
+.pie-color-red {
+  background: #ef4444;
+}
+
+.pie-color-gray {
+  background: #6b7280;
+}
+
+/* Bottom Section */
+.bottom-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.tasks-panel, .alerts-panel {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
 .panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid rgba(102, 126, 234, 0.1);
 }
 
 .panel-title {
-  font-size: 18px;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #2c3e50;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  color: #111827;
   margin: 0;
 }
 
-.panel-icon {
-  font-size: 20px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-}
-
-.component-count,
-.items-count {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
+.view-all-btn, .clear-all-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 0.875rem;
   font-weight: 600;
-}
-
-/* Search Section */
-.search-section {
-  margin-bottom: 20px;
-}
-
-.search-container {
-  position: relative;
-}
-
-.search-input {
-  width: 100%;
-  padding: 12px 16px 12px 45px;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  background: rgba(248, 249, 250, 0.8);
-}
-
-.search-input:focus {
-  border-color: #667eea;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  background: white;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 16px;
-  color: #6c757d;
-  pointer-events: none;
-}
-
-/* Components Grid */
-.components-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.component-card {
-  padding: 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  background: rgba(248, 249, 250, 0.8);
-  cursor: grab;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.component-card:hover {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.component-card:active {
-  cursor: grabbing;
-  transform: scale(0.98);
-}
-
-.component-icon {
-  font-size: 24px;
-  margin-bottom: 4px;
-}
-
-.component-label {
-  font-weight: 600;
-  color: #2c3e50;
-  font-size: 14px;
-}
-
-.component-desc {
-  font-size: 12px;
-  color: #6c757d;
-  line-height: 1.4;
-}
-
-/* Drop Zone */
-.drop-zone {
-  min-height: 400px;
-  border: 2px dashed #dee2e6;
-  border-radius: 12px;
-  padding: 20px;
-  transition: all 0.3s ease;
-  background: rgba(248, 249, 250, 0.3);
-}
-
-.drop-zone.drag-over {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
-  transform: scale(1.02);
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 300px;
-  text-align: center;
-  color: #6c757d;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-state h4 {
-  margin: 0 0 8px 0;
-  color: #495057;
-  font-size: 18px;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 14px;
-  max-width: 250px;
-}
-
-/* Form Item Cards */
-.form-item-card {
-  background: white;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
-  transition: all 0.3s ease;
   cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
-.form-item-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+.view-all-btn:hover, .clear-all-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
 }
 
-.form-item-card.selected {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.02);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+.tasks-list, .alerts-list {
+  max-height: 300px;
+  overflow-y: auto;
 }
 
-.item-header {
+.task-item, .alert-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #f1f3f4;
-}
-
-.item-type {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.type-icon {
-  font-size: 18px;
-}
-
-.type-label {
-  font-weight: 600;
-  color: #495057;
-  font-size: 14px;
-}
-
-.item-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.action-btn {
-  background: none;
-  border: none;
-  padding: 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
-}
-
-.action-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.action-btn.danger:hover {
-  background: rgba(220, 53, 69, 0.1);
-  color: #dc3545;
-}
-
-/* Configuration Sections */
-.config-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.input-group label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #495057;
-}
-
-.help-text {
-  font-size: 11px;
-  color: #6c757d;
-  font-weight: 400;
-}
-
-.form-input,
-.form-select,
-.form-textarea {
-  padding: 10px 12px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  background: white;
-}
-
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
-  border-color: #667eea;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-input.readonly {
-  background: #f8f9fa;
-  color: #6c757d;
-}
-
-.form-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.style-options {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.checkbox-label input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-    width: 0;
-  height: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.checkmark {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #dee2e6;
-  border-radius: 4px;
-  background: white;
-  transition: all 0.2s ease;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark {
-  background: #667eea;
-  border-color: #667eea;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-}
-
-/* Image Upload */
-.image-upload-area {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.file-input {
-  display: none;
-}
-
-.file-upload-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #3a8cff;
-  color: white;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  align-self: flex-start;
-}
-
-.file-upload-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.upload-icon {
-  font-size: 16px;
-}
-
-.image-preview {
-  position: relative;
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  aspect-ratio: 1 / 1; /* giữ tỉ lệ vuông đẹp */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  transition: transform 0.2s ease;
-}
-
-.image-preview-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); /* responsive grid */
-  gap: 12px;
-  margin-top: 12px;
-}
-.preview-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.image-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.4);
-  opacity: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.2s ease;
-}
-.image-preview:hover .image-overlay {
-  opacity: 1;
-}
-
-.overlay-btn {
-  background: rgba(220, 53, 69, 0.9);
-  border: none;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.overlay-btn:hover {
-  background: #dc3545;
-  transform: scale(1.1);
-}
-
-.info-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: rgba(13, 202, 240, 0.1);
-  border: 1px solid rgba(13, 202, 240, 0.2);
-  border-radius: 8px;
-  color: #0dcaf0;
-  font-size: 14px;
-}
-
-.info-icon {
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-/* Panel Tabs */
-.panel-tabs {
-  display: flex;
-  margin-bottom: 20px;
-  background: rgba(248, 249, 250, 0.5);
+  padding: 15px;
+  margin-bottom: 10px;
   border-radius: 12px;
-  padding: 4px;
+  background: #f9fafb;
+  border-left: 4px solid #e5e7eb;
+  transition: all 0.3s ease;
 }
 
-.tab-btn {
+.task-item:hover, .alert-item:hover {
+  background: #f3f4f6;
+  transform: translateX(5px);
+}
+
+.task-info {
   flex: 1;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 600;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: transparent;
-  color: #6c757d;
 }
 
-.tab-btn.active {
-  background: white;
-  color: #667eea;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.tab-icon {
-  font-size: 16px;
-}
-
-/* Settings Content */
-.settings-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.section-title {
-  font-size: 16px;
+.task-machine {
   font-weight: 700;
-  color: #2c3e50;
-  margin: 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e9ecef;
+  color: #111827;
+  font-size: 0.875rem;
 }
 
-.meta-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.task-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 5px 0;
 }
 
-.meta-field label {
-  font-size: 13px;
+.task-time {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.task-priority {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #495057;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.stat-card {
-  background: #3a8cff;
-  color: white;
-  padding: 16px;
-  border-radius: 12px;
-  text-align: center;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 12px;
-  opacity: 0.9;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* Preview Content */
-.preview-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.priority-critical {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-left-color: #dc2626 !important;
 }
 
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+.priority-high {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border-left-color: #d97706 !important;
 }
 
-.info-badge {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+.priority-medium {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  border-left-color: #2563eb !important;
 }
 
-.preview-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
-  color: #6c757d;
+.priority-low {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border-left-color: #059669 !important;
 }
 
-.preview-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.alert-item {
+  padding: 12px 15px;
 }
 
-.preview-item {
-  padding: 16px;
-  background: #fafbfc;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-}
-
-.preview-heading {
-  margin: 0 0 8px 0;
-  color: #2c3e50;
-}
-
-.question-block {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.question-text {
-  margin: 0;
-  font-weight: 600;
-  color: #495057;
-  font-size: 14px;
-}
-
-.options-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-left: 16px;
-}
-
-.radio-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #495057;
-}
-
-.radio-label input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-}
-
-.radio-custom {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #dee2e6;
+.alert-icon {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: white;
-  transition: all 0.2s ease;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.radio-label input[type="radio"]:checked + .radio-custom {
-  border-color: #667eea;
-}
-
-.radio-label input[type="radio"]:checked + .radio-custom::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  background: #667eea;
-  border-radius: 50%;
-}
-
-.no-options {
-  color: #6c757d;
-  font-style: italic;
-  font-size: 13px;
-}
-
-.image-block {
-  display: flex;
-  justify-content: center;
-}
-.image-preview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); /* cột tự động */
-  gap: 9px;
-  margin-top: 12px;
-}
-
-.preview-image-wrapper {
-  position: relative;
-  border-radius: 10px;
-  overflow: hidden;
-  aspect-ratio: 1 / 1; /* ô vuông */
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-.preview-image-large {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* ảnh cắt gọn vừa khung */
-  display: block;
-}
-
-.image-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  border: 2px dashed #dee2e6;
-  border-radius: 8px;
-  color: #6c757d;
-}
-
-.placeholder-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
-  opacity: 0.5;
-}
-
-.upload-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.upload-label {
-  font-weight: 600;
-  color: #495057;
-  font-size: 14px;
-}
-
-.file-input-preview {
-  padding: 8px 12px;
-  border: 2px solid #e9ecef;
-  border-radius: 6px;
-  background: #f8f9fa;
-  font-size: 14px;
-}
-
-.help-text {
-  font-size: 12px;
-  color: #6c757d;
-  font-style: italic;
-}
-
-/* Toast Notifications */
-.toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 16px 20px;
-  border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  z-index: 1000;
-  animation: slideInRight 0.3s ease;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  justify-content: center;
+  margin-right: 15px;
+  font-size: 1rem;
 }
 
-.toast.success {
-  background: rgba(40, 167, 69, 0.95);
-  color: white;
+.alert-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-left-color: #ef4444 !important;
+}
+
+.alert-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-left-color: #f59e0b !important;
+}
+
+.alert-info {
+  background: rgba(59, 130, 246, 0.1);
+  border-left-color: #3b82f6 !important;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-message {
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.alert-time {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* Statistics Section */
+.statistics-section {
+  background: rgba(255, 255, 255, 1);
   backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
-.toast-icon {
-  font-size: 18px;
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 30px;
+  margin-top: 25px;
 }
 
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* Loading */
-.loading-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.loading-content {
+.stats-item {
   text-align: center;
-  color: #495057;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.6));
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
 }
 
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #667eea;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto;
+.stats-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.spinner.large {
-  width: 40px;
-  height: 40px;
-  border-width: 3px;
-  margin-bottom: 16px;
+.stats-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.stats-label {
+  font-size: 0.875rem;
+  color: black;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.stats-change {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.stats-positive {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.stats-negative {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* Responsive Design */
-@media (max-width: 1400px) {
-  .main-content {
+@media (max-width: 1200px) {
+  .chart-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .pie-chart-content {
     flex-direction: column;
+    height: auto;
     gap: 20px;
-  }
-  
-  .left-panel,
-  .preview-panel {
-    width: 100%;
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 1024px) {
-  .app-header {
+@media (max-width: 768px) {
+  .main-content {
+    padding: 20px;
+  }
+  
+  .header-content {
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
     text-align: center;
   }
   
-  .header-right {
-    justify-content: center;
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .bottom-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+  }
+  
+  .stats-number {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    padding: 15px 20px;
   }
   
   .main-content {
-    padding: 16px;
+    padding: 15px;
   }
   
-  .panel-tabs {
-    flex-direction: column;
+  .stat-card, .chart-container, .tasks-panel, .alerts-panel {
+    padding: 20px;
   }
   
   .stats-grid {
     grid-template-columns: 1fr;
   }
-}
-
-@media (max-width: 768px) {
-  .app-title {
-    font-size: 24px;
-  }
   
-  .left-panel,
-  .form-builder,
-  .preview-panel {
-    padding: 16px;
-  }
-  
-  .components-grid {
-    gap: 8px;
-  }
-  
-  .component-card {
-    padding: 12px;
-  }
-  
-  .style-options {
-    flex-direction: column;
-    gap: 8px;
+  .main-title {
+    font-size: 2rem !important;
   }
 }
 
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+/* Animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Focus states for keyboard navigation */
-.component-card:focus,
-.form-item-card:focus,
-.tab-btn:focus,
-.action-btn:focus {
-  outline: 2px solid #667eea;
-  outline-offset: 2px;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+.stat-card {
+  animation: slideInUp 0.6s ease-out;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+.chart-container {
+  animation: slideInUp 0.8s ease-out;
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
+.tasks-panel, .alerts-panel {
+  animation: slideInUp 1s ease-out;
 }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(102, 126, 234, 0.3);
-  border-radius: 4px;
-  transition: background 0.2s ease;
+/* Scrollbar Styling */
+.tasks-list::-webkit-scrollbar,
+.alerts-list::-webkit-scrollbar {
+  width: 6px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(102, 126, 234, 0.5);
+.tasks-list::-webkit-scrollbar-track,
+.alerts-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.tasks-list::-webkit-scrollbar-thumb,
+.alerts-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.tasks-list::-webkit-scrollbar-thumb:hover,
+.alerts-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Loading States */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Glassmorphism Effects */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Hover Effects */
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+
+  background: #10b981;
+  border-radius: 2px;
+}
+
+.legend-scheduled::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: #3b82f6;
+  border-radius: 2px;
+}
+
+.legend-urgent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
 }
 
 </style>

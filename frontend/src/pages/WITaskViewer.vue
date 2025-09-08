@@ -4,6 +4,7 @@
     <div v-if="loading" class="loading-state">
       <p>Loading...</p>
     </div>
+
     <!-- Empty Form -->
     <div v-else-if="steps.length === 0" class="empty-state">
       <div class="empty-icon">
@@ -258,7 +259,7 @@
         <button
           class="btn btn-success"
           v-else
-          :disabled="!isFormValid"
+          
           @click="submitForm"
         >
           Submit
@@ -266,10 +267,11 @@
       </div>
     </div>
   </div>
+
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted } from "vue"
+import { ref, watch, computed, onMounted, h } from "vue"
 import { Modal } from "ant-design-vue"
 import axiosClient from "../utils/axiosClient"
 import { useUserStore } from '@/stores/user'
@@ -511,6 +513,58 @@ const resetForm = () => {
   }
 }
 
+// State additions
+const showErrorModal = ref(false)
+const errorMessages = ref([])
+
+// Validation errors collector
+const getValidationErrors = () => {
+  const errors = []
+  steps.value.forEach((step, stepIndex) => {
+    const stepErrors = []
+    step.formItems.forEach(item => {
+      if (!ANSWER_TYPES.includes(item.type)) return
+      const val = selectedAnswers.value[item.id]
+      let errorMsg = null
+      if (item.type === 'yesno' && (val !== 'Yes' && val !== 'No')) {
+        errorMsg = {
+          prefix: '- Question "',
+          question: item.question || 'Yes/No question',
+          suffix: '" not answered'
+        }
+      } else if (item.type === 'single' && !val) {
+        errorMsg = {
+          prefix: '- Question "',
+          question: item.question || 'Single choice question',
+          suffix: '" not selected'
+        }
+      } else if (item.type === 'multiple' && (!Array.isArray(val) || val.length === 0)) {
+        errorMsg = {
+          prefix: '- Question "',
+          question: item.question || 'Multiple choice question',
+          suffix: '" no options selected'
+        }
+      } else if (item.type === 'userImage' && !uploadedFiles.value[item.id]) {
+        errorMsg = {
+          prefix: '- Image upload required for "',
+          question: item.question || 'User image',
+          suffix: '"'
+        }
+      }
+      if (errorMsg) {
+        stepErrors.push(errorMsg)
+      }
+    })
+    if (stepErrors.length > 0) {
+      errors.push({
+        step: `Step ${stepIndex + 1}:`,
+        errors: stepErrors
+      })
+    }
+  })
+  return errors
+}
+
 // Save function
 const save = async (formData) => {
   try {
@@ -529,10 +583,37 @@ const save = async (formData) => {
 
 // Submit form: gán answer vào từng item theo item.id và gửi steps (items)
 const submitForm = async () => {
-  if (!isFormValid.value) {
-    alert('Vui lòng hoàn thành tất cả câu trả lời trước khi gửi.')
+  const errors = getValidationErrors()
+    if (errors.length > 0) {
+Modal.warning({
+      title: 'Form Incomplete',
+      content: h('div', {
+        style: {
+          maxHeight: '400px',
+          overflowY: 'auto',
+          whiteSpace: 'pre-wrap',
+          margin: '0'
+        }
+      }, errors.map((step, index) => [
+        h('div', step.step),
+        ...step.errors.map((error, errorIndex) =>
+          h('div', { key: errorIndex }, [
+            error.prefix,
+            h('span', { style: { fontWeight: 'bold' } }, error.question),
+            error.suffix
+          ])
+        ),
+        index < errors.length - 1 ? h('div') : null
+      ]).flat()),
+      okText: 'OK'
+    })
     return
-  }
+    }
+
+    console.log('error: ---------------------');
+    
+  console.log(errors);
+  
 
   // Build updated steps payload (mỗi step có items: [...] với answer)
   const updatedSteps = steps.value.map(step => ({
@@ -597,6 +678,15 @@ watch(
 </script>
 
 <style scoped>
+
+.error-modal {
+  max-height: 400px;
+  overflow-y: auto;
+}
+.error-modal pre {
+  white-space: pre-wrap;
+  margin: 0;
+}
 .form-wrapper {
   max-width: 900px;
   height: 600px;
