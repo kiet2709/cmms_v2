@@ -22,7 +22,9 @@ class AuthController extends CI_Controller
         parent::__construct();
         $this->load->model('User_model');
         $this->load->model('DailyTask_model');
+        $this->load->model('Maintenance_model');
         $this->load->library('JWT');
+        $this->load->helpers('api');
     }
 
     // POST /index.php/api/login
@@ -30,6 +32,31 @@ class AuthController extends CI_Controller
     public function login()
     {
         // // đọc JSON body
+        // $input = json_decode($this->input->raw_input_stream, true);
+        // $username = isset($input['username']) ? trim($input['username']) : '';
+        // $password = isset($input['password']) ? $input['password'] : '';
+
+        // if ($username === '' || $password === '') {
+        //     $data = ['error' => 'username & password are required'];
+
+        //     $this->respond(422, $data);
+
+        // }
+
+        // $result = api_request(
+        //     'POST', 
+        //     '?c=AuthController&m=login',
+        //     [
+        //         'username' => $username,
+        //         'password' => $password
+        //     ]
+        // );;
+
+
+        // $this->DailyTask_model->insert_daily_tasks();
+
+        // $this->respond(200, $result['body']);
+
         $input = json_decode($this->input->raw_input_stream, true);
         $username = isset($input['username']) ? trim($input['username']) : '';
         $password = isset($input['password']) ? $input['password'] : '';
@@ -59,6 +86,7 @@ class AuthController extends CI_Controller
             'exp' => $now + 2 * 60 * 60, // hết hạn sau 2 giờ
         ];
         $token = $this->jwt->encode($payload);
+        
 
         $data = [
             'accessToken' => $token,
@@ -66,6 +94,7 @@ class AuthController extends CI_Controller
         ];
 
         $this->DailyTask_model->insert_daily_tasks();
+        $this->Maintenance_model->cronjobInsertMaintenance();
 
         // Trả JSON response
         header('Content-Type: application/json');

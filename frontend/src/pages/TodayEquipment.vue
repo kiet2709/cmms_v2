@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axiosClient from '@/utils/axiosClient';
-import DailyInspectionPage from './DailyInspectionPage.vue'
+import DailyInspectionPage from './DailyInspectionPage.vue';
 import { 
   EditOutlined, 
   DeleteOutlined, 
@@ -24,8 +24,15 @@ import {
   Tooltip, 
   Tag, 
   Dropdown, 
-  Select
+  Select,
+  DatePicker
 } from 'ant-design-vue';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi'; // Import Vietnamese locale if needed
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore'; // For date comparison
+
+dayjs.extend(isSameOrBefore); // Extend dayjs with isSameOrBefore plugin
+dayjs.locale('vi'); // Set locale to Vietnamese (optional, remove if not needed)
 
 const router = useRouter();
 const loading = ref(false);
@@ -33,10 +40,15 @@ const data = ref([]);
 const searchQuery = ref('');
 const filterVisible = ref(false);
 const filters = ref({
-  family: null,
   category: null,
   status: null
 });
+
+// Date picker state
+const dateFormat = 'YYYY-MM-DD';
+const today = dayjs();
+const dateFrom = ref(today); // Initialize as dayjs object
+const dateTo = ref(today); // Initialize as dayjs object
 
 // Call API DailyTaskController
 async function fetchTodayEquipments() {
@@ -46,9 +58,13 @@ async function fetchTodayEquipments() {
       params: {
         c: 'DailyTaskController',
         m: 'get_today_equipments',
+        date_from: dateFrom.value.format(dateFormat),
+        date_to: dateTo.value.format(dateFormat)
       }
     });
     data.value = res.data?.data || [];
+  } catch (error) {
+    console.error('Error fetching equipments:', error);
   } finally {
     loading.value = false;
   }
@@ -78,6 +94,10 @@ function cancelDelete() {
 }
 
 function handleRefresh() {
+  dateFrom.value = today;
+  dateTo.value = today;
+  dateFrom.value.format(dateFormat),
+  dateTo.value.format(dateFormat)
   fetchTodayEquipments();
 }
 
@@ -107,11 +127,10 @@ async function fetchDailyTasks(equipmentId) {
     const res = await axiosClient.get('', {
       params: { c: 'DailyTaskController', m: 'getDailyTasksByEquipment', equipment_id: equipmentId }
     });
-    
-    numberOfElement.value = res.data?.data.length;
-    console.log(numberOfElement.value);
-  } finally {
-    // No loading state change needed
+    numberOfElement.value = res.data?.data.length || 0;
+    console.log('Number of tasks:', numberOfElement.value);
+  } catch (error) {
+    console.error('Error fetching daily tasks:', error);
   }
 }
 
@@ -122,12 +141,8 @@ const filteredData = computed(() => {
     const q = searchQuery.value.toLowerCase();
     filtered = filtered.filter(item => 
       (item.machine_id && item.machine_id.toLowerCase().includes(q)) ||
-      (item.family && item.family.toLowerCase().includes(q)) ||
       (item.model && item.model.toLowerCase().includes(q))
     );
-  }
-  if (filters.value.family) {
-    filtered = filtered.filter(item => item.family === filters.value.family);
   }
   if (filters.value.category) {
     filtered = filtered.filter(item => item.category_name === filters.value.category);
@@ -138,17 +153,16 @@ const filteredData = computed(() => {
   return filtered;
 });
 
-const uniqueFamilies = computed(() => [...new Set(data.value.map(i => i.family).filter(Boolean))]);
 const uniqueCategories = computed(() => [...new Set(data.value.map(i => i.category_name).filter(Boolean))]);
 const uniqueStatuses = computed(() => [...new Set(data.value.map(i => i.status).filter(Boolean))]);
 
 // Check if any filter is applied
 const isFilterApplied = computed(() => {
-  return filters.value.family || filters.value.category || filters.value.status;
+  return filters.value.category || filters.value.status;
 });
 
 function clearFilters() {
-  filters.value = { family: null, category: null, status: null };
+  filters.value = { category: null, status: null };
   filterVisible.value = false;
 }
 
@@ -159,12 +173,33 @@ function getStatusColor(status) {
     pending: 'orange',
     default: 'default'
   };
-  return colors[status] || colors.default;
+  return colors[status?.toLowerCase()] || colors.default;
 }
 
 // Modal delete
 const showDeleteModal = ref(false);
 const deleteTarget = ref(null);
+
+// Date validation
+const disabledDateFrom = (current) => {
+  if (!current) return false;
+  const dateToValue = dateTo.value ? dayjs(dateTo.value) : today;
+  return current.isAfter(dateToValue, 'day') || current.isAfter(today, 'day');
+};
+
+const disabledDateTo = (current) => {
+  if (!current) return false;
+  const dateFromValue = dateFrom.value ? dayjs(dateFrom.value) : today;
+  return current.isBefore(dateFromValue, 'day') || current.isAfter(today, 'day');
+};
+
+function handleDateChange() {
+  // Ensure dateFrom is not after dateTo
+  if (dateFrom.value && dateTo.value && dayjs(dateFrom.value).isAfter(dayjs(dateTo.value), 'day')) {
+    dateTo.value = dateFrom.value;
+  }
+  // fetchTodayEquipments();
+}
 
 onMounted(() => {
   fetchTodayEquipments();
@@ -200,183 +235,192 @@ const breadcrumbItems = [
         </div>
       </div>
     </div>
-  </div>
-  <div class="equipment-management">
-    <!-- Main Content Card -->
-    <Card class="main-content-card">
-      <!-- Search and Filter Bar -->
-      <div class="toolbar">
-        <div class="search-section">
-          <Input.Search
-            v-model:value="searchQuery"
-            placeholder="Search by machine, family, model..."
-            size="large"
-            class="search-input"
-            allow-clear
-          />
-        </div>
-        <div class="filter-section">
-          <Space>
-            <Dropdown v-model:open="filterVisible" placement="bottomRight" trigger="click">
-              <Button class="filter-button">
-                <FilterOutlined />
-                Filters
-                <span v-if="isFilterApplied" class="filter-badge">●</span>
+    <div class="equipment-management">
+      <!-- Main Content Card -->
+      <Card class="main-content-card">
+        <!-- Search and Filter Bar -->
+        <div class="toolbar">
+          <div class="search-section">
+            <Space>
+              <Input.Search
+                v-model:value="searchQuery"
+                placeholder="Search by machine, model..."
+                size="large"
+                class="search-input"
+                allow-clear
+              />
+              <DatePicker
+                v-model:value="dateFrom"
+                :format="dateFormat"
+                :disabled-date="disabledDateFrom"
+                placeholder="Date From"
+                size="large"
+                style="width: 150px"
+                @change="handleDateChange"
+              />
+              <DatePicker
+                v-model:value="dateTo"
+                :format="dateFormat"
+                :disabled-date="disabledDateTo"
+                placeholder="Date To"
+                size="large"
+                style="width: 150px"
+                @change="handleDateChange"
+              />
+              <Button type="primary" size="large" @click="fetchTodayEquipments()">
+                Apply
               </Button>
-              <template #overlay>
-                <div class="filter-dropdown">
-                  <div class="filter-group">
-                    <label>Family</label>
-                    <Select
-                      v-model:value="filters.family"
-                      placeholder="Select family"
-                      allow-clear
-                      style="width: 200px"
-                      @change="filterVisible = true"
-                    >
-                      <Select.Option v-for="fam in uniqueFamilies" :key="fam" :value="fam">
-                        {{ fam }}
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div class="filter-group">
-                    <label>Category</label>
-                    <Select
-                      v-model:value="filters.category"
-                      placeholder="Select category"
-                      allow-clear
-                      style="width: 200px"
-                      @change="filterVisible = true"
-                    >
-                      <Select.Option v-for="cat in uniqueCategories" :key="cat" :value="cat">
-                        {{ cat }}
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div class="filter-group">
-                    <label>Status</label>
-                    <Select
-                      v-model:value="filters.status"
-                      placeholder="Select status"
-                      allow-clear
-                      style="width: 200px"
-                      @change="filterVisible = true"
-                    >
-                      <Select.Option v-for="st in uniqueStatuses" :key="st" :value="st">
-                        {{ st }}
-                      </Select.Option>
-                    </Select>
-                  </div>
-                  <div class="filter-actions">
-                    <Button size="small" @click="clearFilters">Clear All</Button>
-                  </div>
-                </div>
-              </template>
-            </Dropdown>
-          </Space>
-        </div>
-      </div>
-
-      <!-- Results Info -->
-      <div class="results-info">
-        <span>Showing {{ filteredData.length }} equipments</span>
-      </div>
-
-      <!-- Table -->
-      <div class="table-container" :class="{ 'loading': loading }">
-        <div class="table-responsive">
-          <table class="modern-table">
-            <thead>
-              <tr>
-                <th>Machine ID</th>
-                <th>Family</th>
-                <th>Model</th>
-                <th>Cavity</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th>Done / Total</th>
-                <th>Inspectors</th>
-                <th>Inspected Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in filteredData" :key="item.equipment_id">
-                <td><strong>{{ item.machine_id }}</strong></td>
-                <td>{{ item.family }}</td>
-                <td>{{ item.model }}</td>
-                <td>{{ item.cavity }}</td>
-                <td>{{ item.category_name }}</td>
-                <td>
-                  <Tag :color="getStatusColor(item.status)">{{ item.status }}</Tag>
-                </td>
-                <td>{{ item.count_done + '/' + item.count_pending }}</td>
-                <td>{{ item.inspectors }}</td>
-                <td>{{ item.inspected_date }}</td>
-                <td>
-                  <div class="action-buttons-cell">
-                    <Tooltip title="View Tasks of Equipment">
-                      <Button type="text" @click="handleViewTasks(item)">
-                        <EyeOutlined />
-                      </Button>
-                    </Tooltip>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </Card>
-
-    <!-- View Tasks Modal -->
-    <Modal
-      v-model:open="showViewTaskModal"
-      title="Daily Inspection"
-      width="97%"
-      :style="{ 
-        top: '3px',
-        maxHeight: 'calc(100vh - 20px)',
-        paddingBottom: '0'
-      }"
-      :body-style="{
-        height: 'auto',
-        maxHeight: 'calc(100vh - 120px)',
-        overflowY: numberOfElement <= 4 ? 'hidden' : 'auto',
-      }"
-      :footer="null"
-      @cancel="closeViewTaskModal"
-    >
-      <DailyInspectionPage
-        v-if="selectedEquipment"
-        :uuid="selectedEquipment.equipment_id"
-        :machine-id="selectedEquipment.machine_id"
-        @tasks-updated="handleRefresh"
-      />
-    </Modal>
-
-    <!-- Delete Confirmation -->
-    <Modal
-      v-model:open="showDeleteModal"
-      title="Confirm Delete"
-      @ok="performDelete"
-      @cancel="cancelDelete"
-      ok-text="Yes, Delete"
-      cancel-text="Cancel"
-      ok-type="danger"
-    >
-      <div class="delete-content">
-        <div class="warning-icon"><ExclamationCircleOutlined /></div>
-        <div class="warning-text">
-          <p>Are you sure you want to delete this equipment?</p>
-          <div class="equipment-info">
-            <strong>{{ deleteTarget?.machine_id }}</strong>
-            <span class="equipment-details">{{ deleteTarget?.family }} - {{ deleteTarget?.model }}</span>
+            </Space>
           </div>
-          <p class="warning-note">This action cannot be undone.</p>
+          <div class="filter-section">
+            <Space>
+              <Dropdown v-model:open="filterVisible" placement="bottomRight" trigger="click">
+                <Button class="filter-button">
+                  <FilterOutlined />
+                  Filters
+                  <span v-if="isFilterApplied" class="filter-badge">●</span>
+                </Button>
+                <template #overlay>
+                  <div class="filter-dropdown">
+                    <div class="filter-group">
+                      <label>Category</label>
+                      <Select
+                        v-model:value="filters.category"
+                        placeholder="Select category"
+                        allow-clear
+                        style="width: 200px"
+                        @change="filterVisible = true"
+                      >
+                        <Select.Option v-for="cat in uniqueCategories" :key="cat" :value="cat">
+                          {{ cat }}
+                        </Select.Option>
+                      </Select>
+                    </div>
+                    <div class="filter-group">
+                      <label>Status</label>
+                      <Select
+                        v-model:value="filters.status"
+                        placeholder="Select status"
+                        allow-clear
+                        style="width: 200px"
+                        @change="filterVisible = true"
+                      >
+                        <Select.Option v-for="st in uniqueStatuses" :key="st" :value="st">
+                          {{ st }}
+                        </Select.Option>
+                      </Select>
+                    </div>
+                    <div class="filter-actions">
+                      <Button size="small" @click="clearFilters">Clear All</Button>
+                    </div>
+                  </div>
+                </template>
+              </Dropdown>
+            </Space>
+          </div>
         </div>
-      </div>
-    </Modal>
+
+        <!-- Results Info -->
+        <div class="results-info">
+          <span>Showing {{ filteredData.length }} equipments</span>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container" :class="{ 'loading': loading }">
+          <div class="table-responsive">
+            <table class="modern-table">
+              <thead>
+                <tr>
+                  <th>Machine ID</th>
+                  <th>Model</th>
+                  <th>Cavity</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Done / Total</th>
+                  <th>Inspectors</th>
+                  <th>Inspected Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in filteredData" :key="item.equipment_id">
+                  <td><strong>{{ item.machine_id }}</strong></td>
+                  <td>{{ item.model }}</td>
+                  <td>{{ item.cavity }}</td>
+                  <td>{{ item.category_name }}</td>
+                  <td>
+                    <Tag :color="getStatusColor(item.status)">{{ item.status }}</Tag>
+                  </td>
+                  <td>{{ item.count_done + '/' + item.count_pending }}</td>
+                  <td>{{ item.inspectors }}</td>
+                  <td>{{ item.inspected_date }}</td>
+                  <td>
+                    <div class="action-buttons-cell">
+                      <Tooltip title="View Tasks of Equipment">
+                        <Button type="text" @click="handleViewTasks(item)">
+                          <EyeOutlined />
+                        </Button>
+                      </Tooltip>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Card>
+
+      <!-- View Tasks Modal -->
+      <Modal
+        v-model:open="showViewTaskModal"
+        title="Daily Inspection"
+        width="97%"
+        :style="{ 
+          top: '3px',
+          maxHeight: 'calc(100vh - 20px)',
+          paddingBottom: '0'
+        }"
+        :body-style="{
+          height: 'auto',
+          maxHeight: 'calc(100vh - 120px)',
+          overflowY: numberOfElement <= 4 ? 'hidden' : 'auto',
+        }"
+        :footer="null"
+        @cancel="closeViewTaskModal"
+      >
+        <DailyInspectionPage
+          v-if="selectedEquipment"
+          :uuid="selectedEquipment.equipment_id"
+          :machine-id="selectedEquipment.machine_id"
+          :dateFrom="dateFrom"
+          :dateTo="dateTo"
+          @tasks-updated="handleRefresh"
+        />
+      </Modal>
+
+      <!-- Delete Confirmation -->
+      <Modal
+        v-model:open="showDeleteModal"
+        title="Confirm Delete"
+        @ok="performDelete"
+        @cancel="cancelDelete"
+        ok-text="Yes, Delete"
+        cancel-text="Cancel"
+        ok-type="danger"
+      >
+        <div class="delete-content">
+          <div class="warning-icon"><ExclamationCircleOutlined /></div>
+          <div class="warning-text">
+            <p>Are you sure you want to delete this equipment?</p>
+            <div class="equipment-info">
+              <strong>{{ deleteTarget?.machine_id }}</strong>
+              <span class="equipment-details">{{ deleteTarget?.model }} - {{ deleteTarget?.model }}</span>
+            </div>
+            <p class="warning-note">This action cannot be undone.</p>
+          </div>
+        </div>
+      </Modal>
+    </div>
   </div>
 </template>
 
@@ -451,11 +495,12 @@ const breadcrumbItems = [
 
 .search-section {
   flex: 1;
-  max-width: 400px;
+  max-width: 1600px;
 }
 
 .search-input {
   border-radius: 8px;
+  width: 350px;
 }
 
 .filter-section {
@@ -604,6 +649,10 @@ const breadcrumbItems = [
     align-items: stretch;
   }
 
+  .search-section {
+    max-width: 100%;
+  }
+
   .filter-button {
     width: 100%;
     justify-content: center;
@@ -615,6 +664,21 @@ const breadcrumbItems = [
   .modern-table td {
     padding: 8px 6px;
     font-size: 12px;
+  }
+
+  .search-section > .ant-space {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .search-section .ant-space-item {
+    width: 100%;
+  }
+
+  .search-input,
+  .ant-picker,
+  .ant-btn {
+    width: 100% !important;
   }
 }
 </style>

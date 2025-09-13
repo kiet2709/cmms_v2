@@ -25,3 +25,10 @@ $hook['pre_system'][] = [
     'filename' => 'Cors.php',
     'filepath' => 'hooks',
 ];
+
+// $hook['pre_controller'][] = [
+//     'class'    => 'AuthHook',
+//     'function' => 'testApiCall',
+//     'filename' => 'AuthHook.php',
+//     'filepath' => 'hooks',
+// ];

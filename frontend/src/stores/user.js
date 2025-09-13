@@ -20,10 +20,14 @@ export const useUserStore = defineStore('user', {
   actions: {
     async fetchUser() {
       try {
+        const token = localStorage.getItem('accessToken')
         const res = await axiosClient.get('', {
           params: {
             c: 'UserController',
             m: 'getProfile'
+          },
+          headers: {
+            Authorization: `Bearer ${token}`
           }
         })
         // console.log(JSON.stringify(res, null, 2));

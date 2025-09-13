@@ -201,40 +201,61 @@
               </div>
 
               <!-- 2 video -->
-              <!-- <div v-else-if="item.videoUrls.length === 2" class="video-double">
+              <div v-else-if="item.videoUrls.length === 2" class="video-double">
                 <div 
                   v-for="(src, i) in item.videoUrls" 
                   :key="i" 
                   class="video-wrapper-large"
                   @click="openVideoModal(src)"
                 >
-                  <video :src="src" controls class="static-video"></video>
+                  <video :src="src"    
+                   :poster="defaultPoster"
+                    controls
+                    preload="none"
+                  class="static-video"
+                  @play="ensureSrc($event, src)"
+                  @click="togglePlay"
+                  ></video>
                 </div>
-              </div> -->
+              </div>
 
               <!-- 3 video -->
-              <!-- <div v-else-if="item.videoUrls.length === 3" class="video-triple">
+              <div v-else-if="item.videoUrls.length === 3" class="video-triple">
                 <div 
                   v-for="(src, i) in item.videoUrls" 
                   :key="i" 
                   class="video-wrapper-large"
                   @click="openVideoModal(src)"
                 >
-                  <video :src="src" controls class="static-video"></video>
+                                    <video :src="src"    
+                   :poster="defaultPoster"
+                    controls
+                    preload="none"
+                  class="static-video"
+                  @play="ensureSrc($event, src)"
+                  @click="togglePlay"
+                  ></video>
                 </div>
-              </div> -->
+              </div>
 
               <!-- 4 video trở lên -->
-              <!-- <div v-else class="video-gallery">
+              <div v-else class="video-gallery">
                 <div 
                   v-for="(src, i) in item.videoUrls" 
                   :key="i" 
                   class="video-wrapper"
                   @click="openVideoModal(src)"
                 >
-                  <video :src="src" controls class="static-video"></video>
+                                    <video :src="src"    
+                   :poster="defaultPoster"
+                    controls
+                    preload="none"
+                  class="static-video"
+                  @play="ensureSrc($event, src)"
+                  @click="togglePlay"
+                  ></video>
                 </div>
-              </div> -->
+              </div>
             </template>
           </div>
 

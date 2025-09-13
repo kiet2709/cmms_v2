@@ -111,7 +111,9 @@ const deleteTarget = ref(null);
 // 👁️ Modal view form
 const isModalOpen = ref(false);
 const currentId = ref(null);
+const WIMaintenanceId = ref('');
 function openFormViewer(task) {
+  WIMaintenanceId.value = task.uuid;
   currentId.value = task.wi_id;
   isModalOpen.value = true;
 }
@@ -193,11 +195,8 @@ function closeModal() {
     </Modal>
 
     <!-- 👁️ Form Viewer Modal -->
-    <Modal :style="{ top: '3px'}" v-model:open="isModalOpen" title="Instruction Details" @cancel="closeModal" width="800px">
-      <template #footer>
-        <Button @click="closeModal">Close</Button>
-      </template>
-      <MaintenanceViewer v-if="isModalOpen" :key="props.uuid" :id="props.uuid" />
+    <Modal :style="{ top: '3px'}" v-model:open="isModalOpen" title="Instruction Details" @cancel="closeModal" :footer="null" width="800px">
+      <MaintenanceViewer v-if="isModalOpen" :key="props.uuid" :id="WIMaintenanceId" />
     </Modal>
   </div>
 </template>

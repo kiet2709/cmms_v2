@@ -35,7 +35,7 @@ if (!function_exists('save_image')) {
         }
 
         // Kiểm tra size <= 20MB
-        if ($size > 20 * 1024 * 1024) {
+        if ($size > 100 * 1024 * 1024) {
             throw new Exception("File quá lớn (max 20MB)");
         }
 

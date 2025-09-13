@@ -1,8 +1,10 @@
+
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import axiosClient from '@/utils/axiosClient';
 import MasterPlan from './MasterPlan.vue';
+import dayjs from 'dayjs'
 import { 
   EditOutlined, 
   DeleteOutlined, 
@@ -12,7 +14,11 @@ import {
   ReloadOutlined,
   FilterOutlined,
   DownloadOutlined,
-  HomeOutlined
+  HomeOutlined,
+  ToolOutlined,  // Added for maintenance planning,
+  BuildOutlined,
+  ClockCircleOutlined,
+  CarryOutOutlined
 } from '@ant-design/icons-vue';
 import { 
   Modal, 
@@ -29,7 +35,8 @@ import {
   Row,
   Col,
   Select,
-  DatePicker
+  DatePicker,
+  message  // Added for notifications
 } from 'ant-design-vue';
 
 const router = useRouter();
@@ -61,7 +68,6 @@ const pagination = ref({
 const showMasterPlanModal = ref(false);
 const selectedUuid = ref(null);
 
-
 // modal delete
 const showDeleteModal = ref(false);
 const deleteTarget = ref(null);
@@ -74,38 +80,33 @@ const stats = computed(() => ({
   avgHistoryCount: data.value.length > 0 ? Math.round(data.value.reduce((sum, item) => sum + (Number(item.history_count) || 0), 0) / data.value.length) : 0
 }));
 
-async function fetchEquipments(page = 1, limit = 10) {
+async function fetchEquipments() {
   loading.value = true;
   try {
     const res = await axiosClient.get('', {
       params: {
         c: 'EquipmentController',
         m: 'getAllEquipments',
-        page,
-        limit,
+        page: 1,
+        limit: 100000,
       }
     });
     const apiData = res.data.data || [];
-    const totalItems = res.data.total_in_all_page || 0;
-    const totalPages = res.data.total_pages || 1;
-
-    pagination.value.total = totalItems;
-    pagination.value.current = page;
-    pagination.value.pageSize = limit;
-    pagination.value.totalPages = totalPages;
 
     data.value = apiData.map((item, index) => ({
-      no: (page - 1) * limit + index + 1,
+      no: index + 1,
       task: null,
       ...item
     }));
+    pagination.value.total = data.value.length;
+    pagination.value.totalPages = Math.ceil(pagination.value.total / pagination.value.pageSize);
   } finally {
     loading.value = false;
   }
 }
 
 function handlePageChange(newPage) {
-  fetchEquipments(newPage, pagination.value.pageSize);
+  pagination.value.current = newPage;
 }
 
 function handleEdit(uuid) {
@@ -170,7 +171,7 @@ function closeMasterPlan() {
 }
 
 function handleRefresh() {
-  fetchEquipments(pagination.value.current, pagination.value.pageSize);
+  fetchEquipments();
 }
 
 function handleAddNew() {
@@ -182,7 +183,6 @@ function handleExport() {
   console.log('Exporting data...');
 }
 
-// filter tại chỗ (trên data page hiện tại)
 const filteredData = computed(() => {
   let filtered = data.value;
   
@@ -248,6 +248,18 @@ const sortedData = computed(() => {
   });
 });
 
+const paginatedData = computed(() => {
+  const start = (pagination.value.current - 1) * pagination.value.pageSize;
+  const end = start + pagination.value.pageSize;
+  return sortedData.value.slice(start, end);
+});
+
+watch([searchQuery, filters], () => {
+  pagination.value.current = 1;
+  pagination.value.total = sortedData.value.length;
+  pagination.value.totalPages = Math.ceil(pagination.value.total / pagination.value.pageSize);
+}, { deep: true });
+
 // Get unique values for filter options
 const uniqueFamilies = computed(() => [...new Set(data.value.map(item => item.family).filter(Boolean))]);
 const uniqueCategories = computed(() => [...new Set(data.value.map(item => item.category).filter(Boolean))]);
@@ -289,7 +301,7 @@ function getCategoryColor(category) {
 }
 
 onMounted(() => {
-  fetchEquipments(pagination.value.current, pagination.value.pageSize);
+  fetchEquipments();
 });
 
 const breadcrumbItems = [
@@ -317,6 +329,104 @@ const showToastNotification = (message, type = "success") => {
     showToast.value = false;
   }, 3000);
 };
+
+// New: Maintenance Planning
+const showMaintenanceModal = ref(false);
+const selectedEquipment = ref(null);
+const maintenancePlans = ref([]);
+const newMaintenanceDate = ref(null);
+const maintenanceLoading = ref(false);
+
+async function fetchMaintenancePlans(uuid) {
+  maintenanceLoading.value = true;
+  try {
+    // TODO: Replace with actual API endpoint for fetching maintenance plans
+    const res = await axiosClient.get('', {
+      params: {
+        c: 'MaintenanceController',  // Assuming a controller for maintenance
+        m: 'getPlansByEquipment',
+        uuid: uuid,
+      }
+    });
+    
+    
+    
+    maintenancePlans.value = res.data || [];
+    console.log(res.data);
+    // Sort by date descending (newest first)
+    maintenancePlans.value.sort((a, b) => new Date(b.date) - new Date(a.date));
+  } catch (e) {
+    console.error("Error fetching maintenance plans:", e);
+    message.error("Failed to load maintenance plans.");
+  } finally {
+    maintenanceLoading.value = false;
+  }
+}
+
+async function addMaintenancePlan() {
+  if (!newMaintenanceDate.value) {
+    message.warning("Please select a date.");
+    return;
+  }
+  try {
+    // TODO: Replace with actual API endpoint for adding plan
+    const payload = {
+      equipmentUuid: selectedEquipment.value.uuid,
+      date: newMaintenanceDate.value.format('YYYY-MM-DD'),
+      userId: userStore.rawUser.user.uuid,
+    };
+    await axiosClient.post('', payload, {
+      params: { c: 'MaintenanceController', m: 'addPlan' },
+      headers: { 'Content-Type': 'application/json' },
+    });
+    message.success("Maintenance plan added successfully.");
+    newMaintenanceDate.value = null;
+    await fetchMaintenancePlans(selectedEquipment.value.uuid);
+  } catch (e) {
+    console.error("Error adding maintenance plan:", e);
+    message.error("Failed to add maintenance plan.");
+  }
+}
+
+async function deleteMaintenancePlan(planId) {
+  try {
+    // TODO: Replace with actual API endpoint for deleting plan
+    const payload = {
+      planId: planId,
+      userId: userStore.rawUser.user.uuid,
+    };
+
+    console.log(planId);
+    
+    await axiosClient.post('', payload, {
+      params: { c: 'MaintenanceController', m: 'deletePlan' },
+      headers: { 'Content-Type': 'application/json' },
+    });
+    message.success("Maintenance plan deleted successfully.");
+    await fetchMaintenancePlans(selectedEquipment.value.uuid);
+  } catch (e) {
+    console.error("Error deleting maintenance plan:", e);
+    message.error("Failed to delete maintenance plan.");
+  }
+}
+
+function openMaintenanceModal(item) {
+  selectedEquipment.value = item;
+  fetchMaintenancePlans(item.uuid);
+  showMaintenanceModal.value = true;
+}
+
+function closeMaintenanceModal() {
+  showMaintenanceModal.value = false;
+  selectedEquipment.value = null;
+  maintenancePlans.value = [];
+  newMaintenanceDate.value = null;
+}
+
+function disabledDate(current) {
+  // Disable dates before today
+   return current && current < dayjs().startOf('day')
+}
 </script>
 
 <template>
@@ -360,7 +470,7 @@ const showToastNotification = (message, type = "success") => {
           <div class="search-section">
             <Input.Search
               v-model:value="searchQuery"
-              placeholder="Search equipment by ID, family, model, or date..."
+              placeholder="Search equipment by ID, model, or date..."
               size="large"
               class="search-input"
               allow-clear
@@ -380,7 +490,7 @@ const showToastNotification = (message, type = "success") => {
                 </Button>
                 <template #overlay>
                   <div class="filter-dropdown">
-                    <div class="filter-group">
+                    <!-- <div class="filter-group">
                       <label>Family</label>
                       <Select
                         v-model:value="filters.family"
@@ -392,7 +502,7 @@ const showToastNotification = (message, type = "success") => {
                           {{ family }}
                         </Select.Option>
                       </Select>
-                    </div>
+                    </div> -->
                     <div class="filter-group">
                       <label>Category</label>
                       <Select
@@ -418,7 +528,7 @@ const showToastNotification = (message, type = "success") => {
 
         <!-- Results Info -->
         <div class="results-info">
-          <span>Showing {{ sortedData.length }} of {{ pagination.total }} equipment</span>
+          <span>Showing {{ paginatedData.length }} of {{ pagination.total }} equipment</span>
         </div>
 
         <Card class="table-container" :class="{ 'loading': loading }">
@@ -440,7 +550,7 @@ const showToastNotification = (message, type = "success") => {
                       </span>
                     </div>
                   </th>
-                  <th class="sortable" @click="sortBy('family')">
+                  <!-- <th class="sortable" @click="sortBy('family')">
                     <div class="th-content">
                       Family
                       <span class="sort-indicator">
@@ -449,7 +559,7 @@ const showToastNotification = (message, type = "success") => {
                         <span v-else class="sort-desc">↓</span>
                       </span>
                     </div>
-                  </th>
+                  </th> -->
                   <!-- <th>Family</th> -->
                   <th>Model</th>
                   <th>Cavity</th>
@@ -481,11 +591,11 @@ const showToastNotification = (message, type = "success") => {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="item in sortedData" :key="item.uuid" class="table-row">
+                <tr v-for="item in paginatedData" :key="item.uuid" class="table-row">
                   <td class="machine-id">
                     <strong>{{ item.machine_id }}</strong>
                   </td>
-                  <td>{{ item.family }}</td>
+                  <!-- <td>{{ item.family }}</td> -->
                   <td>{{ item.model }}</td>
                   <td>{{ item.cavity }}</td>
                   <td>{{ $tSync(item.manufacturer) }}</td>
@@ -508,6 +618,11 @@ const showToastNotification = (message, type = "success") => {
                       <Tooltip title="Edit Equipment">
                         <Button type="text" @click="handleEdit(item.uuid)" class="edit-btn">
                           <EditOutlined />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip title="Plan Maintenance">
+                        <Button type="text" @click="openMaintenanceModal(item)" class="maintenance-btn">
+                          <CarryOutOutlined />
                         </Button>
                       </Tooltip>
                       <Tooltip title="Delete Equipment">
@@ -624,6 +739,77 @@ const showToastNotification = (message, type = "success") => {
           </div>
         </div>
       </Modal>
+
+      <!-- New: Maintenance Planning Modal -->
+      <Modal
+        v-model:open="showMaintenanceModal"
+        :title="`Maintenance Plans for ${selectedEquipment?.machine_id}`"
+        @cancel="closeMaintenanceModal"
+        width="800px"
+        class="maintenance-modal"
+      >
+        <template #footer>
+          <Button @click="closeMaintenanceModal">Close</Button>
+        </template>
+        <div class="maintenance-content">
+          <!-- Add New Plan -->
+          <div class="add-plan-section">
+            <h3>Add New Maintenance Plan</h3>
+            <Space>
+              <!-- :disabled-date="disabledDate" -->
+              <DatePicker
+                v-model:value="newMaintenanceDate"
+                :disabled-date="disabledDate"
+                placeholder="Select maintenance date"
+                style="width: 200px"
+              />
+              <Button type="primary" @click="addMaintenancePlan">
+                <PlusOutlined />
+                Add Plan
+              </Button>
+            </Space>
+          </div>
+
+          <!-- Plans List -->
+          <div class="plans-list">
+            <h3>Existing Plans (Newest to Oldest)</h3>
+            <div v-if="maintenanceLoading">Loading...</div>
+            <table v-else class="plans-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="plan in maintenancePlans" :key="plan.uuid">
+                  <td>{{ plan.date_maintenance }}</td>
+                  <td>
+                    <Tag :color="plan.status == 'done' ? 'green' : 'orange'">
+                      {{ plan.status }}
+                    </Tag>
+                  </td>
+                  <td>
+                    <Button
+                      v-if="plan.status != 'done'"
+                      type="text"
+                      danger
+                      @click="deleteMaintenancePlan(plan.uuid)"
+                    >
+                      <DeleteOutlined />
+                    </Button>
+                  </td>
+                </tr>
+                <tr v-if="maintenancePlans.length === 0">
+                  <td colspan="3" style="text-align: center;">No plans yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Modal>
+
       <!-- Toast Notification -->
       <div v-if="showToast" :class="['toast', toastType]">
         <div class="toast-content">
@@ -993,6 +1179,11 @@ const showToastNotification = (message, type = "success") => {
   background: #f6ffed;
 }
 
+.maintenance-btn:hover {
+  color: #faad14;
+  background: #fffbe6;
+}
+
 .delete-btn:hover {
   color: #ff4d4f;
   background: #fff2f0;
@@ -1128,6 +1319,35 @@ const showToastNotification = (message, type = "success") => {
   color: #999;
   font-size: 13px;
   margin: 16px 0 0 0;
+}
+
+/* New: Maintenance Modal Styles */
+.maintenance-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.add-plan-section {
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.plans-list {
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.plans-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.plans-table th, .plans-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: left;
 }
 
 /* Responsive Design */

@@ -83,7 +83,8 @@ class DailyTask_model extends CI_Model {
             dt.status,
             dt.inspector_id,
             e.machine_id,
-            e.model, e.cavity, e.family,
+            e.model, e.cavity,
+            e.history_count, e. manufacturing_date, e.unit, e.manufacturer,
             c.name AS category_name,
             u.username AS inspector_username
         ');
@@ -116,8 +117,12 @@ class DailyTask_model extends CI_Model {
                     'machine_id'     => $row->machine_id,
                     'model'          => $row->model,
                     'cavity'         => $row->cavity,
-                    'family'         => $row->family,
+                    //'family'         => $row->family,
                     'category_name'  => $row->category_name,
+                    'history_count' => $row->history_count,
+                    'manufacturing_date' => $row->manufacturing_date,
+                    'unit' => $row->unit,
+                    'manufacturer' => $row->manufacturer,
                     'statuses'       => [],
                     'inspectors_set' => [],  // dùng set để loại trùng
                 ];
@@ -175,6 +180,9 @@ class DailyTask_model extends CI_Model {
                 ->or_group_start()
                     ->where('DATE(inspected_date)', $today)
                 ->group_end()
+                ->or_group_start()
+                    ->where('inspected_date IS NULL')
+                ->group_end()
             ->group_end();
             
             $count_pending_today = $this->db->count_all_results();
@@ -187,10 +195,14 @@ class DailyTask_model extends CI_Model {
                 'machine_id'     => $item['machine_id'],
                 'model'          => $item['model'],
                 'cavity'         => $item['cavity'],
-                'family'         => $item['family'],
+                //'family'         => $item['family'],
                 'count_done'    => $count_done_today,
                 'count_pending' => $count_pending_today,
                 'category_name'  => $item['category_name'],
+                'history_count' => $item['history_count'],
+                'manufacturing_date' => $item['manufacturing_date'],
+                'unit' => $item['unit'],
+                'manufacturer' => $item['manufacturer'],
                 'status'         => $isCompleted ? 'completed' : 'incomplete',
                 'inspectors'     => $inspectors,      // "username1, username2, ..."
                 'inspected_date' => $lastInspected    // MAX(inspected_date) toàn bảng theo equipment_id (có thể null)
@@ -201,91 +213,54 @@ class DailyTask_model extends CI_Model {
     }
 
     
+    public function getEquipmentFromDate($from, $to)
+    {
+    $this->db->select("
+        e.uuid as equipment_id,
+        e.machine_id,
+        e.model,
+        e.cavity,
+        cat.name as category_name,
+        e.history_count,
+        e.manufacturing_date,
+        e.unit,
+        e.manufacturer,
 
+        GROUP_CONCAT(DISTINCT u.username ORDER BY u.username SEPARATOR ', ') as inspectors,
 
-    //----------------------------------------------
+        -- status = 'completed' khi tất cả record trong nhóm đều = 'done'
+        CASE
+            WHEN COUNT(*) > 0
+                 AND SUM(CASE WHEN dt.status = 'done' THEN 1 ELSE 0 END) = COUNT(*)
+            THEN 'completed'
+            ELSE 'incomplete'
+        END as status,
 
+        -- count_done: status = 'done' và inspected_date IS NOT NULL và inspector_id IS NOT NULL
+        SUM(CASE
+            WHEN dt.status = 'done'
+                 AND dt.inspected_date IS NOT NULL
+                 AND dt.inspector_id IS NOT NULL
+            THEN 1 ELSE 0
+        END) as count_done,
 
+        -- count_pending: status IS NULL và inspected_date IS NULL và inspector_id IS NULL
+        SUM(1) as count_pending,
 
+        COUNT(*) as total_tasks
+    ", false);
 
+    $this->db->from('daily_tasks dt');
+    $this->db->join('equipments e', 'dt.equipment_id = e.uuid');
+    $this->db->join('categories cat', 'e.category_id = cat.uuid', 'left');
+    $this->db->join('users u', 'dt.inspector_id = u.uuid', 'left');
+    $this->db->where('dt.date_start >=', $from);
+    $this->db->where('dt.date_start <=', $to);
+    $this->db->group_by('e.uuid');
+    $query = $this->db->get();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //------------------------------------------------
-    // public function get_today_incomplete_equipments()
-    // {
-    //     $today = date('Y-m-d');
-
-    //     $sql = "
-    //     SELECT dt.equipment_id,
-    //         e.machine_id, e.model, e.cavity, e.family,
-    //         c.name AS category_name,
-    //         SUM(
-    //             CASE
-    //             WHEN (dt.status IS NULL OR LOWER(dt.status) != 'done' OR dt.inspected_date IS NULL)
-    //             THEN 1 ELSE 0
-    //             END
-    //         ) AS count_pending,
-    //         SUM(
-    //             CASE
-    //             WHEN DATE(dt.inspected_date) = ? AND LOWER(dt.status) = 'done'
-    //             THEN 1 ELSE 0
-    //             END
-    //         ) AS count_done,
-    //         MAX(dt.inspected_date) AS last_inspected_date,
-    //         GROUP_CONCAT(DISTINCT u.username ORDER BY u.username SEPARATOR ', ') AS inspectors
-    //     FROM daily_tasks dt
-    //     LEFT JOIN equipments e ON e.uuid = dt.equipment_id
-    //     LEFT JOIN categories c ON c.uuid = e.category_id
-    //     LEFT JOIN users u ON u.uuid = dt.inspector_id
-    //     WHERE dt.deleted_at IS NULL
-    //     AND dt.deleted_by IS NULL
-    //     GROUP BY dt.equipment_id
-    //     HAVING count_pending > 0 OR count_done > 0
-    //     ORDER BY count_pending DESC, e.machine_id
-    //         ";
-
-    //     $query = $this->db->query($sql, [$today]);
-    //     $rows = $query->result();
-
-    //     $result = [];
-    //     foreach ($rows as $r) {
-    //         $result[] = [
-    //             'equipment_id'   => $r->equipment_id,
-    //             'machine_id'     => $r->machine_id,
-    //             'model'          => $r->model,
-    //             'cavity'         => $r->cavity,
-    //             'family'         => $r->family,
-    //             'count_done'     => (int)$r->count_done,
-    //             'count_pending'  => (int)$r->count_pending,
-    //             'category_name'  => $r->category_name,
-    //             'status'         => ((int)$r->count_pending === 0) ? 'completed' : 'incomplete',
-    //             'inspectors'     => $r->inspectors ?: '',
-    //             'inspected_date' => $r->last_inspected_date
-    //         ];
-    //     }
-
-    //     return $result;
-    // }
-    
+    return $query->result_array();
+    }
     
     
     public function get_daily_tasks($equipment_id) {
@@ -314,6 +289,34 @@ class DailyTask_model extends CI_Model {
             $this->db->or_where('daily_tasks.inspected_date IS NULL');
             $this->db->or_where('DATE(daily_tasks.inspected_date)', $today);
         $this->db->group_end();
+
+        $query = $this->db->get();
+        return $query->result_array();
+    }
+
+
+    public function getTaskWithDate($equipment_id, $from, $to)
+    {
+        $today = date('Y-m-d');
+
+        $this->db->select('
+            daily_tasks.code,
+            daily_tasks.uuid as wi_id,
+            daily_tasks.name as content,
+            daily_tasks.inspected_date,
+            daily_tasks.date_start,
+            daily_tasks.status,
+            daily_tasks.result,
+            daily_tasks.inspector_id,
+            users.username as inspector_name
+        ');
+        $this->db->from('daily_tasks');
+        $this->db->join('users', 'users.uuid = daily_tasks.inspector_id', 'left');
+        $this->db->where('daily_tasks.deleted_by IS NULL');
+        $this->db->where('daily_tasks.deleted_at IS NULL');
+        $this->db->where('daily_tasks.equipment_id', $equipment_id);
+        $this->db->where('date_start >=', $from);
+        $this->db->where('date_start <=', $to);
 
         $query = $this->db->get();
         return $query->result_array();

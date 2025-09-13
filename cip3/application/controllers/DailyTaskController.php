@@ -1,6 +1,10 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+/**
+ * @property DailyTask_model $DailyTask_model
+ * @property CI_Output $output
+ */
 class DailyTaskController extends CI_Controller {
 
     public function __construct()
@@ -15,7 +19,16 @@ class DailyTaskController extends CI_Controller {
      */
     public function get_today_equipments()
     {
-        $data = $this->DailyTask_model->get_today_incomplete_equipments();
+        $from = $_GET['date_from'];
+        $to = $_GET['date_to'];
+        $today = date('Y-m-d');
+        if ($from == $today && $to == $today) {
+            $data = $this->DailyTask_model->get_today_incomplete_equipments();
+
+        } else {
+            $data = $this->DailyTask_model->getEquipmentFromDate($from, $to);
+        }
+        
 
         // Trả ra dạng JSON
         $this->output
@@ -39,7 +52,17 @@ class DailyTaskController extends CI_Controller {
 
     public function getDailyTasksByEquipment() {
         $equipment_id = $_GET['equipment_id'];
-        $tasks = $this->DailyTask_model->get_daily_tasks($equipment_id);
+        $from = $_GET['dateFrom'];
+        $to = $_GET['dateTo'];
+        $today = date('Y-m-d');
+        if ($from == $today && $to == $today) {
+            $tasks = $this->DailyTask_model->get_daily_tasks($equipment_id);
+        } else {
+            $tasks = $this->DailyTask_model->getTaskWithDate($equipment_id, $from, $to);
+        }
+        
+
+        
 
         $this->output
             ->set_content_type('application/json')
@@ -71,7 +94,10 @@ class DailyTaskController extends CI_Controller {
         
         $this->DailyTask_model->doTask($data['uuid'], $data['schema'], $data['inspectorId']);
 
-        return $this->respond(200, ['error' =>  $data]);
+        return $this->respond(200, [
+            'success' =>  true,
+            'data' => $data
+        ]);
     }
     
 }

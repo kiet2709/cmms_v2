@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('equipments', function (Blueprint $table) {
             $table->uuid();
             $table->string('machine_id'); // Unique machine identifier
-            $table->string('family')->nullable(); // Product/Equipment family
             $table->string('model')->nullable(); // Machine model
             $table->string('cavity')->nullable(); // Number/type of cavities
             $table->string('manufacturer')->nullable(); // Manufacturer name

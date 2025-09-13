@@ -14,10 +14,8 @@ return new class extends Migration
         Schema::create('maintenance_sessions', function (Blueprint $table) {
             $table->uuid();
             $table->string('equipment_id')->nullable();
-            $table->string('est_count')->nullable();
-            $table->dateTime('est_date')->nullable();
-            $table->string('actual_count')->nullable();
-            $table->dateTime('actual_date')->nullable();
+            $table->dateTime('date_maintenance')->nullable();
+            $table->string('status')->nullable();
             $table->string('created_by')->nullable();
             $table->string('updated_by')->nullable();
             $table->string('deleted_by')->nullable();

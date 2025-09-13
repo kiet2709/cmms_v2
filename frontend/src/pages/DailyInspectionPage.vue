@@ -25,6 +25,12 @@ const props = defineProps({
   machineId: {
     type: String,
     required: true
+  },
+  dateFrom: {
+    type: Date
+  },
+  dateTo: {
+    type: Date
   }
 })
 
@@ -40,10 +46,22 @@ async function fetchDailyTasks() {
   loading.value = true;
   try {
     const res = await axiosClient.get('', {
-      params: { c: 'DailyTaskController', m: 'getDailyTasksByEquipment', equipment_id: props.uuid }
+      params: { 
+        c: 'DailyTaskController', 
+        m: 'getDailyTasksByEquipment', 
+        equipment_id: props.uuid,
+        dateFrom: props.dateFrom.toISOString().split('T')[0],
+        dateTo: props.dateTo.toISOString().split('T')[0]
+      }
     });
     data.value = res.data?.data || [];
-    console.log(props.uuid);
+    console.log('-------------DATE');
+    console.log(props.dateFrom);
+    console.log(props.dateTo);
+    console.log('----------------------');
+    
+    
+    
     
   } finally {
     loading.value = false;
@@ -163,7 +181,7 @@ function loadNewDataWhenSubmittedAndCloseModal()
               <tr v-for="task in filteredData" :key="task.code + task.date_start">
                 <td><strong>{{ task.code }}</strong></td>
                 <td>{{ task.content }}</td>
-                <td>{{ task.date_start }}</td>
+                <td>{{ task.date_start.split(" ")[0] }}</td>
                 <td>{{ task.inspected_date }}</td>
                 <td><Tag :color="getStatusColor(task.status ?? 'start')">{{ task.status ?? 'start' }}</Tag></td>
                 <td>{{ task.result }}</td>

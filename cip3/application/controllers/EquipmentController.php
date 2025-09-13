@@ -1,6 +1,11 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
+/**
+ * @property DailyTask_model $DailyTask_model
+ * @property Equipment_model $Equipment_model
+ * @property CI_Output $output
+ */
 class EquipmentController extends CI_Controller
 {
     public function __construct()
@@ -8,6 +13,7 @@ class EquipmentController extends CI_Controller
         parent::__construct();
         $this->load->model('Equipment_model');
         $this->load->model('DailyTask_model');
+        $this->load->model('Maintenance_model');
         $this->load->library('JWT');
     }
 
@@ -81,7 +87,7 @@ class EquipmentController extends CI_Controller
             'uuid'              => $this->uuidv4(),
             'machine_id'      => $data['machineId'] ?? null,
             'model'           => $data['model'] ?? null,
-            'family'          => $data['family'] ?? null,
+            //'family'          => $data['family'] ?? null,
             'manufacturing_date'=> $manufacturingDate ?? null,
             'manufacturer'    => $data['manufacturer'] ?? null,
             'history_count'   => $data['historyCount'] ?? null,
@@ -111,6 +117,7 @@ class EquipmentController extends CI_Controller
                 ]));
         }
         $this->DailyTask_model->insert_daily_tasks();
+        $this->Maintenance_model->cronjobInsertMaintenance();
 
         return $this->output
             ->set_content_type('application/json')
@@ -134,7 +141,7 @@ class EquipmentController extends CI_Controller
         $equipmentData = [
             'machine_id' => $data['machineId'],
             'model'             => $data['model'] ?? null,
-            'family'            => $data['family'] ?? null,
+            //'family'            => $data['family'] ?? null,
             'manufacturing_date'=> $data['manufactureDate'] ?? null,
             'manufacturer'      => $data['manufacturer'] ?? null,
             'history_count'     => $data['historyCount'] ?? null,
@@ -160,6 +167,7 @@ class EquipmentController extends CI_Controller
         $this->db->trans_complete();
 
         $this->DailyTask_model->insert_daily_tasks();
+        $this->Maintenance_model->cronjobInsertMaintenance();
 
         if ($this->db->trans_status() === FALSE) {
             return $this->output

@@ -223,7 +223,7 @@ const showEditModal = ref(false)
 
 const pagination = ref({
   current: 1,
-  pageSize: 10,
+  pageSize: 4,
   total: 0,
   totalPages: 0,
 });

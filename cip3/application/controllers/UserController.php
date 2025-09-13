@@ -10,7 +10,7 @@ class UserController extends CI_Controller
 		parent::__construct();
 		$this->load->model('User_model');
 		$this->load->library('JWT');
-		$this->load->helper('auth');
+		$this->load->helper(['auth', 'api']);
 	}
 
 	private function respond($status_code, $data)
@@ -38,6 +38,21 @@ class UserController extends CI_Controller
 			'user' => $user,
 			'role' => $role->name,
 		]);
+
+		// $CI =& get_instance();
+
+        // // Lấy Authorization header
+        // $authHeader = $CI->input->get_request_header('Authorization');
+
+		// $result = api_request(
+        //     'GET', 
+        //     '?c=UserController&m=getProfile',
+        //     [],
+		// 	[
+		// 		'Authorization' => $authHeader
+		// 	]
+        // );
+		// return $this->respond(200, $result['body']);
 	}
 
 	public function getAllUsers()

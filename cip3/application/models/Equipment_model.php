@@ -6,7 +6,7 @@ class Equipment_model extends CI_Model {
 
     public function getEquipments($limit, $offset)
     {
-        $this->db->select('equipments.uuid, machine_id, family, model, cavity, manufacturer, manufacturing_date, history_count, unit, categories.name as category');
+        $this->db->select('equipments.uuid, machine_id, model, cavity, manufacturer, manufacturing_date, history_count, unit, categories.name as category');
         $this->db->from($this->table);
          $this->db->join('categories', 'categories.uuid = equipments.category_id', 'left');
         $this->db->where('equipments.deleted_at IS NULL');
@@ -26,7 +26,7 @@ class Equipment_model extends CI_Model {
 
     public function getById($equipment_id)
     {
-        $this->db->select('equipments.uuid, machine_id, family, model, cavity, manufacturer, manufacturing_date, history_count, unit, categories.name as category, categories.uuid as category_id');
+        $this->db->select('equipments.uuid, machine_id,  model, cavity, manufacturer, manufacturing_date, history_count, unit, categories.name as category, categories.uuid as category_id');
         $this->db->from($this->table);
          $this->db->join('categories', 'categories.uuid = equipments.category_id', 'left');
         $this->db->where('equipments.uuid', $equipment_id);

@@ -27,10 +27,10 @@
           <input v-model="creator" placeholder="Enter Model" class="input" />
         </div>
 
-        <div class="form-group">
+        <!-- <div class="form-group">
           <label class="form-label">Family</label>
           <input v-model="serialNumber" placeholder="Enter Family" class="input" />
-        </div>
+        </div> -->
 
         <!-- <div class="form-group">
           <label class="form-label">Manufacture Date</label>
@@ -618,7 +618,7 @@ const fetchEquipmentData = async () => {
     const eq = eqArr[0]
     modelId.value = eq.machine_id
     creator.value = eq.model
-    serialNumber.value = eq.family
+    // serialNumber.value = eq.family
     manufactureDate.value = dayjs(eq.manufacturing_date)
     location.value = eq.manufacturer
     status.value = eq.history_count
@@ -635,7 +635,7 @@ const updateMachine = async () => {
         uuid: uuid,
         machineId: modelId.value,
         model: creator.value,
-        family: serialNumber.value,
+        // family: serialNumber.value,
         manufactureDate: manufactureDate.value,
         manufacturer: location.value,
         historyCount: status.value,

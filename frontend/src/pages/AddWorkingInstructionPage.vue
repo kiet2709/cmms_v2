@@ -222,21 +222,21 @@
                         type="file"
                         :id="'file-' + stepIndex + '-' + index"
                         @change="onVideoUpload($event, stepIndex, index)"
-                        accept="video/*"
+                        accept="video/*,.vtt"
                         class="file-input"
                       />
                       <label :for="'file-' + stepIndex + '-' + index" class="file-upload-btn">
                         <span class="upload-icon">📤</span>
-                        Choose Video
+                        Choose Video or Subtitle (.vtt)
                       </label>
                       <!-- Preview nhiều video -->
-                      <div v-if="item.videoUrls && item.videoUrls.length" class="video-preview-list">
+                      <div v-if="item.videoItems && item.videoItems.length" class="video-preview-list">
                         <div 
-                          v-for="(vid, i) in item.videoUrls" 
+                          v-for="(vid, i) in item.videoItems" 
                           :key="i" 
                           class="video-preview"
                         >
-                          <video :src="vid" width="100" controls class="preview-video"></video>
+                          <video :src="vid.url" width="100" controls class="preview-video"></video>
                           <div class="video-overlay">
                             <button @click="removeVideo(stepIndex, index, i)" class="overlay-btn">
                               <span>🗑️</span>
@@ -498,13 +498,23 @@
               <!-- Render Static Video -->
               <div v-else-if="item.type === 'staticVideo'" class="video-block">
                 <!-- Có video -->
-                <div v-if="item.videoUrls && item.videoUrls.length" class="video-preview-grid">
+                <div v-if="item.videoItems && item.videoItems.length" class="video-preview-grid">
                   <div 
-                    v-for="(vid, i) in item.videoUrls" 
+                    v-for="(vidItem, i) in item.videoItems" 
                     :key="i" 
                     class="preview-video-wrapper"
                   >
-                    <video :src="vid" controls class="preview-video-large"></video>
+                    <video controls class="preview-video-large">
+                      <source :src="vidItem.url" type="video/mp4" />
+                      <track 
+                        v-for="(subUrl, lang) in vidItem.subtitles" 
+                        :key="lang" 
+                        kind="subtitles" 
+                        :srclang="lang" 
+                        :label="lang.toUpperCase()" 
+                        :src="subUrl" 
+                      />
+                    </video>
                   </div>
                 </div>
 
@@ -806,7 +816,7 @@ const loadStepsFromApi = (apiData) => {
           return {
             id: item.id,
             type: "staticVideo",
-            videoUrls: item.videoUrls || [],
+            videoItems: item.videoItems || (item.videoUrls ? item.videoUrls.map(url => ({ url, subtitles: {} })) : []),
           };
         case "userImage":
           return {
@@ -950,20 +960,29 @@ const duplicateItem = (stepIndex, index) => {
 const removeItem = async (stepIndex, index) => {
   const item = steps.value[stepIndex].formItems[index];
   if (item.type === "staticImage" && item.imageUrls) {
-    try {
-      await axiosClient.post('', {}, {
-        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.imageUrls },
-      });
-    } catch (err) {
-      console.error("Delete image failed:", err);
+    for (const url of item.imageUrls) {
+      try {
+        await axiosClient.post('', {}, {
+          params: { c: 'WorkingInstructionController', m: 'delete_image', path: url },
+        });
+      } catch (err) {
+        console.error("Delete image failed:", err);
+      }
     }
-  } else if (item.type === "staticVideo" && item.videoUrls) {
-    try {
-      await axiosClient.post('', {}, {
-        params: { c: 'WorkingInstructionController', m: 'delete_image', path: item.videoUrls },
-      });
-    } catch (err) {
-      console.error("Delete video failed:", err);
+  } else if (item.type === "staticVideo" && item.videoItems) {
+    for (const vidItem of item.videoItems) {
+      try {
+        await axiosClient.post('', {}, {
+          params: { c: 'WorkingInstructionController', m: 'delete_image', path: vidItem.url },
+        });
+        for (const subUrl of Object.values(vidItem.subtitles)) {
+          await axiosClient.post('', {}, {
+            params: { c: 'WorkingInstructionController', m: 'delete_image', path: subUrl },
+          });
+        }
+      } catch (err) {
+        console.error("Delete video or subtitle failed:", err);
+      }
     }
   }
   steps.value[stepIndex].formItems.splice(index, 1);
@@ -1032,7 +1051,7 @@ const onDrop = (stepIndex) => {
     case "multiple": Object.assign(newItem, { type:"multiple", question:"", options:"" }); break;
     case "single": Object.assign(newItem, { type:"single", question:"", options:"" }); break;
     case "staticImage": Object.assign(newItem, { type:"staticImage", imageUrls:[] }); break;
-    case "staticVideo": Object.assign(newItem, { type:"staticVideo", videoUrls:[] }); break;
+    case "staticVideo": Object.assign(newItem, { type:"staticVideo", videoItems:[] }); break;
     case "userImage": Object.assign(newItem, { type:"userImage" }); break;
   }
   step.formItems.push(newItem);
@@ -1069,15 +1088,13 @@ const onImageUpload = async (event, stepIndex, index) => {
   }
 };
 
-// Video upload handler (nhiều video)
+// Video upload handler (nhiều video và subtitles .vtt)
 const onVideoUpload = async (event, stepIndex, index) => {
   const files = event.target.files;
   if (!files || !files.length) return;
 
-  // nếu chưa có videoUrls thì tạo mảng rỗng
-  if (!steps.value[stepIndex].formItems[index].videoUrls) {
-    steps.value[stepIndex].formItems[index].videoUrls = [];
-  }
+  const item = steps.value[stepIndex].formItems[index];
+  if (!item.videoItems) item.videoItems = [];
 
   for (const file of files) {
     const form = new FormData();
@@ -1090,8 +1107,32 @@ const onVideoUpload = async (event, stepIndex, index) => {
       });
       const url = res.data.url;
 
-      // push vào mảng videoUrls
-      steps.value[stepIndex].formItems[index].videoUrls.push(url);
+      if (file.type.startsWith('video/')) {
+        // Upload video: thêm mới video item
+        item.videoItems.push({ url, subtitles: {} });
+      } else if (file.name.endsWith('.vtt')) {
+        // Upload .vtt: attach vào video cuối cùng
+        if (item.videoItems.length === 0) {
+          alert('Please upload a video first before adding subtitles.');
+          continue;
+        }
+
+        let lang = null;
+        const lowerName = file.name.toLowerCase();
+        if (lowerName.includes('en')) lang = 'en';
+        else if (lowerName.includes('vi')) lang = 'vi';
+        else if (lowerName.includes('zh')) lang = 'zh';
+
+        if (!lang) {
+          alert('VTT file name must contain "en", "vi", or "zh" to indicate language.');
+          continue;
+        }
+
+        const lastVideo = item.videoItems[item.videoItems.length - 1];
+        lastVideo.subtitles[lang] = url;
+      } else {
+        alert('Invalid file type. Only videos or .vtt subtitles are allowed.');
+      }
     } catch (err) {
       console.error("Upload failed:", err);
     }
@@ -1117,10 +1158,11 @@ const removeImage = async (stepIndex, index, imgIndex) => {
   item.imageUrls.splice(imgIndex, 1);
 };
 
-// Xóa 1 video trong mảng
+// Xóa 1 video trong mảng (bao gồm subtitles)
 const removeVideo = async (stepIndex, index, vidIndex) => {
   const item = steps.value[stepIndex].formItems[index];
-  const url = item.videoUrls[vidIndex];
+  const vidItem = item.videoItems[vidIndex];
+  const url = vidItem.url;
 
   if (url) {
     try {
@@ -1132,17 +1174,26 @@ const removeVideo = async (stepIndex, index, vidIndex) => {
     }
   }
 
+  // Xóa subtitles nếu có
+  for (const subUrl of Object.values(vidItem.subtitles)) {
+    if (subUrl) {
+      try {
+        await axiosClient.post('', {}, {
+          params: { c: 'WorkingInstructionController', m: 'delete_image', path: subUrl },
+        });
+      } catch (err) {
+        console.error("Delete subtitle failed:", err);
+      }
+    }
+  }
+
   // Xóa khỏi mảng
-  item.videoUrls.splice(vidIndex, 1);
+  item.videoItems.splice(vidIndex, 1);
 };
 // Save form
 const saveForm = async () => {
   try {
     saving.value = true;
-    // const payload = {
-    //   meta: { ...formMeta.value, category_code: formMeta.value.category },
-    //   content: JSON.parse(JSON.stringify(steps.value)), // gửi nhiều step
-    // };
     const payload = {
       meta: { ...formMeta.value, category_code: formMeta.value.category, uuid: uuid.value },
       steps: steps.value.map((s, i) => ({
@@ -1211,8 +1262,6 @@ const getCategories = async () => {
 onMounted(() => {
   getCategories();
   if (uuid.value) {
-    console.log('có vô cái if này');
-    
     getWI();
   }
   

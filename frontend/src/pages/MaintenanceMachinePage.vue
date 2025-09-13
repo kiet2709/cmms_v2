@@ -207,24 +207,18 @@ const breadcrumbItems = [
             <thead>
               <tr>
                 <th>Machine ID</th>
-                <th>Family</th>
                 <th>Model</th>
                 <th>Cavity</th>
                 <th>Category</th>
                 <th>Status</th>
                 <th>Done / Total</th>
                 <th>Technician</th>
-                <th>Maintenance Date</th>
-                <th>Estimate Count</th>
-                <th>Estimate Date</th>
-                <th>Actual Count</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in filteredData" :key="item.equipment_id">
                 <td><strong>{{ item.machine_id }}</strong></td>
-                <td>{{ item.family }}</td>
                 <td>{{ item.model }}</td>
                 <td>{{ item.cavity }}</td>
                 <td>{{ item.category }}</td>
@@ -234,10 +228,6 @@ const breadcrumbItems = [
                 <!-- <td>{{ item.count_done + '/' + item.count_pending }}</td> -->
                 <td>{{ '' }}</td>
                 <td>{{ item.inspectors ?? '' }}</td>
-                <td>{{ item.actual_date }}</td>
-                <td>{{ item.est_count }}</td>
-                <td>{{ item.est_date }}</td>
-                <td>{{ item.actual_count }}</td>
                 <td>
                   <div class="action-buttons-cell">
                     <Tooltip title="View Tasks of Equipment">
@@ -483,7 +473,7 @@ const breadcrumbItems = [
 }
 
 .modern-table {
-  width: max-content;
+  width: 100%;
   border-collapse: collapse;
   background: white;
   font-size: 16px;
